@@ -29,8 +29,8 @@ type WorkerSpec struct {
 
 // BootStep 启动期一次性执行的 Artisan 命令。
 type BootStep struct {
-	Name    string
-	Command string
+	Name string
+	Args []string
 }
 
 // QueuePollSpec 控制 Go 侧拉模式队列消费的节奏。
@@ -69,8 +69,7 @@ const (
 // Spec 描述一个节点的应用编排：哪些 worker、哪些启动步骤、是否消费队列、是否跑 cron、HTTP 模式。
 // 多实例部署时不同角色的节点用不同的 Spec 即可，包代码保持稳定。
 //
-// 当前兼容性约束：调用方必须通过 defaultSpec(cfg) 获取带默认值的 Spec，零值结构不可直接使用。
-// 后续若要外放给其它项目使用，再补 Spec.WithDefaults() 之类的方法。
+// 调用方通过 defaultSpec(cfg) 获取完整编排；零值结构不作为有效配置。
 type Spec struct {
 	Workers              []WorkerSpec
 	OnBoot               []BootStep

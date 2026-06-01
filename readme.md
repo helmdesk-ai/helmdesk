@@ -75,7 +75,7 @@ artisan tinker                 # 启动 Tinker（可以安装 rlwrap，用 rlwra
 
 ## 开发指南
 
-开发容器环境已拆分到独立仓库 `helmdesk-dev`，本仓库只保留应用源码、运行逻辑和生产打包脚本。
+开发容器环境位于同级仓库 `helmdesk-dev`。
 
 使用容器开发时，先进入同级的开发环境仓库：
 

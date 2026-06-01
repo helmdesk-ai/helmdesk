@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/dunglas/frankenphp"
@@ -19,12 +18,12 @@ func runBootStepsDirect(cfg *config.Config, spec Spec) {
 	}
 	for _, step := range spec.OnBoot {
 		log.Printf("开始执行 %s...", step.Name)
-		runLaravelCommandDirect(cfg, step.Command)
+		runLaravelCommandDirect(cfg, step.Name, step.Args)
 	}
 }
 
 // runLaravelCommandDirect 通过 CLI 模式执行 Artisan 命令，用于数据库迁移等 worker 前置步骤。
-func runLaravelCommandDirect(cfg *config.Config, command string) {
+func runLaravelCommandDirect(cfg *config.Config, name string, args []string) {
 	for key, value := range cfg.PhpEnv {
 		if err := os.Setenv(key, value); err != nil {
 			log.Fatalf("无法设置环境变量 %s: %v", key, err)
@@ -32,10 +31,9 @@ func runLaravelCommandDirect(cfg *config.Config, command string) {
 	}
 
 	artisanScript := filepath.Join(cfg.PhpProjectRoot, "artisan")
-	args := append([]string{"artisan"}, strings.Fields(command)...)
-	exitCode := frankenphp.ExecuteScriptCLI(artisanScript, args)
+	exitCode := frankenphp.ExecuteScriptCLI(artisanScript, append([]string{"artisan"}, args...))
 	if exitCode != 0 {
-		log.Fatalf("启动命令失败: %s, exit code: %d", command, exitCode)
+		log.Fatalf("启动命令失败: %s, exit code: %d", name, exitCode)
 	}
 }
 

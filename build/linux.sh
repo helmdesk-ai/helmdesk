@@ -41,9 +41,9 @@ else
 fi
 
 # GITHUB_TOKEN
-BUILD_ARGS=""
+BUILD_SECRETS=""
 if [ -n "${GITHUB_TOKEN}" ]; then
-    BUILD_ARGS="--build-arg GITHUB_TOKEN=${GITHUB_TOKEN}"
+    BUILD_SECRETS="--secret id=github_token,env=GITHUB_TOKEN"
 fi
 
 echo ""
@@ -68,7 +68,7 @@ build_platform() {
     echo ""
     echo "构建 ${docker_platform} 镜像..."
     docker buildx build \
-        ${BUILD_ARGS} \
+        ${BUILD_SECRETS} \
         --platform "${docker_platform}" \
         -t "helmdesk-static-builder:${arch}" \
         -f build/Dockerfile \

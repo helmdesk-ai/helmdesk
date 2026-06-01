@@ -1,8 +1,6 @@
-FROM dunglas/frankenphp:static-builder-gnu-1.12.2 AS static-builder
+# syntax=docker/dockerfile:1.7
 
-# 接收 GitHub Token（用于避免 API 限流）
-ARG GITHUB_TOKEN
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+FROM dunglas/frankenphp:static-builder-gnu-1.12.2 AS static-builder
 
 # PHP 扩展配置
 ENV PHP_VERSION=8.5.5
@@ -28,7 +26,9 @@ WORKDIR /go/src/app/dist/static-php-cli
 RUN ./spc doctor --auto-fix
 
 # 下载 PHP 源码和扩展
-RUN rm -rf downloads && \
+RUN --mount=type=secret,id=github_token \
+    if [ -f /run/secrets/github_token ]; then export GITHUB_TOKEN="$(cat /run/secrets/github_token)"; fi && \
+    rm -rf downloads && \
     ./spc download \
     --with-php=$PHP_VERSION \
     --for-extensions=$PHP_EXTENSIONS \
@@ -48,9 +48,23 @@ RUN ./spc build \
     --with-libs=$PHP_EXTENSION_LIBS
 
 # ================================
-# 第二阶段：使用开发镜像构建应用
+# 第二阶段：构建应用
 # ================================
-FROM registry.cn-hangzhou.aliyuncs.com/helmdesk/dev:latest AS app-builder
+FROM composer/composer:latest-bin AS composer-bin
+
+FROM dunglas/frankenphp:1.12.2-builder-php8.5.5-trixie AS app-builder
+
+RUN install-php-extensions \
+        pdo_sqlite \
+        intl \
+        zip \
+        bcmath && \
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer-bin /composer /usr/bin/composer
 
 WORKDIR /build
 COPY . .

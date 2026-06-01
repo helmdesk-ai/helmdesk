@@ -9,18 +9,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const vitePort = Number(env.VITE_PORT || 3000);
   const hmrHost = env.VITE_HMR_HOST || 'localhost';
-  const hmrClientPort = Number(
-    env.VITE_HMR_CLIENT_PORT || env.COMPOSE_DEV_VITE_PORT || vitePort,
-  );
+  const hmrClientPort = Number(env.VITE_HMR_CLIENT_PORT || vitePort);
 
   // 允许的 CORS origin：以 APP_URL 为基础，再补 localhost / 127.0.0.1 的等价别名。
-  // 之前为了兼容 docker compose 的端口可变把 80 写死了一份，但当 COMPOSE_DEV_HTTP_PORT
-  // 真的被改掉时，那个固定的 :80 反而是死代码；这里改成完全跟随 APP_URL 推导，
-  // 只在 APP_URL 是 localhost / 127.0.0.1 时再生成另一种主机名的等价 origin。
   const corsOrigins = (() => {
     if (!env.APP_URL) {
-      const port = env.COMPOSE_DEV_HTTP_PORT || '8888';
-      return [`http://localhost:${port}`, `http://127.0.0.1:${port}`];
+      return ['http://localhost:8888', 'http://127.0.0.1:8888'];
     }
 
     const appUrl = env.APP_URL.replace(/\/$/, '');

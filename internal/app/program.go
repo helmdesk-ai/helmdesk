@@ -63,8 +63,8 @@ func defaultSpec(cfg *config.Config) Spec {
 			},
 		},
 		OnBoot: []BootStep{
-			{Name: "migrate", Command: "migrate --force"},
-			{Name: "optimize", Command: "optimize"},
+			{Name: "migrate", Args: []string{"migrate", "--force"}},
+			{Name: "optimize", Args: []string{"optimize"}},
 		},
 		OnBootRunCondition:   func() bool { return frankenphp.EmbeddedAppPath != "" || !watcherEnabled },
 		OnBootCommandTimeout: 5 * time.Second,
