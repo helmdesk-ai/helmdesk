@@ -7,7 +7,7 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const vitePort = Number(env.VITE_PORT || 5173);
+  const vitePort = Number(env.VITE_PORT || 3000);
   const hmrHost = env.VITE_HMR_HOST || 'localhost';
   const hmrClientPort = Number(
     env.VITE_HMR_CLIENT_PORT || env.COMPOSE_DEV_VITE_PORT || vitePort,
@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
   // 只在 APP_URL 是 localhost / 127.0.0.1 时再生成另一种主机名的等价 origin。
   const corsOrigins = (() => {
     if (!env.APP_URL) {
-      const port = env.COMPOSE_DEV_HTTP_PORT || '80';
+      const port = env.COMPOSE_DEV_HTTP_PORT || '8888';
       return [`http://localhost:${port}`, `http://127.0.0.1:${port}`];
     }
 

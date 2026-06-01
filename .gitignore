@@ -32,8 +32,10 @@ yarn-error.log
 **/caddy
 frankenphp
 frankenphp-worker.php
-build/
+/build/*
+!/build/Dockerfile
+!/build/linux.sh
+!/build/windows.ps1
 *.db
 _ide_helper_actions.php
 *_test.go
-privoxy.conf

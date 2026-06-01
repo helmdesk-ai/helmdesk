@@ -56,6 +56,7 @@ WORKDIR /build
 COPY . .
 RUN composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-interaction
 RUN npm install && \
+    php artisan typescript:transform --force --no-interaction && \
     npm run build && \
     rm -rf node_modules
 
@@ -77,9 +78,11 @@ RUN cd /work/php-app && \
     test -f bootstrap/sqlite_vec/linux-x64/vec0.so && \
     test -f bootstrap/sqlite_vec/windows-x64/vec0.dll && \
     tar -cf /go/src/app/app.tar . && \
-    tar -tf /go/src/app/app.tar | grep -Eq '(^|\\./)bootstrap/sqlite_vec/linux-arm64/vec0.so$' && \
-    tar -tf /go/src/app/app.tar | grep -Eq '(^|\\./)bootstrap/sqlite_vec/linux-x64/vec0.so$' && \
-    tar -tf /go/src/app/app.tar | grep -Eq '(^|\\./)bootstrap/sqlite_vec/windows-x64/vec0.dll$' && \
+    tar -tf /go/src/app/app.tar > /tmp/app-files.txt && \
+    grep -Eq '^(\./)?bootstrap/sqlite_vec/linux-arm64/vec0.so$' /tmp/app-files.txt && \
+    grep -Eq '^(\./)?bootstrap/sqlite_vec/linux-x64/vec0.so$' /tmp/app-files.txt && \
+    grep -Eq '^(\./)?bootstrap/sqlite_vec/windows-x64/vec0.dll$' /tmp/app-files.txt && \
+    rm /tmp/app-files.txt && \
     sha256sum /go/src/app/app.tar | awk '{print $1}' > /go/src/app/app_checksum.txt && \
     echo "PHP 应用已打包: $(du -h /go/src/app/app.tar | cut -f1)" && \
     echo "Checksum: $(cat /go/src/app/app_checksum.txt)" && \

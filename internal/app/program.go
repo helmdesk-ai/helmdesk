@@ -106,17 +106,17 @@ func run(cfg *config.Config, spec Spec) {
 		log.Printf("内部桥接监听: %s", cfg.InternalBridgeURL)
 	}
 
-	registerWorkers(cfg, spec.Workers)
-
 	if err := sqlitevec.Register(cfg.PhpProjectRoot); err != nil {
 		log.Fatalf("无法加载 sqlite-vec 扩展: %v", err)
 	}
 
+	runBootStepsDirect(cfg, spec)
+
+	registerWorkers(cfg, spec.Workers)
+
 	if err := frankenphp.Init(cfg.PhpOption...); err != nil {
 		log.Fatalln(err.Error())
 	}
-
-	runBootSteps(cfg, spec)
 
 	gin.SetMode(gin.ReleaseMode)
 

@@ -14,7 +14,8 @@ LICENSE
 Dockerfile
 docker-compose.yaml
 .dockerignore
-build/
+build/*
+!build/Dockerfile
 node_modules/
 vendor/
 .npm

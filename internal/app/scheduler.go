@@ -3,19 +3,39 @@ package app
 import (
 	"helmdesk/internal/app/config"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/dunglas/frankenphp"
 	"github.com/robfig/cron/v3"
 )
 
-// runBootSteps 在满足条件时依次执行启动阶段需要跑的 Artisan 命令。
-func runBootSteps(cfg *config.Config, spec Spec) {
+// runBootStepsDirect 在 worker 初始化前执行启动阶段必须完成的 Artisan 命令。
+func runBootStepsDirect(cfg *config.Config, spec Spec) {
 	if spec.OnBootRunCondition != nil && !spec.OnBootRunCondition() {
 		return
 	}
 	for _, step := range spec.OnBoot {
 		log.Printf("开始执行 %s...", step.Name)
-		runLaravelCommand(cfg.ArtisanWorkers, step.Command, spec.OnBootCommandTimeout)
+		runLaravelCommandDirect(cfg, step.Command)
+	}
+}
+
+// runLaravelCommandDirect 通过 CLI 模式执行 Artisan 命令，用于数据库迁移等 worker 前置步骤。
+func runLaravelCommandDirect(cfg *config.Config, command string) {
+	for key, value := range cfg.PhpEnv {
+		if err := os.Setenv(key, value); err != nil {
+			log.Fatalf("无法设置环境变量 %s: %v", key, err)
+		}
+	}
+
+	artisanScript := filepath.Join(cfg.PhpProjectRoot, "artisan")
+	args := append([]string{"artisan"}, strings.Fields(command)...)
+	exitCode := frankenphp.ExecuteScriptCLI(artisanScript, args)
+	if exitCode != 0 {
+		log.Fatalf("启动命令失败: %s, exit code: %d", command, exitCode)
 	}
 }
 

@@ -14,16 +14,8 @@ export LOG_FORMAT
 
 .PHONY: run
 run:
-	go run -mod=mod ./cmd/helmdesk --port 0.0.0.0:8080
+	go run -mod=mod ./cmd/helmdesk --port 0.0.0.0:8888
 
 .PHONY: test-go
 test-go:
 	go test -mod=mod ./...
-
-.PHONY: docker-push
-docker-push:
-	docker buildx bake -f docker-compose.yaml --set "*.platform=linux/amd64,linux/arm64" --push dev
-
-.PHONY: docker-build
-docker-build:
-	docker buildx bake -f docker-compose.yaml --set "*.platform=linux/arm64" --load dev

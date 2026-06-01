@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    {{-- Inline script to detect system dark mode preference and apply it immediately --}}
+    {{-- 在页面渲染前根据系统偏好应用暗色模式，避免首屏闪烁。 --}}
     <script>
       (function() {
         const appearance = '{{ $appearance ?? "system" }}';
@@ -20,7 +20,7 @@
       })();
     </script>
 
-    {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+    {{-- 在 CSS 加载前设置 HTML 背景色，避免主题切换时露出错误底色。 --}}
     <style>
       html {
         background-color: oklch(1 0 0);
@@ -40,7 +40,7 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
-    @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+    @vite('resources/js/app.ts')
     @inertiaHead
   </head>
   <body class="font-sans antialiased">

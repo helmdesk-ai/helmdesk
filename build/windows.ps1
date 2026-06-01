@@ -30,8 +30,9 @@ if ($null -eq $regResult -or $regResult.LongPathsEnabled -ne 1) {
     Write-Warning 'Run as admin: reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f'
 }
 
-$RepoRoot = $PSScriptRoot
+$RepoRoot = Split-Path -Parent $PSScriptRoot
 $BuildRoot = Join-Path $RepoRoot 'build\windows'
+$OutputRoot = Join-Path $RepoRoot 'build\output'
 $PhpZip = Join-Path $BuildRoot 'php.zip'
 $PhpDevelZip = Join-Path $BuildRoot 'php-devel.zip'
 $PhpBin = Join-Path $BuildRoot 'php'
@@ -44,8 +45,8 @@ $VcpkgInstalled = Join-Path $VcpkgManifest "vcpkg_installed\$Triplet"
 $AppStaging = Join-Path $BuildRoot 'app-staging'
 $FrankenphpEmbedded = Join-Path $BuildRoot 'frankenphp-embedded'
 $PackageName = if ($Mode -eq 'Embedded') { 'helmdesk-win-x64-embedded' } else { 'helmdesk-win-x64' }
-$PackageDir = Join-Path $BuildRoot $PackageName
-$PackageZip = Join-Path $BuildRoot "$PackageName.zip"
+$PackageDir = Join-Path $OutputRoot $PackageName
+$PackageZip = Join-Path $OutputRoot "$PackageName.zip"
 
 function Write-Step([string] $Message) {
     Write-Host ''
@@ -333,7 +334,7 @@ function Set-BuildEnvironment {
 function Build-GoBinary([string] $Modfile) {
     Write-Step "Building HelmDesk Windows binary ($Mode)"
 
-    Remove-TreeSafely $PackageDir $BuildRoot
+    Remove-TreeSafely $PackageDir $OutputRoot
     New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
 
     $outputExe = Join-Path $PackageDir 'helmdesk.exe'
@@ -449,6 +450,7 @@ function Show-Summary {
 Push-Location $RepoRoot
 try {
     New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
     Import-VsEnvironment (Find-VsDevCmd)
     Install-Php
