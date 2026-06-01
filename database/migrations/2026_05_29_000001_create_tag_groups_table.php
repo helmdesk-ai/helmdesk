@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('tag_groups', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->timestamps();
+            $table->softDeletes();
+            $table->ulid('workspace_id')->comment('工作区 ID');
+            $table->string('name')->comment('标签组名');
+            $table->string('normalized_name')->comment('标准化组名');
+            $table->string('scope')->comment('适用维度：conversation / contact');
+            $table->unsignedInteger('sort_order')->default(0)->comment('组排序权重');
+            $table->ulid('created_by_user_id')->nullable();
+            $table->ulid('updated_by_user_id')->nullable();
+
+            $table->index('workspace_id');
+            $table->index(['workspace_id', 'scope'], 'tag_groups_workspace_scope_idx');
+        });
+
+        DB::statement(
+            'CREATE UNIQUE INDEX tag_groups_workspace_normalized_name_active_unique ON tag_groups (workspace_id, normalized_name) WHERE deleted_at IS NULL',
+        );
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('tag_groups');
+    }
+};

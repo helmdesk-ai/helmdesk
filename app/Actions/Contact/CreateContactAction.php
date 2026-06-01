@@ -1,0 +1,147 @@
+<?php
+
+namespace App\Actions\Contact;
+
+use App\Data\Contact\FormCreateContactData;
+use App\Data\WorkspaceUserContextData;
+use App\Enums\ContactSource;
+use App\Enums\ContactType;
+use App\Enums\IdentityType;
+use App\Models\Contact;
+use App\Models\ContactActivityLog;
+use App\Models\ContactIdentity;
+use App\Models\User;
+use App\Models\Workspace;
+use App\Services\Contact\ContactActivityLogger;
+use App\Services\Contact\ContactIdentityNormalizer;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Lorisleiva\Actions\Concerns\AsAction;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * 创建联系人，并按需要同时写入身份标识。
+ */
+class CreateContactAction
+{
+    use AsAction;
+
+    public function handle(Workspace $workspace, FormCreateContactData $data, ?User $actor = null): Contact
+    {
+        if ($data->phone !== null && ! ContactIdentityNormalizer::isPhoneInputFormatValid($data->phone)) {
+            throw ValidationException::withMessages([
+                'phone' => __('contact.invalid_phone'),
+            ]);
+        }
+
+        $email = $data->email
+            ? ContactIdentityNormalizer::normalizeValue(IdentityType::Email, $data->email)
+            : null;
+        $phone = $data->phone
+            ? ContactIdentityNormalizer::normalizeValue(IdentityType::Phone, $data->phone)
+            : null;
+
+        if ($phone !== null && ! ContactIdentityNormalizer::isNormalizedPhoneValid($phone)) {
+            throw ValidationException::withMessages([
+                'phone' => __('contact.invalid_phone'),
+            ]);
+        }
+
+        if (! $email && ! $phone) {
+            throw ValidationException::withMessages([
+                'email' => __('contact.at_least_one_identity'),
+            ]);
+        }
+
+        $this->checkDuplicateIdentity($workspace, IdentityType::Email, $email);
+        $this->checkDuplicateIdentity($workspace, IdentityType::Phone, $phone);
+
+        return DB::transaction(function () use ($workspace, $data, $email, $phone, $actor) {
+            $contact = Contact::query()->create([
+                'workspace_id' => $workspace->id,
+                'type' => ContactType::Contact,
+                'source' => ContactSource::Manual,
+                'name' => $data->name ? trim($data->name) : null,
+                'avatar_url' => Contact::DEFAULT_AVATAR_URL,
+            ]);
+
+            if ($email) {
+                ContactIdentity::query()->create([
+                    'workspace_id' => $workspace->id,
+                    'contact_id' => $contact->id,
+                    'type' => IdentityType::Email,
+                    'namespace' => '',
+                    'value' => $email,
+                    'display_value' => ContactIdentityNormalizer::buildDisplayValue(IdentityType::Email, $email),
+                ]);
+            }
+
+            if ($phone) {
+                ContactIdentity::query()->create([
+                    'workspace_id' => $workspace->id,
+                    'contact_id' => $contact->id,
+                    'type' => IdentityType::Phone,
+                    'namespace' => '',
+                    'value' => $phone,
+                    'display_value' => ContactIdentityNormalizer::buildDisplayValue(IdentityType::Phone, $phone),
+                ]);
+            }
+
+            $contact->syncPrimaryFields();
+            ContactActivityLogger::record(
+                $contact,
+                ContactActivityLog::ACTION_CREATED,
+                $actor,
+                payload: [
+                    'origin' => 'manual',
+                    'name' => $contact->name,
+                    'source' => $contact->source->value,
+                    'type' => $contact->type->value,
+                    'identity_values' => array_values(array_filter([$email, $phone])),
+                ],
+            );
+
+            return $contact;
+        });
+    }
+
+    public function asController(Request $request, string $slug): Response
+    {
+        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $workspace = $ctx->workspace();
+        $data = FormCreateContactData::from($request);
+
+        $this->handle($workspace, $data, $request->user());
+
+        return back();
+    }
+
+    private function checkDuplicateIdentity(Workspace $workspace, IdentityType $type, ?string $value): void
+    {
+        if (! $value) {
+            return;
+        }
+
+        $existing = ContactIdentity::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('type', $type)
+            ->where('namespace', '')
+            ->where('value', $value)
+            ->whereNull('deleted_at')
+            ->with('contact')
+            ->first();
+
+        if ($existing) {
+            $fieldName = $type === IdentityType::Email ? 'email' : 'phone';
+            $contactName = $existing->contact->name ?? $existing->contact->id;
+
+            throw ValidationException::withMessages([
+                $fieldName => __('contact.identity_already_exists', [
+                    'type' => $type->label(),
+                    'name' => $contactName,
+                ]),
+            ]);
+        }
+    }
+}

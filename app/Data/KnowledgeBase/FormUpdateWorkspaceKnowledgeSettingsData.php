@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Data\KnowledgeBase;
+
+use App\Enums\KnowledgeChunkingStrategy;
+use Illuminate\Validation\Rule;
+use Spatie\LaravelData\Data;
+
+/**
+ * 工作区知识库统一检索配置表单数据。
+ * 来自 resources/js/pages/knowledgeBase/WorkspaceKnowledgeSettingsPanel.vue 的检索配置面板提交。
+ */
+class FormUpdateWorkspaceKnowledgeSettingsData extends Data
+{
+    public function __construct(
+        public ?string $embedding_model_id = null,
+        public ?int $embedding_dimension = null,
+        public ?string $rerank_model_id = null,
+        public bool $vector_index_enabled = false,
+        public bool $raptor_index_enabled = false,
+        public KnowledgeChunkingStrategy $chunking_strategy = KnowledgeChunkingStrategy::Fixed,
+        public int $chunk_max_tokens = 512,
+        public int $chunk_overlap_tokens = 64,
+        public ?string $summary_model_id = null,
+    ) {}
+
+    /**
+     * @return array<string, list<mixed>>
+     */
+    public static function rules(): array
+    {
+        return [
+            'embedding_model_id' => ['nullable', 'string'],
+            'embedding_dimension' => ['nullable', 'integer', 'between:1,65535'],
+            'rerank_model_id' => ['nullable', 'string'],
+            'vector_index_enabled' => ['boolean'],
+            'raptor_index_enabled' => ['boolean'],
+            'chunking_strategy' => ['nullable', Rule::enum(KnowledgeChunkingStrategy::class)],
+            'chunk_max_tokens' => ['nullable', 'integer', 'between:64,4096'],
+            'chunk_overlap_tokens' => ['nullable', 'integer', 'between:0,2048'],
+            'summary_model_id' => ['nullable', 'string'],
+        ];
+    }
+}

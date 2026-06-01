@@ -1,0 +1,47 @@
+volumes:
+  dev:
+  dev-root-ssh:
+  dev-root-git-config:
+  dev-root-claude:
+
+services:
+  privoxy:
+    image: vimagick/privoxy
+    volumes:
+      - ./privoxy.conf:/etc/privoxy/config
+    restart: unless-stopped
+
+  dev:
+    image: registry.cn-hangzhou.aliyuncs.com/helmdesk/dev:latest
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    user: root
+    volumes:
+      - dev:/workspace/
+      - dev-root-ssh:/root/.ssh
+      - dev-root-git-config:/root/.config/git
+      - dev-root-claude:/root/.claude
+    tty: true
+    working_dir: /workspace/helmdesk
+    environment:
+      TZ: Asia/Singapore
+      HTTP_PROXY: http://privoxy:8118
+      HTTPS_PROXY: http://privoxy:8118
+      ALL_PROXY: http://privoxy:8118
+      NO_PROXY: localhost,127.0.0.1
+    ports:
+      - '8080:8080'
+      - '5173:5173'
+      - '2233:22'
+
+  test:
+    image: ubuntu:24.04
+    volumes:
+      - ./build/:/root/
+    tty: true
+    working_dir: /root/
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - '8081:80'

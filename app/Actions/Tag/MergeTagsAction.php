@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Actions\Tag;
+
+use App\Data\Tag\FormMergeTagData;
+use App\Data\WorkspaceUserContextData;
+use App\Models\Contact;
+use App\Models\Tag;
+use App\Models\Workspace;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+/**
+ * 把多个标签合并到目标标签，并迁移关联关系。
+ */
+class MergeTagsAction
+{
+    use AsAction;
+
+    public function handle(Workspace $workspace, FormMergeTagData $data): Tag
+    {
+        return DB::transaction(function () use ($workspace, $data): Tag {
+            if ($data->target_tag_id === $data->merged_tag_id) {
+                throw ValidationException::withMessages([
+                    'merged_tag_id' => __('tag.errors.merge_same_tag'),
+                ]);
+            }
+
+            $targetTag = Tag::query()
+                ->where('workspace_id', $workspace->id)
+                ->findOrFail($data->target_tag_id);
+
+            $mergedTag = Tag::query()
+                ->where('workspace_id', $workspace->id)
+                ->findOrFail($data->merged_tag_id);
+
+            if ($mergedTag->is_locked) {
+                throw ValidationException::withMessages([
+                    'merged_tag_id' => __('tag.errors.locked_cannot_be_merged'),
+                ]);
+            }
+
+            $existingTargetContactIds = DB::table('contact_tag_assignments')
+                ->where('tag_id', $targetTag->id)
+                ->pluck('contact_id');
+
+            DB::table('contact_tag_assignments')
+                ->where('tag_id', $mergedTag->id)
+                ->whereNotIn('contact_id', $existingTargetContactIds)
+                ->update(['tag_id' => $targetTag->id]);
+
+            DB::table('contact_tag_assignments')
+                ->where('tag_id', $mergedTag->id)
+                ->delete();
+
+            $mergedTag->delete();
+
+            $affectedContactIds = DB::table('contact_tag_assignments')
+                ->where('tag_id', $targetTag->id)
+                ->pluck('contact_id');
+
+            if ($affectedContactIds->isNotEmpty()) {
+                Contact::query()
+                    ->whereIn('id', $affectedContactIds)
+                    ->get()
+                    ->each
+                    ->searchable();
+            }
+
+            return $targetTag->fresh();
+        });
+    }
+
+    public function asController(Request $request, string $slug)
+    {
+        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $data = FormMergeTagData::from($request);
+        $this->handle($ctx->workspace(), $data);
+
+        return back();
+    }
+}

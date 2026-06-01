@@ -1,0 +1,13 @@
+{
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        "buildFlags": ["-mod=mod"],
+        "directoryFilters": ["-vendor", "-node_modules"],
+        "env": {
+          "GOFLAGS": "-mod=mod"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Actions\Tag;
+
+use App\Data\Tag\TagUsageData;
+use App\Data\WorkspaceUserContextData;
+use App\Models\Tag;
+use App\Models\Workspace;
+use Illuminate\Http\Request;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+/**
+ * 统计标签在联系人中的使用情况。
+ */
+class ListTagUsageAction
+{
+    use AsAction;
+
+    public function handle(Workspace $workspace, string $id): TagUsageData
+    {
+        $tag = Tag::query()
+            ->where('workspace_id', $workspace->id)
+            ->withTrashed()
+            ->withCount('contacts')
+            ->findOrFail($id);
+
+        $contactUsageCount = (int) ($tag->contacts_count ?? 0);
+
+        return new TagUsageData(
+            contact_usage_count: $contactUsageCount,
+            usage_count: $contactUsageCount,
+        );
+    }
+
+    public function asController(Request $request, string $slug, string $id)
+    {
+        $ctx = WorkspaceUserContextData::fromRequest($request);
+
+        return $this->handle($ctx->workspace(), $id)->toArray();
+    }
+}

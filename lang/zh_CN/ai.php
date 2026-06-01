@@ -1,0 +1,62 @@
+<?php
+
+return [
+    'model_types' => [
+        'llm' => '大语言模型',
+        'embedding' => '嵌入模型',
+        'rerank' => '重排序模型',
+    ],
+    'provider_configured' => 'AI 供应商配置已保存。',
+    'provider_created' => '供应商已添加。',
+    'provider_deleted' => '供应商已删除。',
+    'cannot_delete_builtin_model' => '内置模型不能删除。',
+    'cannot_replace_builtin_model' => '内置模型不能通过此表单覆盖。',
+    'model_created' => '模型已添加。',
+    'model_updated' => '模型已更新。',
+    'model_enabled' => '模型已启用。',
+    'model_disabled' => '模型已停用。',
+    'model_deleted' => '模型已删除。',
+    'disable_requires_active_model' => '供应商至少保留一个启用中的大语言模型。',
+    'check_success' => '连接测试成功！',
+    'check_empty_response' => '连接成功但返回为空。',
+    'check_missing_key' => '请先填写 API Key。',
+    'check_unsupported_protocol' => '不支持的协议，无法测试。',
+    'check_no_model' => '没有可用的大语言模型用于测试，请先添加模型。',
+    'chat' => [
+        'prompt_required' => '请输入要发送的内容。',
+        'model_required' => '请先选择一个模型后再发送。',
+        'model_unavailable' => '当前工作区尚未配置可用的 AI 模型，请联系管理员。',
+        'selected_model_unavailable' => '所选模型已不可用，请重新选择。',
+        'runtime_unavailable' => 'AI 服务暂时不可用，请稍后再试。',
+        'invalid_topic' => '无法停止这次 AI 对话，请刷新后重试。',
+    ],
+    'runtime' => [
+        'check' => [
+            'succeeded' => 'AI 运行时连通性测试通过。',
+            'no_active_llm' => '没有可用于连通性测试的大语言模型。',
+            'missing_credentials' => '缺少必填凭据：:fields',
+            'unsupported' => 'AI 运行时暂不支持：:reason',
+            'runtime_error' => 'AI 运行时错误：:error',
+        ],
+        'validate' => [
+            'provider_accepted' => '供应商配置已通过 AI 运行时校验。',
+            'model_accepted' => '模型配置已通过 AI 运行时校验。',
+            'candidate_model_required' => '模型校验缺少候选模型信息。',
+            'unsupported_mode' => 'AI 运行时不支持的校验模式：:mode',
+            'missing_credentials' => '缺少必填凭据：:fields',
+            'no_active_model' => '暂无启用中的大语言模型，无法完成运行时校验。',
+            'incomplete_credentials' => '供应商凭据尚未填完，无法完成运行时校验。',
+            'unsupported' => 'AI 运行时暂不支持：:reason',
+            'runtime_error' => 'AI 运行时错误：:error',
+        ],
+        'bridge' => [
+            'not_configured' => 'AI 运行时桥未配置，无法完成运行时校验。',
+            'unavailable' => 'AI 运行时不可用：:error',
+            'invalid_response' => 'AI 运行时返回了无效响应。',
+            'request_failed' => 'AI 运行时请求失败。',
+        ],
+        'request' => [
+            'invalid_payload' => '请求格式错误：:error',
+        ],
+    ],
+];

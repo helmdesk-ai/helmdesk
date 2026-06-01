@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Enums;
+
+use App\Contracts\LabeledEnum;
+
+/**
+ * 快捷回复模版变量的命名空间分类。
+ * `Ai` 是 v2 留口；v1 渲染遇到时原样保留并记录 warning。
+ */
+enum CannedReplyTokenKind: string implements LabeledEnum
+{
+    case Contact = 'contact';
+    case Conversation = 'conversation';
+    case Teammate = 'teammate';
+    case Workspace = 'workspace';
+    case Ai = 'ai';
+
+    /**
+     * 返回命名空间的多语言显示文案。
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Contact => __('canned_reply.token_kinds.contact'),
+            self::Conversation => __('canned_reply.token_kinds.conversation'),
+            self::Teammate => __('canned_reply.token_kinds.teammate'),
+            self::Workspace => __('canned_reply.token_kinds.workspace'),
+            self::Ai => __('canned_reply.token_kinds.ai'),
+        };
+    }
+
+    /**
+     * v1 已实装的命名空间；AI token 暂只解析占位。
+     *
+     * @return array<int, self>
+     */
+    public static function staticCases(): array
+    {
+        return [self::Contact, self::Conversation, self::Teammate, self::Workspace];
+    }
+}

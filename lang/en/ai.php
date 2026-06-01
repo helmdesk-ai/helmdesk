@@ -1,0 +1,62 @@
+<?php
+
+return [
+    'model_types' => [
+        'llm' => 'Large Language Model',
+        'embedding' => 'Embedding',
+        'rerank' => 'ReRank',
+    ],
+    'provider_configured' => 'AI provider configuration saved.',
+    'provider_created' => 'Provider added.',
+    'provider_deleted' => 'Provider deleted.',
+    'cannot_delete_builtin_model' => 'Built-in model cannot be deleted.',
+    'cannot_replace_builtin_model' => 'Built-in model cannot be replaced from this form.',
+    'model_created' => 'Model added.',
+    'model_updated' => 'Model updated.',
+    'model_enabled' => 'Model enabled.',
+    'model_disabled' => 'Model disabled.',
+    'model_deleted' => 'Model deleted.',
+    'disable_requires_active_model' => 'Keep at least one active LLM model for the provider.',
+    'check_success' => 'Connection test passed!',
+    'check_empty_response' => 'Connection succeeded but response was empty.',
+    'check_missing_key' => 'Please enter an API Key first.',
+    'check_unsupported_protocol' => 'Unsupported protocol, cannot test.',
+    'check_no_model' => 'No LLM model available for testing. Please add a model first.',
+    'chat' => [
+        'prompt_required' => 'Please enter a message to send.',
+        'model_required' => 'Please choose a model before sending.',
+        'model_unavailable' => 'This workspace does not have an available AI model. Please contact an administrator.',
+        'selected_model_unavailable' => 'The selected model is unavailable. Please choose another one.',
+        'runtime_unavailable' => 'The AI service is currently unavailable. Please try again later.',
+        'invalid_topic' => 'Unable to stop this AI conversation. Please refresh and try again.',
+    ],
+    'runtime' => [
+        'check' => [
+            'succeeded' => 'AI runtime connectivity check passed.',
+            'no_active_llm' => 'No active LLM model available for runtime check.',
+            'missing_credentials' => 'Missing required credentials: :fields',
+            'unsupported' => 'AI runtime does not support: :reason',
+            'runtime_error' => 'AI runtime error: :error',
+        ],
+        'validate' => [
+            'provider_accepted' => 'Provider configuration accepted by AI runtime.',
+            'model_accepted' => 'Model configuration accepted by AI runtime.',
+            'candidate_model_required' => 'Candidate model is required for model validation.',
+            'unsupported_mode' => 'Unsupported validation mode: :mode',
+            'missing_credentials' => 'Missing required credentials: :fields',
+            'no_active_model' => 'No active LLM model is configured, so runtime validation cannot be completed.',
+            'incomplete_credentials' => 'Provider credentials are incomplete, so runtime validation cannot be completed.',
+            'unsupported' => 'AI runtime does not support: :reason',
+            'runtime_error' => 'AI runtime error: :error',
+        ],
+        'bridge' => [
+            'not_configured' => 'AI runtime bridge is not configured, so runtime validation cannot be completed.',
+            'unavailable' => 'AI runtime is unavailable: :error',
+            'invalid_response' => 'AI runtime returned an invalid response.',
+            'request_failed' => 'AI runtime request failed.',
+        ],
+        'request' => [
+            'invalid_payload' => 'Invalid request payload: :error',
+        ],
+    ],
+];
