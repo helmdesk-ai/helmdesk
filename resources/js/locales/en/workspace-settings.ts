@@ -765,7 +765,6 @@ export default {
   已复制: 'Copied',
   页面二维码: 'Page QR code',
   页面地址二维码: 'Page URL QR code',
-  '生成中...': 'Generating...',
   安装代码: 'Install snippet',
   保存接入方式: 'Save entry methods',
   保存入口与设备: 'Save entry & device',
