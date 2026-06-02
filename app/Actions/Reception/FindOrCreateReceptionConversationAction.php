@@ -93,7 +93,6 @@ class FindOrCreateReceptionConversationAction
         try {
             $createdConversationResult = DB::transaction(function () use ($channel, $contact, $entryMode, $defaultVisitorLocale): array {
                 $conversation = Conversation::query()->create([
-                    'workspace_id' => $channel->workspace_id,
                     'contact_id' => $contact->id,
                     'channel_id' => $channel->id,
                     'reception_plan_version_id' => $this->currentPlanVersionId($channel),
@@ -105,7 +104,6 @@ class FindOrCreateReceptionConversationAction
                 ]);
 
                 ConversationEvent::query()->create([
-                    'workspace_id' => $channel->workspace_id,
                     'conversation_id' => $conversation->id,
                     'type' => ConversationEventType::Created,
                     'payload' => ['source' => 'reception'],
@@ -126,7 +124,6 @@ class FindOrCreateReceptionConversationAction
             }
 
             Log::debug('访客会话创建遇到并发唯一约束。', [
-                'workspace_id' => (string) $channel->workspace_id,
                 'channel_id' => (string) $channel->id,
                 'contact_id' => (string) $contact->id,
                 'conversation_id' => (string) $existing->id,
@@ -312,7 +309,6 @@ class FindOrCreateReceptionConversationAction
     private function openConversationQuery(Channel $channel, Contact $contact): Builder
     {
         return Conversation::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('channel_id', $channel->id)
             ->where('contact_id', $contact->id)
             ->where('status', ConversationStatus::Open);

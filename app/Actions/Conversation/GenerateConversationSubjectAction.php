@@ -126,9 +126,8 @@ class GenerateConversationSubjectAction
             ->whereKey($modelId)
             ->where('type', AiModelType::Llm->value)
             ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query) use ($conversation): void {
+            ->whereHas('provider', function (Builder $query): void {
                 $query
-                    ->where('workspace_id', $conversation->workspace_id)
                     ->where('is_active', true);
             })
             ->firstOrFail();

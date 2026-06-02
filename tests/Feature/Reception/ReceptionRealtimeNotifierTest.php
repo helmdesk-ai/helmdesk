@@ -9,7 +9,6 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
 use App\Services\Realtime\MercurePublisher;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use App\Services\Reception\ReceptionMercureTopics;
@@ -19,12 +18,10 @@ use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
 
-test('它发布工作区信号和访客会话快照', function () {
-    $workspace = Workspace::factory()->create();
+test('它发布收件箱信号和访客会话快照', function () {
     $contact = Contact::factory()->visitor()->create([
-        'workspace_id' => $workspace->id,
     ]);
-    $plan = ReceptionPlan::factory()->for($workspace)->create();
+    $plan = ReceptionPlan::factory()->create();
     $version = ReceptionPlanVersion::factory()->for($plan, 'plan')->create([
         'snapshot_config' => [
             'persona_config' => ['display_name' => 'Desk Bot', 'tone' => 'concise'],
@@ -51,14 +48,12 @@ test('它发布工作区信号和访客会话快照', function () {
         ],
     ]);
     $channel = Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
     ]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $workspace->id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $version->id,
             'status' => ConversationStatus::Open,
@@ -66,7 +61,6 @@ test('它发布工作区信号和访客会话快照', function () {
             'waiting_for_visitor_reply' => true,
         ]);
     ContactIdentity::factory()->session(str_repeat('a', 32))->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $contact->id,
     ]);
     ConversationMessage::factory()->visitorText()->forConversation($conversation)->create([
@@ -88,10 +82,9 @@ test('它发布工作区信号和访客会话快照', function () {
     Http::assertSent(fn ($request): bool => $request->method() === 'POST'
         && $request->url() === 'http://go-runtime.test/_helmdesk/internal/realtime/publish'
         && $request->header('X-Helmdesk-Bridge-Token')[0] === 'bridge-token'
-        && $request['topics'] === [ReceptionMercureTopics::workspace($workspace->id)]
+        && $request['topics'] === [ReceptionMercureTopics::inbox()]
         && $request['type'] === 'reception'
         && $request['data']['event'] === 'visitor_message_created'
-        && $request['data']['workspace_id'] === $workspace->id
         && $request['data']['conversation_id'] === $conversation->id
         && ! array_key_exists('state', $request['data']));
 
@@ -104,7 +97,6 @@ test('它发布工作区信号和访客会话快照', function () {
         && $request['data']['state']['assistant_name'] === 'Desk Bot'
         && $request['data']['state']['messages'][0]['content'] === '我需要帮助'
         // 安全契约：visitor topic 只包含访客端渲染会话所需字段。
-        && ! array_key_exists('workspace_id', $request['data'])
         && ! array_key_exists('assigned_user_id', $request['data'])
         && ! array_key_exists('status', $request['data'])
         && ! array_key_exists('inbox_status', $request['data'])

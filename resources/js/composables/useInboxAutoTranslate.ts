@@ -24,8 +24,6 @@ const AUTO_TRANSLATE_PENDING_TIMEOUT_MS = 30_000;
 const AUTO_TRANSLATE_BATCH_SIZE = 20;
 
 export interface UseInboxAutoTranslateOptions {
-  /** 当前工作区 slug */
-  workspaceSlug: ComputedRef<string>;
   /** 当前选中的会话/联系人数据 */
   selection: ComputedRef<InboxSelectionData | null>;
   /** 当前登录用户 ID */
@@ -55,7 +53,6 @@ export function useInboxAutoTranslate(
   options: UseInboxAutoTranslateOptions,
 ): UseInboxAutoTranslateReturn {
   const {
-    workspaceSlug,
     selection,
     currentUserId,
     currentUserLocale,
@@ -271,7 +268,6 @@ export function useInboxAutoTranslate(
     try {
       await axios.post(
         inboxActions.conversations.messages.queueTranslations.url({
-          slug: workspaceSlug.value,
           conversation: conversation.id,
         }),
         { message_ids: messageIds },

@@ -51,7 +51,6 @@ class CreateTelegramChannelAction
         $botInfo = $this->fetchBotInfo($data->bot_token);
 
         $channel = Channel::query()->create([
-            'workspace_id' => $workspace->id,
             'type' => ChannelType::Telegram,
             'name' => $data->name,
             'description' => filled($data->description) ? $data->description : null,
@@ -106,7 +105,6 @@ class CreateTelegramChannelAction
         $channel = $this->handle($workspace, FormCreateTelegramChannelData::from($request));
 
         return redirect()->route('workspace.manage.channels.telegram.show', [
-            'slug' => $workspace->slug,
             'channel' => $channel->id,
         ]);
     }

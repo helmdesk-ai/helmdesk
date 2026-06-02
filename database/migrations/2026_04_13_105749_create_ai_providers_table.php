@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->string('brand');
             $table->string('slug');
             $table->string('name');
@@ -23,7 +22,7 @@ return new class extends Migration
             $table->boolean('is_builtin')->default(false);
             $table->integer('sort_order')->default(0);
 
-            $table->index('workspace_id');
+            $table->index('sort_order');
         });
     }
 

@@ -40,7 +40,6 @@ class UpdateKnowledgeBaseAction
             attachable: $knowledgeBase,
             attachmentId: $data->avatar_id,
             currentAttachmentId: $originalAvatarId,
-            workspaceId: (string) $workspace->id,
             allowedPurposes: [AttachmentPurpose::Avatar],
             messageKey: 'knowledge_base.messages.invalid_attachment',
         );
@@ -50,19 +49,18 @@ class UpdateKnowledgeBaseAction
             'avatar_id' => filled($data->avatar_id) ? $data->avatar_id : null,
             'description' => filled($data->description) ? $data->description : null,
         ]);
-        $this->attachments->syncAttachment($knowledgeBase, 'avatar_id', $originalAvatarId, (string) $workspace->id);
+        $this->attachments->syncAttachment($knowledgeBase, 'avatar_id', $originalAvatarId);
     }
 
     /**
      * 接收编辑知识库表单并回到当前页面。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $knowledgeBaseModel = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $this->handle($workspace, $knowledgeBaseModel, FormUpdateKnowledgeBaseData::from($request));
@@ -76,7 +74,6 @@ class UpdateKnowledgeBaseAction
     private function ensureNameIsAvailable(Workspace $workspace, string $name, string $exceptId): void
     {
         $exists = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->where('name', $name)
             ->whereKeyNot($exceptId)
             ->exists();

@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\Conversation;
 use App\Models\ConversationPageView;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,10 +19,7 @@ class ConversationPageViewFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
-            'conversation_id' => fn (array $attributes) => Conversation::factory()->create([
-                'workspace_id' => $attributes['workspace_id'],
-            ])->id,
+            'conversation_id' => fn () => Conversation::factory()->create()->id,
             'contact_id' => null,
             'url' => fake()->url(),
             'title' => fake()->sentence(3),
@@ -33,12 +29,11 @@ class ConversationPageViewFactory extends Factory
     }
 
     /**
-     * 绑定到指定会话，并对齐 workspace。
+     * 绑定到指定会话。
      */
     public function forConversation(Conversation $conversation): static
     {
         return $this->state([
-            'workspace_id' => $conversation->workspace_id,
             'conversation_id' => $conversation->id,
             'contact_id' => $conversation->contact_id,
         ]);

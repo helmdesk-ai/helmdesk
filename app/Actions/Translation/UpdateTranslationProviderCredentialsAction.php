@@ -41,7 +41,7 @@ class UpdateTranslationProviderCredentialsAction
     /**
      * 从请求取表单数据、校验、保存。
      */
-    public function asController(Request $request, string $slug, string $provider): RedirectResponse
+    public function asController(Request $request, string $provider): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

@@ -86,16 +86,15 @@ function fakeMcpBridgeCheckFailure(string $code, string $message): void
 }
 
 test('访客用户不能访问 MCP 服务设置', function () {
-    $this->get(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+    $this->get(route('workspace.manage.mcp.servers.index'))
         ->assertRedirect('/login');
 });
 
 test('非所有者工作区成员不能访问 MCP 服务设置', function () {
     $admin = User::factory()->create();
-    $admin->workspaces()->attach($this->workspace, ['role' => 'admin']);
 
     $this->actingAs($admin)
-        ->get(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.mcp.servers.index'))
         ->assertForbidden();
 });
 
@@ -103,7 +102,7 @@ test('所有者可以查看空 MCP 服务列表', function () {
     fakeMcpBridge();
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.mcp.servers.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('workspaceSettings/mcpServers/Index')
@@ -115,7 +114,7 @@ test('创建 MCP 服务只保存配置，不触发工具同步', function () {
     fakeMcpBridge();
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.mcp.servers.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.mcp.servers.store'), [
             'name' => 'Shopify MCP',
             'endpoint_url' => 'https://mcp.example.com/v1',
             'transport' => 'streamable_http',
@@ -125,7 +124,7 @@ test('创建 MCP 服务只保存配置，不触发工具同步', function () {
         ])
         ->assertRedirect();
 
-    $server = McpServer::query()->where('workspace_id', $this->workspace->id)->firstOrFail();
+    $server = McpServer::query()->firstOrFail();
 
     expect($server->name)->toBe('Shopify MCP');
     expect($server->credentials['auth_header_name'])->toBe('Authorization');
@@ -141,13 +140,13 @@ test('创建表单校验 endpoint_url 必填且必须为 URL', function () {
     fakeMcpBridge();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.mcp.servers.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.mcp.servers.index'))
+        ->post(route('workspace.manage.mcp.servers.store'), [
             'name' => 'Bad',
             'endpoint_url' => 'not-a-url',
             'transport' => 'streamable_http',
         ])
-        ->assertRedirect(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.mcp.servers.index'))
         ->assertSessionHasErrors(['endpoint_url']);
 });
 
@@ -157,15 +156,15 @@ test('认证 header name 与 value 必须成对出现', function () {
     // 模拟真实前端：表单字段始终随提交一并送出（空字符串），中间件后端再转 null。
     // 用户填了 name 没填 value 的场景下，规则应识别为半配置并报错。
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.mcp.servers.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.mcp.servers.index'))
+        ->post(route('workspace.manage.mcp.servers.store'), [
             'name' => 'Half Auth',
             'endpoint_url' => 'https://mcp.example.com/v1',
             'transport' => 'streamable_http',
             'auth_header_name' => 'Authorization',
             'auth_header_value' => '',
         ])
-        ->assertRedirect(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.mcp.servers.index'))
         ->assertSessionHasErrors(['auth_header_value']);
 });
 
@@ -173,7 +172,7 @@ test('支持自定义认证 header 名（如 X-Api-Key）', function () {
     fakeMcpBridge();
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.mcp.servers.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.mcp.servers.store'), [
             'name' => 'Stripe-like MCP',
             'endpoint_url' => 'https://mcp.example.com/api',
             'transport' => 'streamable_http',
@@ -182,7 +181,7 @@ test('支持自定义认证 header 名（如 X-Api-Key）', function () {
         ])
         ->assertRedirect();
 
-    $server = McpServer::query()->where('workspace_id', $this->workspace->id)->firstOrFail();
+    $server = McpServer::query()->firstOrFail();
     expect($server->credentials['auth_header_name'])->toBe('X-Api-Key');
     expect($server->credentials['auth_header_value'])->toBe('sk_live_xxx');
 });
@@ -192,13 +191,10 @@ test('更新表单未传认证字段时保留旧凭据', function () {
 
     $server = McpServer::factory()
         ->withBearerToken('original-token')
-        ->for($this->workspace)
         ->create();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.mcp.servers.update', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.servers.update', ['server' => $server->slug,
         ]), [
             'name' => 'Renamed',
             'endpoint_url' => 'https://mcp.example.com/v2',
@@ -222,13 +218,10 @@ test('clear_auth_credentials = true 时会清掉凭据', function () {
 
     $server = McpServer::factory()
         ->withBearerToken('original-token')
-        ->for($this->workspace)
         ->create();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.mcp.servers.update', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.servers.update', ['server' => $server->slug,
         ]), [
             'name' => $server->name,
             'endpoint_url' => $server->endpoint_url,
@@ -243,20 +236,17 @@ test('启用服务前必须有 endpoint URL', function () {
     fakeMcpBridge();
 
     $server = McpServer::factory()
-        ->for($this->workspace)
         ->create([
             'endpoint_url' => '',
             'is_active' => false,
         ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.mcp.servers.index'))
         ->withHeader('X-Inertia', 'true')
-        ->put(route('workspace.manage.mcp.servers.toggle', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.servers.toggle', ['server' => $server->slug,
         ]))
-        ->assertRedirect(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.mcp.servers.index'))
         ->assertSessionHasErrors(['toast']);
 
     expect($server->fresh()->is_active)->toBeFalse();
@@ -265,21 +255,17 @@ test('启用服务前必须有 endpoint URL', function () {
 test('正常启用与停用 MCP 服务', function () {
     fakeMcpBridge();
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.mcp.servers.toggle', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.servers.toggle', ['server' => $server->slug,
         ]))
         ->assertRedirect();
 
     expect($server->fresh()->is_active)->toBeTrue();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.mcp.servers.toggle', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.servers.toggle', ['server' => $server->slug,
         ]))
         ->assertRedirect();
 
@@ -289,12 +275,10 @@ test('正常启用与停用 MCP 服务', function () {
 test('Check 端点成功时返回 JSON 结果', function () {
     fakeMcpBridge();
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.mcp.servers.check', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->post(route('workspace.manage.mcp.servers.check', ['server' => $server->slug,
         ]))
         ->assertOk()
         ->assertJson([
@@ -308,16 +292,13 @@ test('Check 端点使用当前表单配置而不是已保存配置', function ()
 
     $server = McpServer::factory()
         ->withBearerToken('old-token')
-        ->for($this->workspace)
         ->create([
             'endpoint_url' => 'https://old.example.com/mcp',
             'timeout_seconds' => 30,
         ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.mcp.servers.check', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->post(route('workspace.manage.mcp.servers.check', ['server' => $server->slug,
         ]), [
             'name' => $server->name,
             'endpoint_url' => 'https://new.example.com/mcp',
@@ -343,9 +324,7 @@ test('Check 端点支持测试尚未保存的新配置', function () {
     fakeMcpBridge();
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.mcp.servers.check-unsaved', [
-            'slug' => $this->workspaceSlug(),
-        ]), [
+        ->post(route('workspace.manage.mcp.servers.check-unsaved', []), [
             'name' => 'Unsaved MCP',
             'endpoint_url' => 'https://unsaved.example.com/mcp',
             'transport' => 'streamable_http',
@@ -359,7 +338,7 @@ test('Check 端点支持测试尚未保存的新配置', function () {
             'message' => '连接正常。',
         ]);
 
-    expect(McpServer::query()->where('workspace_id', $this->workspace->id)->count())->toBe(0);
+    expect(McpServer::query()->count())->toBe(0);
 
     Http::assertSent(fn (HttpRequest $request): bool => str_ends_with($request->url(), '/mcp/servers/check')
         && data_get($request->data(), 'server.name') === 'Unsaved MCP'
@@ -371,13 +350,11 @@ test('Check 端点支持测试尚未保存的新配置', function () {
 test('Check 失败时返回 JSON 失败原因', function () {
     fakeMcpBridgeCheckFailure('check.failed', 'connection refused');
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.mcp.servers.check', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->from(route('workspace.manage.mcp.servers.index'))
+        ->post(route('workspace.manage.mcp.servers.check', ['server' => $server->slug,
         ]))
         ->assertOk()
         ->assertJson([
@@ -391,16 +368,14 @@ test('Sync 新增并下线工具', function () {
         ['name' => 'new_tool', 'description' => 'Brand new tool'],
     ]);
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
     McpTool::factory()->for($server, 'server')->create([
         'name' => 'old_tool',
         'is_enabled' => true,
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.mcp.servers.sync', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->post(route('workspace.manage.mcp.servers.sync', ['server' => $server->slug,
         ]))
         ->assertOk()
         ->assertJson([
@@ -425,7 +400,7 @@ test('Sync 新增并下线工具', function () {
 test('禁用并重新启用工具', function () {
     fakeMcpBridge();
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
     $tool = McpTool::factory()->for($server, 'server')->create([
         'name' => 'tool_a',
         'is_enabled' => true,
@@ -433,9 +408,7 @@ test('禁用并重新启用工具', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.mcp.tools.toggle', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.tools.toggle', ['server' => $server->slug,
             'tool' => $tool->id,
         ]))
         ->assertRedirect();
@@ -443,9 +416,7 @@ test('禁用并重新启用工具', function () {
     expect($tool->fresh()->is_enabled)->toBeFalse();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.mcp.tools.toggle', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.tools.toggle', ['server' => $server->slug,
             'tool' => $tool->id,
         ]))
         ->assertRedirect();
@@ -456,20 +427,18 @@ test('禁用并重新启用工具', function () {
 test('已下线工具不能再启用', function () {
     fakeMcpBridge();
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
     $tool = McpTool::factory()->removed()->for($server, 'server')->create([
         'name' => 'gone',
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.mcp.servers.index'))
         ->withHeader('X-Inertia', 'true')
-        ->put(route('workspace.manage.mcp.tools.toggle', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->put(route('workspace.manage.mcp.tools.toggle', ['server' => $server->slug,
             'tool' => $tool->id,
         ]))
-        ->assertRedirect(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.mcp.servers.index'))
         ->assertSessionHasErrors(['toast']);
 
     expect($tool->fresh()->is_enabled)->toBeFalse();
@@ -478,13 +447,11 @@ test('已下线工具不能再启用', function () {
 test('删除 MCP 服务会一并清理工具记录', function () {
     fakeMcpBridge();
 
-    $server = McpServer::factory()->for($this->workspace)->create();
+    $server = McpServer::factory()->create();
     McpTool::factory()->for($server, 'server')->count(3)->create();
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.mcp.servers.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'server' => $server->slug,
+        ->delete(route('workspace.manage.mcp.servers.destroy', ['server' => $server->slug,
         ]))
         ->assertRedirect();
 
@@ -492,15 +459,14 @@ test('删除 MCP 服务会一并清理工具记录', function () {
     expect(McpTool::query()->where('mcp_server_id', $server->id)->count())->toBe(0);
 });
 
-test('其他工作区的 MCP 服务对当前工作区不可见', function () {
+test('单租户下管理员可以看到全部 MCP 服务', function () {
     fakeMcpBridge();
 
-    [$otherWorkspace] = createWorkspaceWithOwner();
-    McpServer::factory()->for($otherWorkspace)->create();
-    McpServer::factory()->for($this->workspace)->create();
+    McpServer::factory()->create();
+    McpServer::factory()->create();
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.mcp.servers.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.mcp.servers.index'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->has('servers', 1));
+        ->assertInertia(fn (Assert $page) => $page->has('servers', 2));
 });

@@ -57,13 +57,12 @@ class UpdateManualKnowledgeDocumentAction
     /**
      * 处理「编辑手动文档」提交并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $document): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $documentModel = KnowledgeDocument::query()
@@ -81,7 +80,6 @@ class UpdateManualKnowledgeDocumentAction
         }
 
         return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
             ...$query,
         ]);
     }

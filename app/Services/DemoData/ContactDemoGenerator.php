@@ -63,7 +63,6 @@ class ContactDemoGenerator
         Contact::factory()
             ->count($count)
             ->contact()
-            ->for($workspace)
             ->fromSource(fake()->randomElement(ContactSource::cases()))
             ->create()
             ->each(function (Contact $contact) {
@@ -79,25 +78,21 @@ class ContactDemoGenerator
 
                 ContactIdentity::factory()->email()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 ContactIdentity::factory()->session()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 if (fake()->boolean(50)) {
                     ContactIdentity::factory()->phone()->create([
                         'contact_id' => $contact->id,
-                        'workspace_id' => $contact->workspace_id,
                     ]);
                 }
 
                 if (fake()->boolean(20)) {
                     ContactIdentity::factory()->externalId()->create([
                         'contact_id' => $contact->id,
-                        'workspace_id' => $contact->workspace_id,
                     ]);
                 }
 
@@ -117,13 +112,11 @@ class ContactDemoGenerator
         Contact::factory()
             ->count($count)
             ->anonymous()
-            ->for($workspace)
             ->fromSource(ContactSource::Web)
             ->create()
             ->each(function (Contact $contact) {
                 ContactIdentity::factory()->session()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 $contact->syncPrimaryFields();
@@ -142,17 +135,14 @@ class ContactDemoGenerator
         Contact::factory()
             ->count($count)
             ->visitor()
-            ->for($workspace)
             ->create()
             ->each(function (Contact $contact) {
                 ContactIdentity::factory()->email()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 ContactIdentity::factory()->session()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 $contact->syncPrimaryFields();
@@ -171,27 +161,22 @@ class ContactDemoGenerator
         Contact::factory()
             ->count($count)
             ->contact()
-            ->for($workspace)
             ->create()
             ->each(function (Contact $contact) {
                 ContactIdentity::factory()->email()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 ContactIdentity::factory()->phone()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 ContactIdentity::factory()->session()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 ContactIdentity::factory()->externalId()->create([
                     'contact_id' => $contact->id,
-                    'workspace_id' => $contact->workspace_id,
                 ]);
 
                 $contact->updateQuietly([

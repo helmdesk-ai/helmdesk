@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Enums\AttributeType;
 use App\Models\AttributeDefinition;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +16,6 @@ class AttributeDefinitionFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'key' => fake()->unique()->regexify('[a-z]{4,8}_[a-z]{3,6}'),
             'name' => fake()->words(2, true),
             'description' => fake()->optional()->sentence(),

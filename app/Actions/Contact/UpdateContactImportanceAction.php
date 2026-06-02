@@ -26,7 +26,6 @@ class UpdateContactImportanceAction
     public function handle(Workspace $workspace, string $contactId, FormUpdateContactImportanceData $data, ?User $actor = null): Contact
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         if ($contact->is_important === $data->is_important) {
@@ -61,7 +60,7 @@ class UpdateContactImportanceAction
     /**
      * 从 HTTP 请求中切换联系人重点标记。
      */
-    public function asController(Request $request, string $slug, string $id): JsonResponse
+    public function asController(Request $request, string $id): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $contact = $this->handle(

@@ -13,7 +13,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->ulid('workspace_id');
             $table->string('type');
             $table->string('name');
             $table->text('description')->nullable();
@@ -26,8 +25,8 @@ return new class extends Migration
             $table->string('last_embed_host', 255)->nullable()->after('first_embed_at');
             $table->timestamp('last_embed_at')->nullable()->after('last_embed_host');
 
-            $table->index(['workspace_id', 'type']);
-            $table->index(['workspace_id', 'reception_plan_version_id'], 'idx_channels_workspace_plan_version');
+            $table->index('type');
+            $table->index('reception_plan_version_id', 'idx_channels_plan_version');
         });
     }
 

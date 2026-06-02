@@ -29,7 +29,6 @@ class ShowAttributeDefinitionTrashAction
         $perPage = max(1, min($perPage, 50));
 
         $paginator = AttributeDefinition::query()
-            ->where('workspace_id', $workspace->id)
             ->onlyTrashed()
             ->withCount('contactAttributeValues')
             ->orderByDesc('deleted_at')

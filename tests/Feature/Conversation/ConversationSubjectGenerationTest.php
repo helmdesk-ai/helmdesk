@@ -29,7 +29,6 @@ function createConversationSubjectTestContext(?string $subject = null, ?Conversa
 {
     $workspace = Workspace::factory()->create();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'subject-test-'.Str::lower((string) Str::ulid()),
         'name' => 'Subject Test Provider',
@@ -50,16 +49,16 @@ function createConversationSubjectTestContext(?string $subject = null, ?Conversa
         'is_builtin' => false,
         'sort_order' => 0,
     ]);
-    $plan = ReceptionPlan::factory()->for($workspace)->create();
+    $plan = ReceptionPlan::factory()->create();
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
         ->withReceptionModel((string) $model->id)
         ->create();
-    $channel = Channel::factory()->for($workspace)->create([
+    $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
     ]);
-    $contact = Contact::factory()->visitor()->for($workspace)->create();
+    $contact = Contact::factory()->visitor()->create();
     $conversation = Conversation::factory()->forContact($contact)->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $version->id,

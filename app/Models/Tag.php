@@ -17,7 +17,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property string $workspace_id
  * @property string $tag_group_id
  * @property string $name
  * @property string $normalized_name
@@ -28,10 +27,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $created_by_user_id
  * @property string|null $updated_by_user_id
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $contacts_count
  * @property int|null $conversations_count
- * @property-read Workspace $workspace
  * @property-read TagGroup $tagGroup
  * @property-read Collection|Contact[] $contacts
  * @property-read Collection|Conversation[] $conversations
@@ -72,11 +69,9 @@ class Tag extends Model
         ];
     }
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
+    /**
+     * 标签所属分组。
+     */
     public function tagGroup(): BelongsTo
     {
         return $this->belongsTo(TagGroup::class);

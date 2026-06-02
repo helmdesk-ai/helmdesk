@@ -10,7 +10,6 @@ import RestoreConfirmDialog from '@/components/common/RestoreConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { ListReceptionPlanTrashPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -18,11 +17,10 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 const props = defineProps<ListReceptionPlanTrashPagePropsData>();
 const { t } = useI18n();
 const { formatDateTime } = useDateTime();
-const currentWorkspace = useRequiredWorkspace();
 const restoreForm = useForm({});
 
 const buildTrashPageUrl = (page: number): string =>
-  Plan.ListReceptionPlanTrashAction.url(currentWorkspace.value.slug, {
+  Plan.ListReceptionPlanTrashAction.url({
     query: { page },
   });
 </script>
@@ -42,7 +40,7 @@ const buildTrashPageUrl = (page: number): string =>
           <Button variant="outline" class="shrink-0" as-child>
             <Link
               :href="
-                Plan.ShowReceptionPlanIndexPageAction.url(currentWorkspace.slug)
+                Plan.ShowReceptionPlanIndexPageAction.url()
               "
             >
               {{ t('返回列表') }}
@@ -83,7 +81,6 @@ const buildTrashPageUrl = (page: number): string =>
                       @confirm="
                         restoreForm.put(
                           Plan.RestoreReceptionPlanAction.url({
-                            slug: currentWorkspace.slug,
                             plan: plan.id,
                           }),
                           { preserveScroll: true },

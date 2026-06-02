@@ -12,6 +12,7 @@ use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactIdentity;
 use App\Models\Conversation;
+use App\Models\Workspace;
 use App\Services\Channel\WebChannelUserTokenVerifier;
 use App\Services\Contact\ContactIdentityNormalizer;
 use App\Services\Reception\ReceptionSession;
@@ -77,7 +78,7 @@ class ResolveReceptionContextAction
         $contact = $signedIdentity !== null
             ? $this->resolveSignedContact($channel, $signedIdentity)
             : $this->resolveContactIdentityAction->handle(
-                $channel->workspace,
+                Workspace::current(),
                 ['type' => IdentityType::Session, 'value' => $token],
                 ContactSource::Web,
             );
@@ -155,7 +156,7 @@ class ResolveReceptionContextAction
         $namespace = $this->userTokenVerifier->identityNamespace($channel);
 
         $contact = $this->resolveContactIdentityAction->handle(
-            $channel->workspace,
+            Workspace::current(),
             [
                 'type' => IdentityType::ExternalId,
                 'value' => $signedIdentity['external_id'],
@@ -189,7 +190,6 @@ class ResolveReceptionContextAction
         }
 
         $alreadyAttached = ContactIdentity::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('contact_id', $contact->id)
             ->where('type', IdentityType::Email)
             ->where('value', $value)
@@ -200,7 +200,6 @@ class ResolveReceptionContextAction
         }
 
         $taken = ContactIdentity::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('type', IdentityType::Email)
             ->where('namespace', '')
             ->where('value', $value)
@@ -212,7 +211,6 @@ class ResolveReceptionContextAction
 
         try {
             ContactIdentity::query()->create([
-                'workspace_id' => $channel->workspace_id,
                 'contact_id' => $contact->id,
                 'type' => IdentityType::Email,
                 'namespace' => '',
@@ -222,7 +220,6 @@ class ResolveReceptionContextAction
             $contact->syncPrimaryFields();
         } catch (UniqueConstraintViolationException) {
             Log::debug('访客邮箱身份写入遇到并发唯一约束。', [
-                'workspace_id' => (string) $channel->workspace_id,
                 'contact_id' => (string) $contact->id,
                 'email' => $value,
             ]);
@@ -243,7 +240,7 @@ class ResolveReceptionContextAction
             ->withTrashed()
             ->where('code', $channelCode)
             ->where('type', ChannelType::Web)
-            ->with(['receptionPlan', 'workspace'])
+            ->with(['receptionPlan'])
             ->first();
 
         if ($channel === null) {

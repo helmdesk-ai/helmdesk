@@ -28,14 +28,13 @@ class RestoreWebChannelAction
     /**
      * 接收渠道恢复请求并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $channelModel = Channel::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->findOrFail($channel);
 

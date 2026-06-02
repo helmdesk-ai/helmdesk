@@ -62,7 +62,6 @@ class CreateReceptionPlanAction
         $strategyConfig = ReceptionStrategyConfigData::fromArray($data->strategy_config)->toConfigArray();
 
         $plan = ReceptionPlan::query()->create([
-            'workspace_id' => $workspace->id,
             'name' => $name,
             'description' => filled($data->description) ? $data->description : null,
             'persona_config' => [
@@ -146,7 +145,6 @@ class CreateReceptionPlanAction
         $plan = $this->handle($workspace, FormCreateReceptionPlanData::from($request));
 
         return redirect()->route('workspace.manage.reception.plans.show', [
-            'slug' => $workspace->slug,
             'plan' => $plan->id,
         ]);
     }
@@ -157,7 +155,6 @@ class CreateReceptionPlanAction
     private function ensureNameIsAvailable(Workspace $workspace, string $name): void
     {
         $exists = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->where('name', $name)
             ->exists();
 

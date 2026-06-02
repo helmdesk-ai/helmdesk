@@ -1,5 +1,5 @@
 <!--
-  文件说明：工作区 AI 供应商页面，承接当前工作区下供应商凭据与模型管理。
+  文件说明：AI 供应商页面，承接系统级供应商凭据与模型管理。
   消费 ShowAiProviderPagePropsData（providers + brandOptions）。供应商存在即可用，无启用开关；删除供应商即停用。
 -->
 <script setup lang="ts">
@@ -23,9 +23,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import WorkspaceSettingsLayout from '@/layouts/WorkspaceSettingsLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type {
   AiModelData,
   ShowAiProviderPagePropsData,
@@ -86,7 +85,6 @@ type DeleteTarget =
 const props = defineProps<ShowAiProviderPagePropsData>();
 const { t } = useI18n();
 const { toast } = useToast();
-const workspace = useRequiredWorkspace();
 const selectedProviderQueryParam = 'provider';
 
 const providerExists = (slug: string | null): slug is string =>
@@ -411,7 +409,6 @@ const saveCredentialField = (field: CredentialField) => {
     }))
     .put(
       AiProvider.UpdateAiProviderCredentialsAction.url({
-        slug: workspace.value.slug,
         provider: selectedSlug.value,
       }),
       {
@@ -447,7 +444,6 @@ const deleteProvider = (slug: string) => {
 
   router.delete(
     AiProvider.DeleteAiProviderAction.url({
-      slug: workspace.value.slug,
       provider: slug,
     }),
     {
@@ -482,7 +478,6 @@ const checkConnection = async () => {
   try {
     const { data } = await axios.post(
       AiProvider.CheckAiProviderAction.url({
-        slug: workspace.value.slug,
         provider: selectedSlug.value,
       }),
       {
@@ -548,7 +543,6 @@ const toggleModel = async (model: AiModelData) => {
 
   router.put(
     AiProvider.ToggleAiModelAction.url({
-      slug: workspace.value.slug,
       provider: selectedSlug.value,
       model: model.id,
     }),
@@ -579,7 +573,6 @@ const deleteModel = (modelId: string) => {
 
   router.delete(
     AiProvider.DeleteAiModelAction.url({
-      slug: workspace.value.slug,
       provider: selectedSlug.value,
       model: modelId,
     }),
@@ -628,331 +621,337 @@ const providerInitial = (name: string) => name.charAt(0).toUpperCase();
   <AppLayout>
     <Head :title="t('大模型供应商')" />
 
-    <WorkspaceSettingsLayout>
-      <div
-        class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
-      >
-        <HeadingSmall
-          :title="t('大模型供应商')"
-          :description="t('管理当前工作区下的大模型供应商凭据与可用模型。')"
-        />
+    <SystemSettingsLayout>
+      <section class="mx-auto w-full max-w-none space-y-12">
+        <div
+          class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
+        >
+          <HeadingSmall
+            :title="t('大模型供应商')"
+            :description="t('管理系统级大模型供应商凭据与可用模型。')"
+          />
 
-        <div class="flex min-h-0 flex-1 rounded-xl border">
-          <div class="flex w-64 shrink-0 flex-col border-r">
-            <div class="flex items-center justify-between p-4">
-              <h3 class="text-sm font-semibold">{{ t('供应商') }}</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-7 w-7"
-                @click="addProviderOpen = true"
-              >
-                <Plus class="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto px-2 pb-4">
-              <div class="space-y-0.5">
-                <button
-                  v-for="provider in props.providers"
-                  :key="provider.slug"
-                  type="button"
-                  class="flex w-full min-w-0 items-center gap-3 rounded-md py-2 pr-3 pl-3 text-left text-sm transition-colors"
-                  :class="
-                    selectedSlug === provider.slug
-                      ? 'bg-accent text-accent-foreground'
-                      : 'hover:bg-muted'
-                  "
-                  @click="selectedSlug = provider.slug"
+          <div class="flex min-h-0 flex-1 rounded-xl border">
+            <div class="flex w-64 shrink-0 flex-col border-r">
+              <div class="flex items-center justify-between p-4">
+                <h3 class="text-sm font-semibold">{{ t('供应商') }}</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-7 w-7"
+                  @click="addProviderOpen = true"
                 >
-                  <AiProviderIcon
-                    :icon="provider.icon"
-                    class="h-7 w-7 shrink-0 rounded-md bg-muted p-1.5"
-                  >
-                    {{ providerInitial(provider.name) }}
-                  </AiProviderIcon>
-                  <span class="min-w-0 flex-1 truncate font-medium">
-                    {{ provider.name }}
-                  </span>
-                </button>
+                  <Plus class="h-4 w-4" />
+                </Button>
               </div>
 
-              <p
-                v-if="props.providers.length === 0"
-                class="px-3 py-8 text-center text-xs text-muted-foreground"
-              >
-                {{ t('点击右上角 + 添加供应商') }}
-              </p>
-            </div>
-          </div>
+              <div class="flex-1 overflow-y-auto px-2 pb-4">
+                <div class="space-y-0.5">
+                  <button
+                    v-for="provider in props.providers"
+                    :key="provider.slug"
+                    type="button"
+                    class="flex w-full min-w-0 items-center gap-3 rounded-md py-2 pr-3 pl-3 text-left text-sm transition-colors"
+                    :class="
+                      selectedSlug === provider.slug
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-muted'
+                    "
+                    @click="selectedSlug = provider.slug"
+                  >
+                    <AiProviderIcon
+                      :icon="provider.icon"
+                      class="h-7 w-7 shrink-0 rounded-md bg-muted p-1.5"
+                    >
+                      {{ providerInitial(provider.name) }}
+                    </AiProviderIcon>
+                    <span class="min-w-0 flex-1 truncate font-medium">
+                      {{ provider.name }}
+                    </span>
+                  </button>
+                </div>
 
-          <div class="flex-1 overflow-y-auto">
-            <template v-if="selectedProvider">
-              <div class="space-y-6 p-6">
-                <form class="space-y-4" @submit.prevent>
-                  <div class="flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold">{{ t('连接与凭据') }}</h3>
-                    <div class="flex shrink-0 items-center gap-2">
+                <p
+                  v-if="props.providers.length === 0"
+                  class="px-3 py-8 text-center text-xs text-muted-foreground"
+                >
+                  {{ t('点击右上角 + 添加供应商') }}
+                </p>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+              <template v-if="selectedProvider">
+                <div class="space-y-6 p-6">
+                  <form class="space-y-4" @submit.prevent>
+                    <div class="flex items-center justify-between gap-3">
+                      <h3 class="text-sm font-semibold">
+                        {{ t('连接与凭据') }}
+                      </h3>
+                      <div class="flex shrink-0 items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          :disabled="isChecking"
+                          @click="checkConnection"
+                        >
+                          <LoaderCircle
+                            v-if="isChecking"
+                            class="mr-2 h-4 w-4 animate-spin"
+                          />
+                          {{ t('测试') }}
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          class="text-destructive hover:text-destructive"
+                          :title="t('删除')"
+                          @click="openDeleteProviderDialog(selectedProvider)"
+                        >
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div
+                      v-for="field in editableCredentialFields"
+                      :key="field.field"
+                      class="grid gap-2"
+                    >
+                      <Label :for="field.field" :required="field.required">
+                        {{ field.label }}
+                      </Label>
+
+                      <div class="flex items-center gap-2">
+                        <div class="min-w-0 flex-1">
+                          <Select
+                            v-if="field.type === 'select'"
+                            :model-value="fieldValue(field.field)"
+                            @update:model-value="
+                              (value) =>
+                                setConfigurationValue(field.field, value)
+                            "
+                          >
+                            <SelectTrigger :id="field.field" class="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                v-for="option in field.options ?? []"
+                                :key="option.value"
+                                :value="option.value"
+                              >
+                                {{ option.label }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Input
+                            v-else
+                            :id="field.field"
+                            :model-value="fieldValue(field.field)"
+                            :type="
+                              field.secret
+                                ? 'password'
+                                : field.type === 'url'
+                                  ? 'url'
+                                  : 'text'
+                            "
+                            :placeholder="credentialFieldPlaceholder(field)"
+                            autocomplete="off"
+                            class="w-full"
+                            @update:model-value="
+                              (value) =>
+                                setConfigurationValue(field.field, value)
+                            "
+                          />
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          :disabled="!canUpdateCredentialField(field)"
+                          @click="saveCredentialField(field)"
+                        >
+                          <LoaderCircle
+                            v-if="
+                              credentialForm.processing &&
+                              credentialSavingField === field.field
+                            "
+                            class="mr-2 h-4 w-4 animate-spin"
+                          />
+                          {{ t('更新') }}
+                        </Button>
+                      </div>
+
+                      <InputError :message="fieldError(field.field)" />
+                    </div>
+
+                    <div
+                      v-for="field in lockedEndpointFields"
+                      :key="`locked-${field.field}`"
+                      class="grid gap-2"
+                    >
+                      <Label :for="field.field">
+                        {{ field.label }}
+                      </Label>
+                      <Input
+                        :id="field.field"
+                        :model-value="endpointFieldValue(field)"
+                        type="url"
+                        disabled
+                        class="w-full"
+                      />
+                    </div>
+                  </form>
+
+                  <Separator />
+
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-sm font-semibold">{{ t('模型') }}</h3>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        :disabled="isChecking"
-                        @click="checkConnection"
+                        @click="openAddModel"
                       >
-                        <LoaderCircle
-                          v-if="isChecking"
-                          class="mr-2 h-4 w-4 animate-spin"
-                        />
-                        {{ t('测试') }}
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        class="text-destructive hover:text-destructive"
-                        :title="t('删除')"
-                        @click="openDeleteProviderDialog(selectedProvider)"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div
-                    v-for="field in editableCredentialFields"
-                    :key="field.field"
-                    class="grid gap-2"
-                  >
-                    <Label :for="field.field" :required="field.required">
-                      {{ field.label }}
-                    </Label>
-
-                    <div class="flex items-center gap-2">
-                      <div class="min-w-0 flex-1">
-                        <Select
-                          v-if="field.type === 'select'"
-                          :model-value="fieldValue(field.field)"
-                          @update:model-value="
-                            (value) => setConfigurationValue(field.field, value)
-                          "
-                        >
-                          <SelectTrigger :id="field.field" class="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem
-                              v-for="option in field.options ?? []"
-                              :key="option.value"
-                              :value="option.value"
-                            >
-                              {{ option.label }}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <Input
-                          v-else
-                          :id="field.field"
-                          :model-value="fieldValue(field.field)"
-                          :type="
-                            field.secret
-                              ? 'password'
-                              : field.type === 'url'
-                                ? 'url'
-                                : 'text'
-                          "
-                          :placeholder="credentialFieldPlaceholder(field)"
-                          autocomplete="off"
-                          class="w-full"
-                          @update:model-value="
-                            (value) => setConfigurationValue(field.field, value)
-                          "
-                        />
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        :disabled="!canUpdateCredentialField(field)"
-                        @click="saveCredentialField(field)"
-                      >
-                        <LoaderCircle
-                          v-if="
-                            credentialForm.processing &&
-                            credentialSavingField === field.field
-                          "
-                          class="mr-2 h-4 w-4 animate-spin"
-                        />
-                        {{ t('更新') }}
+                        {{ t('添加模型') }}
                       </Button>
                     </div>
 
-                    <InputError :message="fieldError(field.field)" />
-                  </div>
-
-                  <div
-                    v-for="field in lockedEndpointFields"
-                    :key="`locked-${field.field}`"
-                    class="grid gap-2"
-                  >
-                    <Label :for="field.field">
-                      {{ field.label }}
-                    </Label>
-                    <Input
-                      :id="field.field"
-                      :model-value="endpointFieldValue(field)"
-                      type="url"
-                      disabled
-                      class="w-full"
-                    />
-                  </div>
-                </form>
-
-                <Separator />
-
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold">{{ t('模型') }}</h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      @click="openAddModel"
-                    >
-                      {{ t('添加模型') }}
-                    </Button>
-                  </div>
-
-                  <div v-if="modelGroups.length > 0" class="space-y-2">
-                    <div
-                      v-for="group in modelGroups"
-                      :key="group.type"
-                      class="rounded-lg border"
-                    >
-                      <button
-                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium hover:bg-muted/50"
-                        @click="toggleGroup(group.type)"
-                      >
-                        <span
-                          >{{ modelTypeLabel(group.type) }} ({{
-                            group.models.length
-                          }})</span
-                        >
-                        <ChevronDown
-                          v-if="expandedGroups.has(group.type)"
-                          class="h-4 w-4 text-muted-foreground"
-                        />
-                        <ChevronRight
-                          v-else
-                          class="h-4 w-4 text-muted-foreground"
-                        />
-                      </button>
-
+                    <div v-if="modelGroups.length > 0" class="space-y-2">
                       <div
-                        v-if="expandedGroups.has(group.type)"
-                        class="border-t"
+                        v-for="group in modelGroups"
+                        :key="group.type"
+                        class="rounded-lg border"
                       >
-                        <div
-                          v-for="model in group.models"
-                          :key="model.id"
-                          class="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30"
+                        <button
+                          class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium hover:bg-muted/50"
+                          @click="toggleGroup(group.type)"
                         >
-                          <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                              <span class="text-sm font-medium">{{
-                                model.name
-                              }}</span>
-                              <Badge
-                                v-if="model.is_builtin"
-                                variant="outline"
-                                class="text-[10px]"
-                              >
-                                {{ t('内置') }}
-                              </Badge>
+                          <span
+                            >{{ modelTypeLabel(group.type) }} ({{
+                              group.models.length
+                            }})</span
+                          >
+                          <ChevronDown
+                            v-if="expandedGroups.has(group.type)"
+                            class="h-4 w-4 text-muted-foreground"
+                          />
+                          <ChevronRight
+                            v-else
+                            class="h-4 w-4 text-muted-foreground"
+                          />
+                        </button>
+
+                        <div
+                          v-if="expandedGroups.has(group.type)"
+                          class="border-t"
+                        >
+                          <div
+                            v-for="model in group.models"
+                            :key="model.id"
+                            class="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30"
+                          >
+                            <div class="min-w-0 flex-1">
+                              <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium">{{
+                                  model.name
+                                }}</span>
+                                <Badge
+                                  v-if="model.is_builtin"
+                                  variant="outline"
+                                  class="text-[10px]"
+                                >
+                                  {{ t('内置') }}
+                                </Badge>
+                              </div>
+
+                              <div class="mt-0.5 flex items-center gap-1.5">
+                                <span
+                                  class="font-mono text-xs text-muted-foreground"
+                                >
+                                  {{ model.model_id }}
+                                </span>
+                              </div>
                             </div>
 
-                            <div class="mt-0.5 flex items-center gap-1.5">
-                              <span
-                                class="font-mono text-xs text-muted-foreground"
+                            <div class="flex shrink-0 items-center gap-2">
+                              <Switch
+                                :model-value="model.is_active"
+                                :title="model.is_active ? t('停用') : t('启用')"
+                                @update:model-value="() => toggleModel(model)"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                class="h-7 w-7"
+                                @click="openEditModel(model)"
                               >
-                                {{ model.model_id }}
-                              </span>
+                                <Pencil class="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                v-if="!model.is_builtin"
+                                variant="ghost"
+                                size="icon"
+                                class="h-7 w-7 text-destructive hover:text-destructive"
+                                :title="t('删除')"
+                                @click="openDeleteModelDialog(model)"
+                              >
+                                <Trash2 class="h-3.5 w-3.5" />
+                              </Button>
                             </div>
-                          </div>
-
-                          <div class="flex shrink-0 items-center gap-2">
-                            <Switch
-                              :model-value="model.is_active"
-                              :title="model.is_active ? t('停用') : t('启用')"
-                              @update:model-value="() => toggleModel(model)"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              class="h-7 w-7"
-                              @click="openEditModel(model)"
-                            >
-                              <Pencil class="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              v-if="!model.is_builtin"
-                              variant="ghost"
-                              size="icon"
-                              class="h-7 w-7 text-destructive hover:text-destructive"
-                              :title="t('删除')"
-                              @click="openDeleteModelDialog(model)"
-                            >
-                              <Trash2 class="h-3.5 w-3.5" />
-                            </Button>
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    <p
+                      v-else
+                      class="py-8 text-center text-sm text-muted-foreground"
+                    >
+                      {{ t('暂无模型') }}
+                    </p>
                   </div>
-
-                  <p
-                    v-else
-                    class="py-8 text-center text-sm text-muted-foreground"
-                  >
-                    {{ t('暂无模型') }}
-                  </p>
                 </div>
-              </div>
-            </template>
+              </template>
 
-            <div
-              v-else
-              class="flex h-full items-center justify-center text-sm text-muted-foreground"
-            >
-              {{ t('暂无供应商') }}
+              <div
+                v-else
+                class="flex h-full items-center justify-center text-sm text-muted-foreground"
+              >
+                {{ t('暂无供应商') }}
+              </div>
             </div>
           </div>
+
+          <AddProviderDialog
+            v-model:open="addProviderOpen"
+            :brand-options="props.brand_options"
+          />
+
+          <ModelFormDialog
+            v-model:open="modelDialogOpen"
+            :model="editingModel"
+            :provider-name="selectedProvider?.name ?? ''"
+            :provider-slug="selectedProvider?.slug ?? ''"
+          />
+
+          <ConfirmDeleteDialog
+            :open="deleteTarget !== null"
+            :title="deleteDialogTitle"
+            :detail-title="deleteTarget?.title"
+            :detail-description="deleteDialogDescription"
+            :processing="isDeleting"
+            @update:open="closeDeleteDialog"
+            @confirm="confirmDelete"
+          />
         </div>
-
-        <AddProviderDialog
-          v-model:open="addProviderOpen"
-          :brand-options="props.brand_options"
-        />
-
-        <ModelFormDialog
-          v-model:open="modelDialogOpen"
-          :model="editingModel"
-          :provider-name="selectedProvider?.name ?? ''"
-          :provider-slug="selectedProvider?.slug ?? ''"
-        />
-
-        <ConfirmDeleteDialog
-          :open="deleteTarget !== null"
-          :title="deleteDialogTitle"
-          :detail-title="deleteTarget?.title"
-          :detail-description="deleteDialogDescription"
-          :processing="isDeleting"
-          @update:open="closeDeleteDialog"
-          @confirm="confirmDelete"
-        />
-      </div>
-    </WorkspaceSettingsLayout>
+      </section>
+    </SystemSettingsLayout>
   </AppLayout>
 </template>

@@ -47,7 +47,6 @@ class StopAiAssistantMessageAction
             // 不要把完整 topic 写日志：当前 Mercure 是匿名订阅，topic 字符串就是订阅密钥，
             // 任何能 grep 日志的人都能在窗口期内拉到这一轮对话的内容。
             Log::warning('AI chat stop bridge call failed.', [
-                'workspace_id' => $workspace->id,
                 'topic_hash' => substr(hash('sha256', $topic), 0, 12),
                 'exception' => $exception->getMessage(),
             ]);

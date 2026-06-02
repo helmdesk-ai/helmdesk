@@ -13,17 +13,16 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
             $table->softDeletes();
-            $table->ulid('workspace_id');
             $table->ulid('contact_id');
             $table->string('type');
             $table->string('namespace')->default('');
             $table->string('value');
             $table->string('display_value')->nullable();
 
-            $table->index(['contact_id', 'workspace_id']);
+            $table->index('contact_id');
         });
 
-        DB::statement('CREATE UNIQUE INDEX contact_identities_unique_active ON contact_identities (workspace_id, type, namespace, value) WHERE deleted_at IS NULL');
+        DB::statement('CREATE UNIQUE INDEX contact_identities_unique_active ON contact_identities (type, namespace, value) WHERE deleted_at IS NULL');
     }
 
     public function down(): void

@@ -11,7 +11,6 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '产品知识库',
     ]);
 });
@@ -37,9 +36,7 @@ test('所有者可以创建顶级分组并自动落到同级末尾', function ()
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.groups.store', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['name' => '使用手册', 'parent_id' => '']
         )
@@ -59,9 +56,7 @@ test('所有者可以创建二级分组（受 2 级限制）', function () {
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.groups.store', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['name' => '快速入门', 'parent_id' => $top->id]
         )
@@ -80,11 +75,9 @@ test('不能基于二级分组再创建分组', function () {
     $child = createKnowledgeGroupTestNode(['name' => '快速入门', 'parent_id' => $top->id]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.groups.store', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['name' => '更深一级', 'parent_id' => $child->id]
         )
@@ -95,11 +88,9 @@ test('默认分组不能创建子分组', function () {
     $defaultGroup = $this->kb->defaultDocumentGroup()->firstOrFail();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.groups.store', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['name' => '默认子分组', 'parent_id' => $defaultGroup->id]
         )
@@ -110,11 +101,9 @@ test('同一上级下分组名必须唯一', function () {
     createKnowledgeGroupTestNode(['name' => '重名']);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.groups.store', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['name' => '重名', 'parent_id' => '']
         )
@@ -137,9 +126,7 @@ test('编辑分组可以改名同时改挂上级', function () {
 
     $this->actingAs($this->user)
         ->put(
-            route('workspace.manage.knowledge-bases.groups.update', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.update', ['knowledgeBase' => $this->kb->id,
                 'group' => $child->id,
             ]),
             ['name' => '快速上手', 'parent_id' => $newParent->id]
@@ -162,9 +149,7 @@ test('编辑分组可以拉回顶级', function () {
 
     $this->actingAs($this->user)
         ->put(
-            route('workspace.manage.knowledge-bases.groups.update', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.update', ['knowledgeBase' => $this->kb->id,
                 'group' => $child->id,
             ]),
             ['name' => '快速入门', 'parent_id' => '']
@@ -183,11 +168,9 @@ test('包含子分组的分组不能被挂到其它分组下', function () {
     createKnowledgeGroupTestNode(['name' => '子项', 'parent_id' => $top->id]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->put(
-            route('workspace.manage.knowledge-bases.groups.update', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.update', ['knowledgeBase' => $this->kb->id,
                 'group' => $top->id,
             ]),
             ['name' => '使用手册', 'parent_id' => $other->id]
@@ -201,11 +184,9 @@ test('分组不能挂到自身下', function () {
     $group = createKnowledgeGroupTestNode(['name' => '使用手册']);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->put(
-            route('workspace.manage.knowledge-bases.groups.update', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.update', ['knowledgeBase' => $this->kb->id,
                 'group' => $group->id,
             ]),
             ['name' => '使用手册', 'parent_id' => $group->id]
@@ -219,11 +200,9 @@ test('分组不能挂到二级分组下', function () {
     $orphan = createKnowledgeGroupTestNode(['name' => '游离顶级']);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->put(
-            route('workspace.manage.knowledge-bases.groups.update', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.update', ['knowledgeBase' => $this->kb->id,
                 'group' => $orphan->id,
             ]),
             ['name' => '游离顶级', 'parent_id' => $child->id]
@@ -235,11 +214,9 @@ test('默认分组不能编辑或删除', function () {
     $defaultGroup = $this->kb->defaultDocumentGroup()->firstOrFail();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->put(
-            route('workspace.manage.knowledge-bases.groups.update', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.update', ['knowledgeBase' => $this->kb->id,
                 'group' => $defaultGroup->id,
             ]),
             ['name' => '新的默认分组', 'parent_id' => '']
@@ -247,11 +224,9 @@ test('默认分组不能编辑或删除', function () {
         ->assertSessionHasErrors(['group']);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->delete(
-            route('workspace.manage.knowledge-bases.groups.destroy', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.destroy', ['knowledgeBase' => $this->kb->id,
                 'group' => $defaultGroup->id,
             ])
         )
@@ -261,17 +236,14 @@ test('默认分组不能编辑或删除', function () {
 test('包含文档的普通分组不能删除', function () {
     $group = createKnowledgeGroupTestNode(['name' => '使用手册']);
     KnowledgeDocument::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'knowledge_base_id' => $this->kb->id,
         'group_id' => $group->id,
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->delete(
-            route('workspace.manage.knowledge-bases.groups.destroy', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.destroy', ['knowledgeBase' => $this->kb->id,
                 'group' => $group->id,
             ])
         )
@@ -286,11 +258,9 @@ test('删除空分组成功，但包含子分组的分组无法删除', function
 
     // 顶级有子分组 → 删除失败
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.knowledge-bases.index'))
         ->delete(
-            route('workspace.manage.knowledge-bases.groups.destroy', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.destroy', ['knowledgeBase' => $this->kb->id,
                 'group' => $top->id,
             ])
         )
@@ -301,9 +271,7 @@ test('删除空分组成功，但包含子分组的分组无法删除', function
     // 删掉子分组后再删顶级 → 成功
     $this->actingAs($this->user)
         ->delete(
-            route('workspace.manage.knowledge-bases.groups.destroy', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.destroy', ['knowledgeBase' => $this->kb->id,
                 'group' => $child->id,
             ])
         )
@@ -311,9 +279,7 @@ test('删除空分组成功，但包含子分组的分组无法删除', function
 
     $this->actingAs($this->user)
         ->delete(
-            route('workspace.manage.knowledge-bases.groups.destroy', [
-                'slug' => $this->workspaceSlug(),
-                'knowledgeBase' => $this->kb->id,
+            route('workspace.manage.knowledge-bases.groups.destroy', ['knowledgeBase' => $this->kb->id,
                 'group' => $top->id,
             ])
         )

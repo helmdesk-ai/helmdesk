@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Data\User\UserNotificationPreferencesData;
+use App\Enums\UserOnlineStatus;
+use App\Enums\WorkspaceRole;
 use App\Notifications\QueuedResetPassword;
 use App\Notifications\QueuedVerifyEmail;
 use App\Settings\MailSettings;
@@ -13,7 +15,6 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,6 +32,10 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $avatar
  * @property string $locale
  * @property string|null $timezone
+ * @property WorkspaceRole $role
+ * @property string|null $nickname
+ * @property UserOnlineStatus $online_status
+ * @property Carbon|null $last_active_at
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
@@ -40,10 +45,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property bool $is_super_admin
  * @property Carbon|null $deleted_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $assigned_conversations_count
  * @property int|null $avatar_attachments_count
- * @property-read Collection|Workspace[] $workspaces
  * @property-read Collection|Conversation[] $assignedConversations
  * @property-read Attachment|null $avatarAttachment
  *
@@ -52,7 +55,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     /**
-     * 用户模型，保存后台账号、超级管理员标记和工作区成员关系。
+     * 用户模型，保存后台账号、角色、在线状态和超级管理员标记。
      */
 
     /** @use HasFactory<UserFactory> */
@@ -72,6 +75,10 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         'locale',
         'timezone',
         'notification_preferences',
+        'role',
+        'nickname',
+        'online_status',
+        'last_active_at',
         'is_super_admin',
     ];
 
@@ -94,6 +101,8 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'notification_preferences' => UserNotificationPreferencesData::class.':default',
+            'role' => WorkspaceRole::class,
+            'online_status' => UserOnlineStatus::class,
             'two_factor_confirmed_at' => 'datetime',
             'last_active_at' => 'datetime',
             'is_super_admin' => 'boolean',
@@ -110,14 +119,6 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
                 ->where('user_id', $user->id)
                 ->delete();
         });
-    }
-
-    /**
-     * 用户加入的工作区列表。
-     */
-    public function workspaces(): BelongsToMany
-    {
-        return $this->belongsToMany(Workspace::class)->withPivot('role', 'nickname', 'online_status', 'last_active_at')->withTimestamps();
     }
 
     /**

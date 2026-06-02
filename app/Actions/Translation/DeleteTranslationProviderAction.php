@@ -45,7 +45,6 @@ class DeleteTranslationProviderAction
     private function isReferencedByReceptionPlan(Workspace $workspace, string $providerId): bool
     {
         return ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->where('translation_config->provider_id', $providerId)
             ->exists();
     }
@@ -53,7 +52,7 @@ class DeleteTranslationProviderAction
     /**
      * 鉴权后删除。
      */
-    public function asController(Request $request, string $slug, string $provider): RedirectResponse
+    public function asController(Request $request, string $provider): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

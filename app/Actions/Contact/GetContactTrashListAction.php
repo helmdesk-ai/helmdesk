@@ -34,7 +34,6 @@ class GetContactTrashListAction
         $page = max(1, $page);
 
         $paginator = Contact::onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->orderByDesc('deleted_at')
             ->orderByDesc('created_at')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -53,7 +52,7 @@ class GetContactTrashListAction
     /**
      * 返回工作区联系人回收站页面。
      */
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

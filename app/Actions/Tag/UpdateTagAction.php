@@ -27,12 +27,10 @@ class UpdateTagAction
     public function handle(Workspace $workspace, string $id, FormUpdateTagData $data, ?User $actor = null): Tag
     {
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->with('tagGroup')
             ->findOrFail($id);
 
         $targetGroup = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->find($data->tag_group_id);
 
         if ($targetGroup === null) {
@@ -52,7 +50,6 @@ class UpdateTagAction
         $normalizedName = mb_strtolower($name);
 
         $exists = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->where('tag_group_id', $targetGroup->id)
             ->where('normalized_name', $normalizedName)
             ->where('id', '!=', $tag->id)
@@ -92,7 +89,7 @@ class UpdateTagAction
         return $tag;
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $currentWorkspace = $ctx->workspace();

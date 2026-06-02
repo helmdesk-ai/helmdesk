@@ -46,13 +46,12 @@ class DeleteKnowledgeQaEntryAction
     /**
      * 处理删除问答请求。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $entry): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $entry): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $entryModel = KnowledgeQaEntry::query()
@@ -63,7 +62,6 @@ class DeleteKnowledgeQaEntryAction
         $this->handle($entryModel);
 
         return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
             'kb' => $kb->id,
             'group' => $groupId,
         ]);

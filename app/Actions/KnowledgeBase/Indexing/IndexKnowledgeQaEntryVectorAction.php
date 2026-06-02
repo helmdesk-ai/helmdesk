@@ -9,6 +9,7 @@ use App\Enums\KnowledgeQaEntryStatus;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
+use App\Models\Workspace;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use Illuminate\Support\Collection;
@@ -37,7 +38,7 @@ class IndexKnowledgeQaEntryVectorAction
     public function handle(KnowledgeQaEntry $entry): void
     {
         $entry->refresh();
-        $entry->loadMissing('knowledgeBase.workspace.knowledgeEmbeddingModel.provider', 'similarQuestions', 'answers');
+        $entry->loadMissing('knowledgeBase', 'similarQuestions', 'answers');
         $knowledgeBase = $entry->knowledgeBase;
         if ($knowledgeBase === null) {
             return;
@@ -57,7 +58,7 @@ class IndexKnowledgeQaEntryVectorAction
         ])->save();
 
         try {
-            $embeddingModel = $knowledgeBase->workspace?->knowledgeEmbeddingModel;
+            $embeddingModel = Workspace::current()->knowledgeEmbeddingModel;
             if ($embeddingModel === null || $embeddingModel->provider === null) {
                 throw new BusinessException(__('knowledge_base.messages.invalid_embedding_model'));
             }

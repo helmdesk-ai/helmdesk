@@ -57,13 +57,12 @@ class RegisterTelegramWebhookAction
     /**
      * 接收手动「重新注册 webhook」请求，成功后回显 toast（结果不可见，需显式反馈）。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $channelModel = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->findOrFail($channel);
 
@@ -72,7 +71,6 @@ class RegisterTelegramWebhookAction
         Inertia::flash('toast', ['type' => 'success', 'message' => __('channel.telegram.webhook_registered')]);
 
         return redirect()->route('workspace.manage.channels.telegram.show', [
-            'slug' => $workspace->slug,
             'channel' => $channelModel->id,
         ]);
     }

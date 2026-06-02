@@ -60,7 +60,7 @@ class CheckAiProviderAction
             ->exists();
     }
 
-    public function asController(Request $request, string $slug, string $provider): JsonResponse
+    public function asController(Request $request, string $provider): JsonResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

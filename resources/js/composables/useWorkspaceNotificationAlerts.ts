@@ -1,7 +1,7 @@
 /**
- * 文件说明：前端组合式逻辑，在后台工作区布局中订阅接待实时事件并触发浏览器通知和声音提醒。
+ * 文件说明：前端组合式逻辑，在后台布局中订阅接待实时事件并触发浏览器通知和声音提醒。
  */
-import { openMercureEventSource, receptionWorkspaceTopic } from '@/lib/mercure';
+import { openMercureEventSource, receptionInboxTopic } from '@/lib/mercure';
 import workspace from '@/routes/workspace';
 import type { UserNotificationPreferencesData } from '@/types/generated';
 import { router } from '@inertiajs/vue3';
@@ -11,15 +11,12 @@ import { useI18n } from './useI18n';
 import { playNotificationSound } from './useNotificationSound';
 
 interface WorkspaceNotificationAlertOptions {
-  workspaceId: Ref<string>;
-  workspaceSlug: Ref<string>;
   userId: Ref<string>;
   preferences: Ref<UserNotificationPreferencesData>;
 }
 
 interface ReceptionRealtimePayload {
   event?: string;
-  workspace_id?: string;
   conversation_id?: string;
   occurred_at?: string;
   assigned_user_id?: string | null;
@@ -64,7 +61,7 @@ export function useWorkspaceNotificationAlerts(
   }
 
   function conversationUrl(conversationId: string): string {
-    return workspace.inbox.show.url(options.workspaceSlug.value, {
+    return workspace.inbox.show.url({
       query: { conversation_id: conversationId },
     });
   }
@@ -83,10 +80,6 @@ export function useWorkspaceNotificationAlerts(
     const preferences = options.preferences.value;
     const conversationId = payload.conversation_id;
     if (!conversationId) {
-      return null;
-    }
-
-    if (payload.workspace_id !== options.workspaceId.value) {
       return null;
     }
 
@@ -192,9 +185,7 @@ export function useWorkspaceNotificationAlerts(
       return;
     }
 
-    source = openMercureEventSource(
-      receptionWorkspaceTopic(options.workspaceId.value),
-    );
+    source = openMercureEventSource(receptionInboxTopic());
 
     source.addEventListener('reception', (event) => {
       handlePayload(JSON.parse((event as MessageEvent).data));
@@ -202,12 +193,7 @@ export function useWorkspaceNotificationAlerts(
   }
 
   watch(
-    [
-      options.workspaceId,
-      options.workspaceSlug,
-      options.userId,
-      options.preferences,
-    ],
+    [options.userId, options.preferences],
     subscribe,
     { immediate: true },
   );

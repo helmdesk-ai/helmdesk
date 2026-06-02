@@ -9,7 +9,6 @@ import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import PaginationNavigator from '@/components/common/PaginationNavigator.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowWebChannelListPagePropsData } from '@/types/generated';
@@ -26,13 +25,12 @@ import {
 
 const props = defineProps<ShowWebChannelListPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const deleteForm = useForm({});
 const deletingChannelId = ref<string | null>(null);
 
 const buildChannelListPageUrl = (page: number): string => {
-  return Web.ListWebChannelsAction.url(currentWorkspace.value.slug, {
+  return Web.ListWebChannelsAction.url({
     query: { page },
   });
 };
@@ -51,7 +49,6 @@ const confirmDelete = () => {
 
   deleteForm.delete(
     Web.DeleteWebChannelAction.url({
-      slug: currentWorkspace.value.slug,
       channel: selectedChannel.value.id,
     }),
     {
@@ -90,7 +87,7 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
             <Button as-child>
               <Link
                 :href="
-                  Web.ShowCreateWebChannelPageAction.url(currentWorkspace.slug)
+                  Web.ShowCreateWebChannelPageAction.url()
                 "
               >
                 {{ t('创建渠道') }}
@@ -98,7 +95,7 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
             </Button>
             <Button variant="outline" as-child>
               <Link
-                :href="Web.ListWebChannelTrashAction.url(currentWorkspace.slug)"
+                :href="Web.ListWebChannelTrashAction.url()"
               >
                 {{ t('回收站') }}
               </Link>
@@ -147,7 +144,6 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
                         <Link
                           :href="
                             Web.ShowWebChannelDetailPageAction.url({
-                              slug: currentWorkspace.slug,
                               channel: channel.id,
                             })
                           "

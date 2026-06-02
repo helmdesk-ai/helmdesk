@@ -1,5 +1,5 @@
 <!--
-  工作区翻译供应商页面：左侧供应商列表，右侧承接详情、创建和编辑表单。
+  系统翻译供应商页面：左侧供应商列表，右侧承接详情、创建和编辑表单。
 -->
 <script setup lang="ts">
 import Translation from '@/actions/App/Actions/Translation';
@@ -11,9 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import WorkspaceSettingsLayout from '@/layouts/WorkspaceSettingsLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type {
   ShowTranslationProviderPagePropsData,
   TranslationProviderData,
@@ -53,7 +52,6 @@ const props = defineProps<ShowTranslationProviderPagePropsData>();
 
 const { t } = useI18n();
 const { toast } = useToast();
-const workspace = useRequiredWorkspace();
 
 const selectedProviderQueryParam = 'provider';
 const panelQueryParam = 'panel';
@@ -317,9 +315,8 @@ function checkSavedProviderConnection(): void {
 
   checkHttp.post(
     Translation.CheckTranslationProviderAction[
-      '/w/{slug}/manage/translation/providers/{provider}/check'
+      '/admin/manage/translation/providers/{provider}/check'
     ].url({
-      slug: workspace.value.slug,
       provider: selectedProvider.value.slug,
     }),
     {
@@ -363,7 +360,6 @@ function clearCredentials(): void {
 
   router.delete(
     Translation.ClearTranslationProviderCredentialsAction.url({
-      slug: workspace.value.slug,
       provider: selectedSlug.value,
     }),
     {
@@ -401,7 +397,6 @@ function confirmDelete(): void {
 
   router.delete(
     Translation.DeleteTranslationProviderAction.url({
-      slug: workspace.value.slug,
       provider: deleteTarget.value.slug,
     }),
     {
@@ -450,231 +445,243 @@ function hasAnyCredential(provider: TranslationProviderData): boolean {
   <AppLayout>
     <Head :title="t('翻译供应商')" />
 
-    <WorkspaceSettingsLayout>
-      <div
-        class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
-      >
-        <HeadingSmall
-          :title="t('翻译供应商')"
-          :description="
-            t(
-              '为接待页消息双向翻译配置外部翻译服务的凭据；同时刻只有一家被设为当前使用。',
-            )
-          "
-        />
+    <SystemSettingsLayout>
+      <section class="mx-auto w-full max-w-none space-y-12">
+        <div
+          class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
+        >
+          <HeadingSmall
+            :title="t('翻译供应商')"
+            :description="
+              t(
+                '为接待页消息双向翻译配置外部翻译服务的凭据；同时刻只有一家被设为当前使用。',
+              )
+            "
+          />
 
-        <div class="flex min-h-0 flex-1 rounded-xl border">
-          <div class="flex w-64 shrink-0 flex-col border-r">
-            <div class="flex items-center justify-between p-4">
-              <h3 class="text-sm font-semibold">{{ t('供应商') }}</h3>
-              <Button
-                type="button"
-                :variant="
-                  activeRightPage === 'provider_form' &&
-                  providerFormMode === 'create'
-                    ? 'secondary'
-                    : 'ghost'
-                "
-                size="icon"
-                class="h-7 w-7"
-                :aria-label="t('添加翻译供应商')"
-                @click="openCreateForm"
-              >
-                <Plus class="h-4 w-4" />
-              </Button>
+          <div class="flex min-h-0 flex-1 rounded-xl border">
+            <div class="flex w-64 shrink-0 flex-col border-r">
+              <div class="flex items-center justify-between p-4">
+                <h3 class="text-sm font-semibold">{{ t('供应商') }}</h3>
+                <Button
+                  type="button"
+                  :variant="
+                    activeRightPage === 'provider_form' &&
+                    providerFormMode === 'create'
+                      ? 'secondary'
+                      : 'ghost'
+                  "
+                  size="icon"
+                  class="h-7 w-7"
+                  :aria-label="t('添加翻译供应商')"
+                  @click="openCreateForm"
+                >
+                  <Plus class="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div class="flex-1 overflow-y-auto px-2 pb-4">
+                <div
+                  v-if="props.providers.length === 0"
+                  class="px-4 py-8 text-center text-sm text-muted-foreground"
+                >
+                  {{ t('暂无供应商') }}
+                </div>
+
+                <div v-else class="space-y-0.5">
+                  <div
+                    v-for="provider in props.providers"
+                    :key="provider.slug"
+                    class="flex items-center gap-2 rounded-md text-sm transition-colors"
+                    :class="
+                      isProviderRowActive(provider)
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-muted'
+                    "
+                  >
+                    <button
+                      type="button"
+                      class="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
+                      @click="selectProvider(provider)"
+                    >
+                      <AiProviderIcon
+                        :icon="providerIcon(provider)"
+                        class="h-7 w-7 shrink-0 rounded-md bg-muted p-1.5"
+                      />
+                      <div class="min-w-0 flex-1 space-y-0.5">
+                        <span class="block truncate font-medium">
+                          {{ provider.name }}
+                        </span>
+                        <span
+                          class="block truncate text-[11px] text-muted-foreground"
+                        >
+                          {{ provider.protocol_label }}
+                        </span>
+                      </div>
+                    </button>
+                    <Badge
+                      v-if="!provider.has_complete_credentials"
+                      variant="outline"
+                      class="mr-3 shrink-0 text-[11px] text-muted-foreground"
+                    >
+                      {{ t('凭据未配置完整') }}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto px-2 pb-4">
+            <div class="flex-1 overflow-y-auto">
               <div
-                v-if="props.providers.length === 0"
-                class="px-4 py-8 text-center text-sm text-muted-foreground"
+                v-if="activeRightPage === 'provider_form'"
+                class="space-y-6 p-6"
+              >
+                <TranslationProviderFormPanel
+                  :mode="providerFormMode"
+                  :provider="
+                    providerFormMode === 'edit' ? editingProvider : null
+                  "
+                  :protocol-options="props.protocol_options"
+                  :protocol-credential-fields="props.protocol_credential_fields"
+                  @cancel="closeProviderForm"
+                  @saved="handleProviderFormSaved"
+                  @clear-credentials="openClearCredentialsDialog"
+                />
+              </div>
+
+              <template v-else-if="selectedProvider">
+                <div class="space-y-6 p-6">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 space-y-2">
+                      <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 class="truncate text-sm font-semibold">
+                          {{ selectedProvider.name }}
+                        </h3>
+                        <Badge variant="outline">
+                          {{ selectedProvider.protocol_label }}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div class="flex shrink-0 items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        :disabled="checkHttp.processing"
+                        @click="checkSavedProviderConnection"
+                      >
+                        <LoaderCircle
+                          v-if="checkHttp.processing"
+                          class="mr-2 h-4 w-4 animate-spin"
+                        />
+                        {{ t('测试') }}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        @click="openEditForm(selectedProvider)"
+                      >
+                        {{ t('编辑') }}
+                      </Button>
+                      <Button
+                        v-if="!selectedProvider.is_builtin"
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="text-destructive hover:text-destructive"
+                        :title="t('删除')"
+                        :aria-label="t('删除')"
+                        @click="openDeleteDialog(selectedProvider)"
+                      >
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div class="space-y-3">
+                    <h3 class="text-sm font-semibold">
+                      {{ t('连接配置') }}
+                    </h3>
+                    <div class="space-y-3 text-sm">
+                      <div class="flex items-start gap-3">
+                        <div
+                          class="w-24 shrink-0 text-xs text-muted-foreground"
+                        >
+                          {{ t('名称') }}
+                        </div>
+                        <div class="min-w-0 flex-1 break-words">
+                          {{ selectedProvider.name }}
+                        </div>
+                      </div>
+                      <div class="flex items-start gap-3">
+                        <div
+                          class="w-24 shrink-0 text-xs text-muted-foreground"
+                        >
+                          {{ t('协议') }}
+                        </div>
+                        <div class="min-w-0 flex-1 break-words">
+                          {{ selectedProvider.protocol_label }}
+                        </div>
+                      </div>
+                      <div class="flex items-start gap-3">
+                        <div
+                          class="w-24 shrink-0 text-xs text-muted-foreground"
+                        >
+                          {{ t('凭据') }}
+                        </div>
+                        <div class="min-w-0 flex-1 break-words">
+                          {{
+                            hasAnyCredential(selectedProvider)
+                              ? t('已配置')
+                              : t('未配置')
+                          }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <div
+                v-else
+                class="flex h-full items-center justify-center text-sm text-muted-foreground"
               >
                 {{ t('暂无供应商') }}
               </div>
-
-              <div v-else class="space-y-0.5">
-                <div
-                  v-for="provider in props.providers"
-                  :key="provider.slug"
-                  class="flex items-center gap-2 rounded-md text-sm transition-colors"
-                  :class="
-                    isProviderRowActive(provider)
-                      ? 'bg-accent text-accent-foreground'
-                      : 'hover:bg-muted'
-                  "
-                >
-                  <button
-                    type="button"
-                    class="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
-                    @click="selectProvider(provider)"
-                  >
-                    <AiProviderIcon
-                      :icon="providerIcon(provider)"
-                      class="h-7 w-7 shrink-0 rounded-md bg-muted p-1.5"
-                    />
-                    <div class="min-w-0 flex-1 space-y-0.5">
-                      <span class="block truncate font-medium">
-                        {{ provider.name }}
-                      </span>
-                      <span
-                        class="block truncate text-[11px] text-muted-foreground"
-                      >
-                        {{ provider.protocol_label }}
-                      </span>
-                    </div>
-                  </button>
-                  <Badge
-                    v-if="!provider.has_complete_credentials"
-                    variant="outline"
-                    class="mr-3 shrink-0 text-[11px] text-muted-foreground"
-                  >
-                    {{ t('凭据未配置完整') }}
-                  </Badge>
-                </div>
-              </div>
             </div>
           </div>
 
-          <div class="flex-1 overflow-y-auto">
-            <div
-              v-if="activeRightPage === 'provider_form'"
-              class="space-y-6 p-6"
-            >
-              <TranslationProviderFormPanel
-                :mode="providerFormMode"
-                :provider="providerFormMode === 'edit' ? editingProvider : null"
-                :protocol-options="props.protocol_options"
-                :protocol-credential-fields="props.protocol_credential_fields"
-                @cancel="closeProviderForm"
-                @saved="handleProviderFormSaved"
-                @clear-credentials="openClearCredentialsDialog"
-              />
-            </div>
+          <ConfirmDeleteDialog
+            :open="clearCredentialsConfirmOpen"
+            :title="t('确认清空凭据？')"
+            :detail-title="selectedProvider?.name"
+            :detail-description="
+              t('清空后已保存的凭据将被移除，供应商也会被自动停用。')
+            "
+            :processing="isClearingCredentials"
+            :confirm-label="t('确认清空')"
+            :processing-label="t('清空中...')"
+            @update:open="closeClearCredentialsDialog"
+            @confirm="clearCredentials"
+          />
 
-            <template v-else-if="selectedProvider">
-              <div class="space-y-6 p-6">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 space-y-2">
-                    <div class="flex min-w-0 flex-wrap items-center gap-2">
-                      <h3 class="truncate text-sm font-semibold">
-                        {{ selectedProvider.name }}
-                      </h3>
-                      <Badge variant="outline">
-                        {{ selectedProvider.protocol_label }}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div class="flex shrink-0 items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      :disabled="checkHttp.processing"
-                      @click="checkSavedProviderConnection"
-                    >
-                      <LoaderCircle
-                        v-if="checkHttp.processing"
-                        class="mr-2 h-4 w-4 animate-spin"
-                      />
-                      {{ t('测试') }}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      @click="openEditForm(selectedProvider)"
-                    >
-                      {{ t('编辑') }}
-                    </Button>
-                    <Button
-                      v-if="!selectedProvider.is_builtin"
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      class="text-destructive hover:text-destructive"
-                      :title="t('删除')"
-                      :aria-label="t('删除')"
-                      @click="openDeleteDialog(selectedProvider)"
-                    >
-                      <Trash2 class="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div class="space-y-3">
-                  <h3 class="text-sm font-semibold">
-                    {{ t('连接配置') }}
-                  </h3>
-                  <div class="space-y-3 text-sm">
-                    <div class="flex items-start gap-3">
-                      <div class="w-24 shrink-0 text-xs text-muted-foreground">
-                        {{ t('名称') }}
-                      </div>
-                      <div class="min-w-0 flex-1 break-words">
-                        {{ selectedProvider.name }}
-                      </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                      <div class="w-24 shrink-0 text-xs text-muted-foreground">
-                        {{ t('协议') }}
-                      </div>
-                      <div class="min-w-0 flex-1 break-words">
-                        {{ selectedProvider.protocol_label }}
-                      </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                      <div class="w-24 shrink-0 text-xs text-muted-foreground">
-                        {{ t('凭据') }}
-                      </div>
-                      <div class="min-w-0 flex-1 break-words">
-                        {{
-                          hasAnyCredential(selectedProvider)
-                            ? t('已配置')
-                            : t('未配置')
-                        }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-
-            <div
-              v-else
-              class="flex h-full items-center justify-center text-sm text-muted-foreground"
-            >
-              {{ t('暂无供应商') }}
-            </div>
-          </div>
+          <ConfirmDeleteDialog
+            :open="deleteTarget !== null"
+            :title="t('确认删除供应商？')"
+            :detail-title="deleteTarget?.name"
+            :detail-description="
+              t('确定要删除该翻译供应商吗？删除后无法恢复。')
+            "
+            :processing="isDeleting"
+            @update:open="closeDeleteDialog"
+            @confirm="confirmDelete"
+          />
         </div>
-
-        <ConfirmDeleteDialog
-          :open="clearCredentialsConfirmOpen"
-          :title="t('确认清空凭据？')"
-          :detail-title="selectedProvider?.name"
-          :detail-description="
-            t('清空后已保存的凭据将被移除，供应商也会被自动停用。')
-          "
-          :processing="isClearingCredentials"
-          :confirm-label="t('确认清空')"
-          :processing-label="t('清空中...')"
-          @update:open="closeClearCredentialsDialog"
-          @confirm="clearCredentials"
-        />
-
-        <ConfirmDeleteDialog
-          :open="deleteTarget !== null"
-          :title="t('确认删除供应商？')"
-          :detail-title="deleteTarget?.name"
-          :detail-description="t('确定要删除该翻译供应商吗？删除后无法恢复。')"
-          :processing="isDeleting"
-          @update:open="closeDeleteDialog"
-          @confirm="confirmDelete"
-        />
-      </div>
-    </WorkspaceSettingsLayout>
+      </section>
+    </SystemSettingsLayout>
   </AppLayout>
 </template>

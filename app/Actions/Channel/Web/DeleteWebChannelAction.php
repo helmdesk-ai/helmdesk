@@ -29,7 +29,7 @@ class DeleteWebChannelAction
         $channel->delete();
     }
 
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
@@ -38,6 +38,6 @@ class DeleteWebChannelAction
 
         $this->handle($channelModel);
 
-        return redirect()->route('workspace.manage.channels.web.index', ['slug' => $workspace->slug]);
+        return redirect()->route('workspace.manage.channels.web.index');
     }
 }

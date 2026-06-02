@@ -13,7 +13,6 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function () {
     $this->createUserWithWorkspace();
     $this->provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'google-tr-test',
         'credentials' => ['api_key' => 'fake-key'],
     ]);

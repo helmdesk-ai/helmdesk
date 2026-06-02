@@ -140,7 +140,6 @@ class ConversationDemoGenerator
                     'country' => fake('zh_CN')->optional()->country(),
                 ])
                 ->create([
-                    'workspace_id' => $workspace->id,
                 ]);
         }
 
@@ -164,7 +163,6 @@ class ConversationDemoGenerator
                 : random_int(6, 12);
 
             $conversation = Conversation::query()->create([
-                'workspace_id' => $workspace->id,
                 'contact_id' => $contact?->id,
                 'assigned_user_id' => $assignedUser?->id,
                 'source' => ConversationSource::Channel,

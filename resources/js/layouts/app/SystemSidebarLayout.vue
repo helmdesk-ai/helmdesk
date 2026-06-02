@@ -1,27 +1,50 @@
 <!--
-  文件说明：后台应用布局片段，承接侧边栏、顶部状态和工作区上下文。
+  文件说明：单租户总管理后台布局片段，承接统一侧边栏、顶部状态和系统上下文。
 -->
 <script setup lang="ts">
+import KnowledgeBase from '@/actions/App/Actions/KnowledgeBase';
+import Plan from '@/actions/App/Actions/Reception/Plan';
+import AiAssistantWidget from '@/components/common/AiAssistantWidget.vue';
 import { useI18n } from '@/composables/useI18n';
+import { useWorkspaceNotificationAlerts } from '@/composables/useWorkspaceNotificationAlerts';
 import SidebarShell, {
   type SidebarShellNavItem,
 } from '@/layouts/app/SidebarShell.vue';
+import SidebarUserMenuWithOnlineStatus from '@/layouts/app/SidebarUserMenuWithOnlineStatus.vue';
 import admin from '@/routes/admin';
 import logout from '@/routes/logout';
-import { edit as editProfile } from '@/routes/settings/profile';
-import type { NavItem } from '@/types';
+import { edit } from '@/routes/settings/profile';
+import workspace from '@/routes/workspace';
+import type { AppPageProps } from '@/types';
+import { usePage } from '@inertiajs/vue3';
 import {
   BookOpen,
-  Building2,
-  Database,
+  ClipboardList,
   GitBranch,
-  Mail,
+  Globe,
+  Inbox,
+  LayoutGrid,
+  MessagesSquare,
   Settings,
   Users,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
+interface Props {
+  hideHeader?: boolean;
+}
+
+withDefaults(defineProps<Props>(), {
+  hideHeader: false,
+});
+
 const { t } = useI18n();
+const page = usePage<AppPageProps>();
+
+const user = computed(() => page.props.auth.user);
+const notificationPreferences = computed(
+  () => page.props.auth.user.notification_preferences,
+);
 
 const routePath = (url: string) => {
   const origin =
@@ -30,40 +53,61 @@ const routePath = (url: string) => {
   return new URL(url, origin).pathname;
 };
 
+const contactsBaseUrl = computed(() => {
+  const sample = routePath(workspace.contacts.index.url({ type: '__type__' }));
+  return sample.replace('/__type__/index', '');
+});
+
+const manageBaseUrl = computed(() => {
+  return routePath(workspace.manage.tags.index.url()).replace(/\/tags$/, '');
+});
+
 const mainNavItems = computed<SidebarShellNavItem[]>(() => [
   {
-    title: t('基础设置'),
-    href: admin.general.show.url(),
-    icon: Settings,
-    activeUrls: [routePath(admin.general.show.url())],
+    title: t('仪表板'),
+    href: workspace.dashboard.url(),
+    icon: LayoutGrid,
+    activeUrls: [routePath(workspace.dashboard.url())],
   },
   {
-    title: t('用户管理'),
-    href: admin.users.index.url(),
+    title: t('收件箱'),
+    href: workspace.inbox.show.url(),
+    icon: Inbox,
+    activeUrls: [routePath(workspace.inbox.show.url())],
+  },
+  {
+    title: t('联系人'),
+    href: workspace.contacts.index.url({ type: 'all' }),
     icon: Users,
-    activeUrls: [routePath(admin.users.index.url())],
+    activeUrls: [contactsBaseUrl.value],
   },
   {
-    title: t('工作区管理'),
-    href: admin.workspaces.index.url(),
-    icon: Building2,
-    activeUrls: [routePath(admin.workspaces.index.url())],
+    title: t('会话记录'),
+    href: workspace.conversations.index.url(),
+    icon: MessagesSquare,
+    activeUrls: [routePath(workspace.conversations.index.url())],
   },
   {
-    title: t('存储设置'),
-    href: admin.storage.show.url(),
-    icon: Database,
-    activeUrls: [routePath(admin.storage.show.url())],
+    title: t('知识库'),
+    href: KnowledgeBase.ListKnowledgeBasesAction.url(),
+    icon: BookOpen,
+    activeUrls: [`${manageBaseUrl.value}/knowledge-bases`],
   },
   {
-    title: t('邮箱服务器'),
-    href: admin.mail.show.url(),
-    icon: Mail,
-    activeUrls: [routePath(admin.mail.show.url())],
+    title: t('接待方案'),
+    href: Plan.ShowReceptionPlanIndexPageAction.url(),
+    icon: ClipboardList,
+    activeUrls: [`${manageBaseUrl.value}/reception`],
+  },
+  {
+    title: t('渠道管理'),
+    href: workspace.manage.channels.web.index.url(),
+    icon: Globe,
+    activeUrls: [`${manageBaseUrl.value}/channels`],
   },
 ]);
 
-const footerNavItems = computed<NavItem[]>(() => [
+const footerNavItems = computed<SidebarShellNavItem[]>(() => [
   {
     title: t('GitHub仓库'),
     href: 'https://github.com/shellphy/helmdesk',
@@ -74,22 +118,56 @@ const footerNavItems = computed<NavItem[]>(() => [
     href: 'https://docs.helmdesk.app',
     icon: BookOpen,
   },
+  {
+    title: t('系统设置'),
+    href: admin.general.show.url(),
+    icon: Settings,
+    activeUrls: [
+      routePath(admin.general.show.url()),
+      routePath(admin.storage.show.url()),
+      routePath(admin.mail.show.url()),
+      `${manageBaseUrl.value}/tags`,
+      `${manageBaseUrl.value}/attributes`,
+      routePath(workspace.cannedReplies.index.url()),
+      `${manageBaseUrl.value}/ai`,
+      `${manageBaseUrl.value}/mcp-servers`,
+      `${manageBaseUrl.value}/translation`,
+    ],
+  },
 ]);
 
-const profileHref = computed(() => editProfile.url());
+const profileHref = computed(() => edit().url);
 const logoutHref = computed(() => logout.admin.url());
+
+useWorkspaceNotificationAlerts({
+  userId: computed(() => user.value.id),
+  preferences: notificationPreferences,
+});
 </script>
 
 <template>
   <SidebarShell
-    :header-href="admin.general.show.url()"
-    :header-subtitle="t('系统管理')"
+    :hide-header="hideHeader"
+    :header-href="workspace.dashboard.url()"
+    :header-subtitle="t('总管理后台')"
     :main-nav-items="mainNavItems"
     :footer-nav-items="footerNavItems"
     :profile-href="profileHref"
-    :profile-label="t('个人设置')"
+    :profile-label="t('个人资料')"
     :logout-href="logoutHref"
   >
+    <template #userMenu="{ isMobile, sidebarState }">
+      <SidebarUserMenuWithOnlineStatus
+        :profile-href="profileHref"
+        :profile-label="t('个人资料')"
+        :logout-href="logoutHref"
+        :is-mobile="isMobile"
+        :sidebar-state="sidebarState"
+      />
+    </template>
+
     <slot />
+
+    <AiAssistantWidget />
   </SidebarShell>
 </template>

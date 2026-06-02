@@ -48,7 +48,6 @@ class ShowCannedReplyListAction
         $visibility = $this->normalizeVisibility($visibility);
 
         $query = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->with('owner')
             ->where(function (Builder $scope) use ($user): void {
                 $scope->whereNull('user_id')

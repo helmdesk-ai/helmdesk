@@ -27,14 +27,13 @@ class RestoreReceptionPlanAction
     /**
      * 接收恢复请求并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $plan): RedirectResponse
+    public function asController(Request $request, string $plan): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $planModel = ReceptionPlan::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
         $this->handle($planModel);

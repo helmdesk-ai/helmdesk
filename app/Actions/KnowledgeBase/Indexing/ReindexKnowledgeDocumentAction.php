@@ -35,13 +35,12 @@ class ReindexKnowledgeDocumentAction
     /**
      * 接收 POST，重新触发流水线并跳回当前列表。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $document): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $documentModel = KnowledgeDocument::query()

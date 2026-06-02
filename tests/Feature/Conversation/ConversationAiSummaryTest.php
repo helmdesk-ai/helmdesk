@@ -39,7 +39,6 @@ function createConversationAiSummaryContext(): array
 {
     $workspace = Workspace::factory()->create();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'summary-test-'.Str::lower((string) Str::ulid()),
         'name' => 'Summary Test Provider',
@@ -60,15 +59,15 @@ function createConversationAiSummaryContext(): array
         'is_builtin' => false,
         'sort_order' => 0,
     ]);
-    $plan = ReceptionPlan::factory()->for($workspace)->create();
+    $plan = ReceptionPlan::factory()->create();
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
         ->withReceptionModel((string) $model->id)
         ->create();
-    $channel = Channel::factory()->for($workspace)->create([
+    $channel = Channel::factory()->create([
         'reception_plan_version_id' => $version->id,
     ]);
-    $contact = Contact::factory()->visitor()->for($workspace)->create(['locale' => 'en']);
+    $contact = Contact::factory()->visitor()->create(['locale' => 'en']);
     $conversation = Conversation::factory()->forContact($contact)->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $version->id,
@@ -89,7 +88,7 @@ function createConversationAiSummaryContext(): array
  */
 function enableConversationAiSummaryTranslation(Workspace $workspace, Conversation $conversation): TranslationProvider
 {
-    $provider = TranslationProvider::factory()->for($workspace)->create();
+    $provider = TranslationProvider::factory()->create();
     $version = $conversation->receptionPlanVersion()->firstOrFail();
     $snapshot = $version->snapshot_config;
     $snapshot['translation_config'] = [

@@ -18,7 +18,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { BrandOptionData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle } from 'lucide-vue-next';
@@ -50,7 +49,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const workspace = useRequiredWorkspace();
 
 const selectedBrand = ref<BrandOptionData | null>(null);
 
@@ -113,7 +111,7 @@ const submit = () => {
     return;
   }
 
-  form.post(AiProvider.CreateAiProviderAction.url(workspace.value.slug), {
+  form.post(AiProvider.CreateAiProviderAction.url(), {
     preserveScroll: true,
     onSuccess: () => {
       emit('update:open', false);

@@ -28,7 +28,7 @@ class ResolvePublicWebChannelBootstrapAction
             ->withTrashed()
             ->where('code', $code)
             ->where('type', ChannelType::Web)
-            ->with(['receptionPlanVersion.plan', 'workspace'])
+            ->with(['receptionPlanVersion.plan'])
             ->first();
 
         if ($channel === null) {

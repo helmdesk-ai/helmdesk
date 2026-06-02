@@ -30,7 +30,7 @@ use Throwable;
  *  - mode=hybrid   ：semantic 与 grep 各自跑一遍，结果以两个独立数组返回，让 Agent 自行权衡。
  *
  * 真正暴露给 LLM 的字段只有三个：mode / knowledge_base_ids / query。
- * top_k、是否启用 rerank / RAPTOR / vector 等内部决策完全由本 Action 根据 workspace 配置决定。
+ * top_k、是否启用 rerank / RAPTOR / vector 等内部决策完全由本 Action 根据系统配置决定。
  */
 class SearchKnowledgeBaseAction
 {
@@ -90,7 +90,7 @@ class SearchKnowledgeBaseAction
         }
 
         if ($input->mode->needsGrep()) {
-            $grepHits = $this->grepRetriever->retrieve($workspace->id, $knowledgeBaseIds, $queries, self::GREP_TOP_K);
+            $grepHits = $this->grepRetriever->retrieve($knowledgeBaseIds, $queries, self::GREP_TOP_K);
             $debug['grep'] = ['hits' => count($grepHits)];
         }
 
@@ -111,8 +111,6 @@ class SearchKnowledgeBaseAction
      */
     private function runSemantic(Workspace $workspace, array $knowledgeBaseIds, array $queries): array
     {
-        $workspaceId = $workspace->id;
-
         $debug = [
             'vector_enabled' => false,
             'raptor_enabled' => false,
@@ -122,7 +120,6 @@ class SearchKnowledgeBaseAction
         ];
 
         $fulltextHits = $this->fullTextRetriever->retrieve(
-            $workspaceId,
             $knowledgeBaseIds,
             $queries,
             self::RETRIEVER_TOP_K,
@@ -142,7 +139,6 @@ class SearchKnowledgeBaseAction
                 // 单点 embedding 失败时只回退到全文检索；debug 给稳定错误码，详细异常仅落服务端日志。
                 $debug['embedding_error'] = 'embedding_unavailable';
                 Log::warning('Knowledge search embed failed; full-text only.', [
-                    'workspace_id' => $workspace->id,
                     'exception' => $exception->getMessage(),
                 ]);
             }
@@ -151,7 +147,6 @@ class SearchKnowledgeBaseAction
             if ($dimension > 0 && $embeddings !== []) {
                 if ($vectorEnabled) {
                     $vectorHits = $this->vectorRetriever->retrieve(
-                        workspaceId: $workspaceId,
                         knowledgeBaseIds: $knowledgeBaseIds,
                         dimension: $dimension,
                         queryEmbeddings: $embeddings,
@@ -165,7 +160,6 @@ class SearchKnowledgeBaseAction
                 }
                 if ($raptorEnabled) {
                     $raptorHits = $this->vectorRetriever->retrieve(
-                        workspaceId: $workspaceId,
                         knowledgeBaseIds: $knowledgeBaseIds,
                         dimension: $dimension,
                         queryEmbeddings: $embeddings,
@@ -207,7 +201,7 @@ class SearchKnowledgeBaseAction
     }
 
     /**
-     * 把入参的知识库 ID 收敛到当前 workspace 内可访问的；空列表表示当前 workspace 全部知识库。
+     * 把入参的知识库 ID 收敛到当前系统内可访问的；空列表表示全部知识库。
      *
      * @param  list<string>  $candidateIds
      * @return array<string, KnowledgeBase>
@@ -224,7 +218,7 @@ class SearchKnowledgeBaseAction
                 $cleanIds[] = $trimmed;
             }
         }
-        $query = KnowledgeBase::query()->where('workspace_id', $workspace->id);
+        $query = KnowledgeBase::query();
         if ($cleanIds !== []) {
             $query->whereIn('id', $cleanIds);
         }

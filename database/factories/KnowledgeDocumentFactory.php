@@ -25,9 +25,6 @@ class KnowledgeDocumentFactory extends Factory
         $content = "# {$name}\n\n".fake()->paragraph();
 
         return [
-            'workspace_id' => fn (array $attributes) => KnowledgeBase::query()
-                ->whereKey($attributes['knowledge_base_id'])
-                ->value('workspace_id'),
             'knowledge_base_id' => KnowledgeBase::factory(),
             'group_id' => fn (array $attributes) => KnowledgeGroup::query()
                 ->where('knowledge_base_id', $attributes['knowledge_base_id'])

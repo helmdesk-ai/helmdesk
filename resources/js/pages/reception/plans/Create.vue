@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import Plan from '@/actions/App/Actions/Reception/Plan';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CreatePlanPanel from '@/pages/reception/plans/CreatePlanDialog.vue';
 import type { CreateReceptionPlanPagePropsData } from '@/types/generated';
@@ -14,11 +13,10 @@ import { Head, router } from '@inertiajs/vue3';
 
 const props = defineProps<CreateReceptionPlanPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 function goToList(): void {
   router.visit(
-    Plan.ShowReceptionPlanIndexPageAction.url(currentWorkspace.value.slug),
+    Plan.ShowReceptionPlanIndexPageAction.url(),
   );
 }
 </script>

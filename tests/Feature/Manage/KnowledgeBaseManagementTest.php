@@ -6,7 +6,6 @@ use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentStatus;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Enums\KnowledgeNodeKind;
-use App\Enums\WorkspaceRole;
 use App\Jobs\KnowledgeDocument\IndexRaptorKnowledgeDocumentJob;
 use App\Jobs\KnowledgeDocument\IndexVectorKnowledgeDocumentJob;
 use App\Jobs\KnowledgeQa\IndexVectorKnowledgeQaEntryJob;
@@ -40,7 +39,6 @@ function createKnowledgeBaseTestAttachment(array $attributes = []): Attachment
     $workspace = test()->workspace;
 
     return Attachment::factory()->create(array_merge([
-        'workspace_id' => $workspace->id,
         'disk' => 'local',
         'object_key' => 'workspaces/'.$workspace->id.'/knowledge_base_avatar/'.Str::lower(Str::random(8)).'.png',
         'original_name' => 'knowledge-base.png',
@@ -59,7 +57,6 @@ function createKnowledgeBaseTestAiModel(string $type = 'embedding', ?AiProvider 
     $workspace = test()->workspace;
 
     $provider ??= AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-test-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Test Provider',
@@ -80,7 +77,7 @@ function createKnowledgeBaseTestAiModel(string $type = 'embedding', ?AiProvider 
     ]);
 }
 
-test('所有者可以查看知识库列表页面和工作区检索配置', function () {
+test('所有者可以查看知识库列表页面和系统检索配置', function () {
     $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
     $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
     $this->workspace->update([
@@ -93,13 +90,12 @@ test('所有者可以查看知识库列表页面和工作区检索配置', funct
         'knowledge_chunk_overlap_tokens' => 96,
     ]);
     KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '售后政策库',
         'description' => '退款、退货和换货规则',
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.knowledge-bases.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('knowledgeBase/List')
@@ -127,13 +123,11 @@ test('知识库索引展示文案使用标准索引和深度索引', function ()
 
     /** @var KnowledgeBase $knowledgeBase */
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '索引文案知识库',
     ]);
     /** @var KnowledgeGroup $defaultGroup */
     $defaultGroup = $knowledgeBase->defaultDocumentGroup()->firstOrFail();
     KnowledgeDocument::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'knowledge_base_id' => $knowledgeBase->id,
         'group_id' => $defaultGroup->id,
         'original_filename' => 'index-labels.md',
@@ -143,9 +137,7 @@ test('知识库索引展示文案使用标准索引和深度索引', function ()
         ->and(KnowledgeIndexingStrategy::Raptor->label())->toBe('深度索引');
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.index', [
-            'slug' => $this->workspaceSlug(),
-            'kb' => $knowledgeBase->id,
+        ->get(route('workspace.manage.knowledge-bases.index', ['kb' => $knowledgeBase->id,
         ]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -161,12 +153,11 @@ test('知识库列表按当前语言展示默认分组', function () {
     $this->user->forceFill(['locale' => 'en'])->save();
 
     KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '售后政策库',
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.knowledge-bases.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('knowledgeBase/List')
@@ -177,23 +168,20 @@ test('知识库列表按当前语言展示默认分组', function () {
 
 test('知识库列表按创建时间从旧到新排列', function () {
     KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '旧知识库',
         'created_at' => now()->subMinutes(2),
     ]);
     KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '中间知识库',
         'created_at' => now()->subMinute(),
     ]);
     KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '新知识库',
         'created_at' => now(),
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.knowledge-bases.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('knowledgeBase/List')
@@ -205,21 +193,18 @@ test('知识库列表按创建时间从旧到新排列', function () {
 
 test('所有者可以打开创建和编辑知识库页面', function () {
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '产品知识库',
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.create', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.knowledge-bases.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('knowledgeBase/Create')
         );
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.edit', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $knowledgeBase->id,
+        ->get(route('workspace.manage.knowledge-bases.edit', ['knowledgeBase' => $knowledgeBase->id,
         ]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -235,7 +220,7 @@ test('所有者可以创建更新并删除知识库', function () {
     $updatedAvatar = createKnowledgeBaseTestAttachment();
 
     $response = $this->actingAs($this->user)
-        ->post(route('workspace.manage.knowledge-bases.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.knowledge-bases.store'), [
             'name' => '帮助中心知识库',
             'avatar_id' => $avatar->id,
             'description' => '常见问题和操作说明',
@@ -243,12 +228,9 @@ test('所有者可以创建更新并删除知识库', function () {
         ]);
 
     $knowledgeBase = KnowledgeBase::query()
-        ->where('workspace_id', $this->workspace->id)
         ->firstOrFail();
 
-    $response->assertRedirect(route('workspace.manage.knowledge-bases.index', [
-        'slug' => $this->workspaceSlug(),
-        'kb' => $knowledgeBase->id,
+    $response->assertRedirect(route('workspace.manage.knowledge-bases.index', ['kb' => $knowledgeBase->id,
     ]));
 
     expect($knowledgeBase->name)->toBe('帮助中心知识库')
@@ -265,9 +247,7 @@ test('所有者可以创建更新并删除知识库', function () {
         ->and($defaultGroup->parent_id)->toBeNull();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.update', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $knowledgeBase->id,
+        ->put(route('workspace.manage.knowledge-bases.update', ['knowledgeBase' => $knowledgeBase->id,
         ]), [
             'name' => '帮助中心知识库 Plus',
             'avatar_id' => $updatedAvatar->id,
@@ -283,11 +263,9 @@ test('所有者可以创建更新并删除知识库', function () {
         ->and($updatedAvatar->fresh()->attachable_id)->toBe($knowledgeBase->id);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.knowledge-bases.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $knowledgeBase->id,
+        ->delete(route('workspace.manage.knowledge-bases.destroy', ['knowledgeBase' => $knowledgeBase->id,
         ]))
-        ->assertRedirect(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]));
+        ->assertRedirect(route('workspace.manage.knowledge-bases.index'));
 
     $this->assertDatabaseMissing('knowledge_bases', [
         'id' => $knowledgeBase->id,
@@ -300,17 +278,14 @@ test('所有者可以创建更新并删除知识库', function () {
 test('删除知识库会一并清空 sqlite_rag 中的节点 / 全文 / 大纲', function () {
     /** @var KnowledgeBase $knowledgeBase */
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '将被删除的知识库',
     ]);
     /** @var KnowledgeDocument $document */
     $document = KnowledgeDocument::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'knowledge_base_id' => $knowledgeBase->id,
     ]);
 
     KnowledgeNode::query()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'knowledge_base_id' => (string) $knowledgeBase->id,
         'document_id' => (string) $document->id,
         'strategy' => KnowledgeIndexingStrategy::Vector,
@@ -326,7 +301,6 @@ test('删除知识库会一并清空 sqlite_rag 中的节点 / 全文 / 大纲',
         'heading_path' => null,
         'document_id' => (string) $document->id,
         'knowledge_base_id' => (string) $knowledgeBase->id,
-        'workspace_id' => (string) $this->workspace->id,
         'group_id' => (string) $document->group_id,
         'node_id' => (string) Str::ulid(),
     ]);
@@ -334,16 +308,13 @@ test('删除知识库会一并清空 sqlite_rag 中的节点 / 全文 / 大纲',
         'id' => (string) Str::ulid(),
         'document_id' => (string) $document->id,
         'knowledge_base_id' => (string) $knowledgeBase->id,
-        'workspace_id' => (string) $this->workspace->id,
         'outline' => json_encode([]),
         'created_at' => now(),
         'updated_at' => now(),
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.knowledge-bases.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $knowledgeBase->id,
+        ->delete(route('workspace.manage.knowledge-bases.destroy', ['knowledgeBase' => $knowledgeBase->id,
         ]))
         ->assertRedirect();
 
@@ -354,13 +325,13 @@ test('删除知识库会一并清空 sqlite_rag 中的节点 / 全文 / 大纲',
             ->table('knowledge_outlines')->where('knowledge_base_id', (string) $knowledgeBase->id)->exists())->toBeFalse();
 });
 
-test('所有者可以保存工作区知识库检索配置', function () {
+test('所有者可以保存系统知识库检索配置', function () {
     $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
     $rerankModel = createKnowledgeBaseTestAiModel('rerank', $embeddingModel->provider);
     $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
             'rerank_model_id' => $rerankModel->id,
@@ -389,7 +360,7 @@ test('启用向量索引但未填写维度时返回字段级校验错误', funct
     $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => '',
             'vector_index_enabled' => true,
@@ -403,7 +374,7 @@ test('启用向量索引但未填写维度时返回字段级校验错误', funct
 
 test('标准索引启用时需要嵌入模型', function () {
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'embedding_model_id' => '',
             'vector_index_enabled' => true,
             'raptor_index_enabled' => false,
@@ -418,7 +389,7 @@ test('深度索引启用时同样需要嵌入模型（摘要节点也要落向�
     $summaryModel = createKnowledgeBaseTestAiModel('llm');
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'embedding_model_id' => '',
             'summary_model_id' => $summaryModel->id,
             'vector_index_enabled' => false,
@@ -432,7 +403,7 @@ test('深度索引启用时同样需要嵌入模型（摘要节点也要落向�
 
 test('深度索引启用时需要摘要模型', function () {
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'summary_model_id' => '',
             'vector_index_enabled' => false,
             'raptor_index_enabled' => true,
@@ -443,7 +414,7 @@ test('深度索引启用时需要摘要模型', function () {
         ->assertSessionHasErrors(['summary_model_id']);
 });
 
-test('更新工作区检索配置会清理索引并投递已解析文档', function () {
+test('更新系统检索配置会清理索引并投递已解析文档', function () {
     Bus::fake([
         IndexVectorKnowledgeDocumentJob::class,
         IndexRaptorKnowledgeDocumentJob::class,
@@ -465,17 +436,14 @@ test('更新工作区检索配置会清理索引并投递已解析文档', funct
         'knowledge_chunk_overlap_tokens' => 64,
     ]);
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '帮助中心知识库',
     ]);
     $qaKnowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'category' => 'qa',
         'name' => '帮助中心问答库',
     ]);
     /** @var KnowledgeQaEntry $qaEntry */
     $qaEntry = KnowledgeQaEntry::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'knowledge_base_id' => $qaKnowledgeBase->id,
         'vector_status' => KnowledgeDocumentIndexingStatus::Succeeded,
     ]);
@@ -502,7 +470,6 @@ test('更新工作区检索配置会清理索引并投递已解析文档', funct
     foreach ([$parsedDocument, $pendingDocument] as $document) {
         foreach ([KnowledgeIndexingStrategy::Vector, KnowledgeIndexingStrategy::Raptor] as $strategy) {
             KnowledgeNode::query()->create([
-                'workspace_id' => (string) $this->workspace->id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => (string) $document->id,
                 'strategy' => $strategy,
@@ -516,7 +483,6 @@ test('更新工作区检索配置会清理索引并投递已解析文档', funct
         }
     }
     KnowledgeNode::query()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'knowledge_base_id' => (string) $qaKnowledgeBase->id,
         'document_id' => null,
         'qa_entry_id' => (string) $qaEntry->id,
@@ -530,7 +496,7 @@ test('更新工作区检索配置会清理索引并投递已解析文档', funct
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'embedding_model_id' => $updatedEmbeddingModel->id,
             'embedding_dimension' => 1536,
             'summary_model_id' => $updatedSummaryModel->id,
@@ -592,7 +558,6 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
         'knowledge_raptor_index_enabled' => true,
     ]);
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '维度变更知识库',
     ]);
     $document = KnowledgeDocument::factory()->create([
@@ -601,7 +566,6 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
         'parsed_content' => "# 标题\n\n正文段落",
     ]);
     $canonicalNode = KnowledgeNode::query()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'knowledge_base_id' => (string) $knowledgeBase->id,
         'document_id' => (string) $document->id,
         'strategy' => KnowledgeIndexingStrategy::Text,
@@ -623,7 +587,7 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.knowledge-bases.settings.update', ['slug' => $this->workspaceSlug()]), [
+        ->put(route('workspace.manage.knowledge-bases.settings.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
             'summary_model_id' => $summaryModel->id,
@@ -641,14 +605,13 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
         ->and($canonicalNode->fresh()->embedding_model_id)->toBeNull();
 });
 
-test('知识库名称在工作区内必须唯一', function () {
+test('知识库名称必须唯一', function () {
     KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '重复名称',
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.knowledge-bases.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.knowledge-bases.store'), [
             'name' => '重复名称',
             'description' => '',
             'category' => 'standard',
@@ -656,9 +619,8 @@ test('知识库名称在工作区内必须唯一', function () {
         ->assertSessionHasErrors(['name']);
 });
 
-test('知识库头像需要来自当前工作区可用附件', function () {
+test('知识库头像需要来自可用附件', function () {
     $otherKnowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $foreignAttachment = createKnowledgeBaseTestAttachment([
         'attachable_type' => KnowledgeBase::class,
@@ -666,7 +628,7 @@ test('知识库头像需要来自当前工作区可用附件', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.knowledge-bases.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.knowledge-bases.store'), [
             'name' => '尝试占用头像',
             'avatar_id' => $foreignAttachment->id,
             'description' => '',
@@ -680,29 +642,24 @@ test('知识库头像需要来自当前工作区可用附件', function () {
     expect($foreignAttachment->fresh()->attachable_id)->toBe($otherKnowledgeBase->id);
 });
 
-test('工作区管理员和客服没有知识库管理权限', function () {
+test('非超级管理员没有知识库管理权限', function () {
     $admin = User::factory()->create();
-    $admin->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Admin->value]);
 
     $operator = User::factory()->create();
-    $operator->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Operator->value]);
 
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($admin)
-        ->get(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.knowledge-bases.index'))
         ->assertForbidden();
 
     $this->actingAs($operator)
-        ->get(route('workspace.manage.knowledge-bases.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.knowledge-bases.index'))
         ->assertForbidden();
 
     $this->actingAs($admin)
-        ->put(route('workspace.manage.knowledge-bases.update', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $knowledgeBase->id,
+        ->put(route('workspace.manage.knowledge-bases.update', ['knowledgeBase' => $knowledgeBase->id,
         ]), [
             'name' => '非法更新',
             'description' => '',
@@ -711,25 +668,19 @@ test('工作区管理员和客服没有知识库管理权限', function () {
         ->assertForbidden();
 });
 
-test('知识库只允许在所属工作区操作', function () {
-    $otherWorkspace = Workspace::factory()->create();
-    $this->user->workspaces()->attach($otherWorkspace, ['role' => WorkspaceRole::Owner->value]);
-
-    $otherKnowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $otherWorkspace->id,
+test('单租户后台可以操作任意知识库', function () {
+    $knowledgeBase = KnowledgeBase::factory()->create([
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.knowledge-bases.edit', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $otherKnowledgeBase->id,
+        ->get(route('workspace.manage.knowledge-bases.edit', ['knowledgeBase' => $knowledgeBase->id,
         ]))
-        ->assertNotFound();
+        ->assertOk();
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.knowledge-bases.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $otherKnowledgeBase->id,
+        ->delete(route('workspace.manage.knowledge-bases.destroy', ['knowledgeBase' => $knowledgeBase->id,
         ]))
-        ->assertNotFound();
+        ->assertRedirect();
+
+    expect(KnowledgeBase::query()->whereKey($knowledgeBase->id)->exists())->toBeFalse();
 });

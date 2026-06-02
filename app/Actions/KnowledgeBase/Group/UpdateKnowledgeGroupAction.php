@@ -79,12 +79,12 @@ class UpdateKnowledgeGroupAction
     /**
      * 处理「编辑分组」表单提交。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $group): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $group): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
-        $kb = KnowledgeBase::query()->where('workspace_id', $workspace->id)->findOrFail($knowledgeBase);
+        $kb = KnowledgeBase::query()->findOrFail($knowledgeBase);
         $groupModel = KnowledgeGroup::query()->where('knowledge_base_id', $kb->id)->findOrFail($group);
 
         $this->handle($groupModel, FormUpdateKnowledgeGroupData::from($request));

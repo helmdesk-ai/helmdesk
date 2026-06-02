@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserOnlineStatus;
+use App\Enums\WorkspaceRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +31,9 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'locale' => 'zh-CN',
             'timezone' => 'Asia/Shanghai',
+            'role' => WorkspaceRole::Owner->value,
+            'online_status' => UserOnlineStatus::Online->value,
+            'last_active_at' => now(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),

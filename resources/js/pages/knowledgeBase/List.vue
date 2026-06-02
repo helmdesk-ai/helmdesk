@@ -37,7 +37,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import KnowledgeBasesLayout from '@/layouts/KnowledgeBasesLayout.vue';
 import { formatFileSize } from '@/lib/format';
@@ -76,7 +75,6 @@ const KnowledgeDocumentPreviewDialog = defineAsyncComponent(
 
 const props = defineProps<ShowKnowledgeBaseListPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const selectedKbId = ref<string | null>(
   props.selected_knowledge_base?.id ?? null,
@@ -269,7 +267,7 @@ function navigateTo(kbId: string | null, groupId: string | null): void {
   selectedGroupId.value = groupId;
 
   router.get(
-    KnowledgeBase.ListKnowledgeBasesAction.url(currentWorkspace.value.slug, {
+    KnowledgeBase.ListKnowledgeBasesAction.url({
       query: buildDocumentListQuery(kbId, groupId),
     }),
     {},
@@ -285,9 +283,7 @@ function buildDocumentListPageUrl(page: number): string {
   if (page > 1) {
     query.page = String(page);
   }
-  return KnowledgeBase.ListKnowledgeBasesAction.url(
-    currentWorkspace.value.slug,
-    { query },
+  return KnowledgeBase.ListKnowledgeBasesAction.url({ query },
   );
 }
 
@@ -441,7 +437,6 @@ function confirmDeleteKb(): void {
   }
   deleteKbForm.delete(
     KnowledgeBase.DeleteKnowledgeBaseAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: targetId,
     }),
     {
@@ -773,7 +768,6 @@ function reindexDocument(doc: ListKnowledgeDocumentItemData): void {
   reindexingDocumentId.value = doc.id;
   reindexDocumentForm.post(
     KnowledgeBase.Indexing.ReindexKnowledgeDocumentAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       document: doc.id,
     }),
@@ -829,7 +823,6 @@ function moveDocument(): void {
 
   moveDocumentForm.put(
     KnowledgeBase.Document.MoveKnowledgeDocumentAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       document: target.id,
     }),
@@ -858,7 +851,6 @@ function moveQaEntry(): void {
 
   moveQaEntryForm.put(
     KnowledgeBase.Qa.MoveKnowledgeQaEntryAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       entry: target.id,
     }),
@@ -879,7 +871,6 @@ function confirmDeleteDocument(): void {
   }
   deleteDocumentForm.delete(
     KnowledgeBase.Document.DeleteKnowledgeDocumentAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       document: target.id,
     }),
@@ -900,7 +891,6 @@ function confirmDeleteQaEntry(): void {
   }
   deleteQaEntryForm.delete(
     KnowledgeBase.Qa.DeleteKnowledgeQaEntryAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       entry: target.id,
     }),

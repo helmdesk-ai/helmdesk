@@ -18,7 +18,6 @@ return new class extends Migration
         Schema::create('conversation_page_views', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id');
             $table->ulid('conversation_id');
             $table->ulid('contact_id')->nullable();
             $table->text('url');
@@ -26,7 +25,7 @@ return new class extends Migration
             $table->text('referrer')->nullable();
             $table->timestamp('viewed_at');
 
-            $table->index(['workspace_id', 'conversation_id', 'viewed_at'], 'page_views_conversation_idx');
+            $table->index(['conversation_id', 'viewed_at'], 'page_views_conversation_idx');
         });
     }
 

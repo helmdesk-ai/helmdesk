@@ -9,6 +9,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
+use App\Models\Workspace;
 use App\Services\KnowledgeBase\KnowledgeFullTextRepository;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use App\Services\KnowledgeBase\Parsing\MarkdownChunkPlanner;
@@ -51,11 +52,7 @@ class WriteCanonicalChunksAction
         if ($knowledgeBase === null) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
-        $knowledgeBase->loadMissing('workspace.knowledgeEmbeddingModel.provider');
-        $workspace = $knowledgeBase->workspace;
-        if ($workspace === null) {
-            throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
-        }
+        $workspace = Workspace::current();
 
         if ($document->parse_status !== KnowledgeDocumentParseStatus::Succeeded || ! filled($document->parsed_content)) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));

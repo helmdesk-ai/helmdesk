@@ -36,7 +36,6 @@ class ListReceptionPlansForChannelSelectionAction
     public function handle(Workspace $workspace): array
     {
         return ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->orderBy('name')
             ->get()
             ->map(function (ReceptionPlan $plan) use ($workspace): ReceptionPlanOptionData {

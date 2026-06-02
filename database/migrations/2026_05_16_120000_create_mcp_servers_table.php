@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->string('slug');
             $table->string('name');
             $table->string('transport')->default('streamable_http');
@@ -26,8 +25,8 @@ return new class extends Migration
             $table->text('last_sync_error')->nullable();
             $table->integer('sort_order')->default(0);
 
-            $table->unique(['workspace_id', 'slug']);
-            $table->index(['workspace_id', 'sort_order']);
+            $table->unique('slug');
+            $table->index('sort_order');
         });
     }
 

@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { getAvatarInitial } from '@/lib/initials';
 import workspace from '@/routes/workspace';
@@ -26,13 +25,12 @@ const { t } = useI18n();
 const { formatDateTime } = useDateTime();
 const { formatVisitorName } = useVisitorDisplay();
 const props = defineProps<ShowContactTrashPagePropsData>();
-const currentWorkspace = useRequiredWorkspace();
 
 const restoreForm = useForm({});
 const restoringContactId = ref<string | null>(null);
 
 const buildContactTrashPageUrl = (page: number): string => {
-  return workspace.contacts.trash.url(currentWorkspace.value.slug, {
+  return workspace.contacts.trash.url({
     query: { page },
   });
 };
@@ -63,7 +61,6 @@ const submitRestore = (contactItem: TrashContactItemData) => {
 
   restoreForm.put(
     workspace.contacts.restore.url({
-      slug: currentWorkspace.value.slug,
       id: contactItem.id,
     }),
     {
@@ -95,7 +92,6 @@ const submitRestore = (contactItem: TrashContactItemData) => {
             <Link
               :href="
                 workspace.contacts.index.url({
-                  slug: currentWorkspace.slug,
                   type: 'all',
                 })
               "

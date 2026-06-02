@@ -12,7 +12,6 @@ final class GrepMatch
 {
     public function __construct(
         public readonly string $knowledgeBaseId,
-        public readonly string $workspaceId,
         public readonly ?string $documentId,
         public readonly ?string $documentTitle,
         public readonly ?string $qaEntryId,
@@ -37,7 +36,6 @@ final class GrepMatch
     {
         return [
             'knowledge_base_id' => $this->knowledgeBaseId,
-            'workspace_id' => $this->workspaceId,
             'document_id' => $this->documentId,
             'document_title' => $this->documentTitle,
             'qa_entry_id' => $this->qaEntryId,

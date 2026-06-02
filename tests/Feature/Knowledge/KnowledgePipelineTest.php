@@ -35,7 +35,6 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-pipeline-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Pipeline Provider',
@@ -72,7 +71,6 @@ beforeEach(function () {
         'knowledge_chunk_overlap_tokens' => 32,
     ]);
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 });
 
@@ -280,7 +278,6 @@ test('VectorAction 使用句子 embedding 聚合语义分段', function () {
 
 test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Succeeded', function () {
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-raptor-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Raptor Provider',
@@ -309,7 +306,6 @@ test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Suc
         'knowledge_chunk_overlap_tokens' => 0,
     ]);
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $document = KnowledgeDocument::factory()->create([
         'knowledge_base_id' => $knowledgeBase->id,

@@ -33,20 +33,17 @@ afterEach(function () {
 
 test('搜索联系人的聊天记录返回匹配消息', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '张三',
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -55,7 +52,6 @@ test('搜索联系人的聊天记录返回匹配消息', function () {
     ]);
 
     ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -71,17 +67,14 @@ test('搜索联系人的聊天记录返回匹配消息', function () {
 
 test('搜索不返回其他联系人的消息', function () {
     $contactA = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $contactB = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversationA = Conversation::factory()
         ->forContact($contactA)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -89,13 +82,11 @@ test('搜索不返回其他联系人的消息', function () {
     $conversationB = Conversation::factory()
         ->forContact($contactB)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversationA->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -104,7 +95,6 @@ test('搜索不返回其他联系人的消息', function () {
     ]);
 
     ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversationB->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -120,40 +110,34 @@ test('搜索不返回其他联系人的消息', function () {
 
 test('中文消息搜索要求关键词字符同时命中', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     ConversationMessage::factory()->forConversation($conversation)->create([
-        'workspace_id' => $this->workspace->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
         'content' => '订单已经创建，正在等待仓库发货',
     ]);
 
     ConversationMessage::factory()->forConversation($conversation)->create([
-        'workspace_id' => $this->workspace->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
         'content' => '退款说明已经发送到邮箱',
     ]);
 
     ConversationMessage::factory()->forConversation($conversation)->create([
-        'workspace_id' => $this->workspace->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
         'content' => '订单退款流程已经提交',
     ]);
 
     ConversationMessage::factory()->forConversation($conversation)->create([
-        'workspace_id' => $this->workspace->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
         'content' => '订单已完成，退款会在三个工作日内到账',
@@ -169,16 +153,14 @@ test('中文消息搜索要求关键词字符同时命中', function () {
 
 test('搜索联系人的聊天记录可匹配当前客服语言译文', function () {
     $this->user->update(['locale' => 'zh-CN']);
-    $channel = Channel::factory()->for($this->workspace)->create();
+    $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -201,16 +183,14 @@ test('搜索联系人的聊天记录可匹配当前客服语言译文', function
 
 test('搜索联系人的聊天记录按当前客服语言读取译文', function () {
     $this->user->update(['locale' => 'ja']);
-    $channel = Channel::factory()->for($this->workspace)->create();
+    $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -233,16 +213,14 @@ test('搜索联系人的聊天记录按当前客服语言读取译文', function
 
 test('搜索联系人的聊天记录不会匹配其他客服语言译文', function () {
     $this->user->update(['locale' => 'en']);
-    $channel = Channel::factory()->for($this->workspace)->create();
+    $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -264,29 +242,25 @@ test('搜索联系人的聊天记录不会匹配其他客服语言译文', funct
 
 test('搜索接口需要认证', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
-    $this->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/messages/search?search=test')
+    $this->getJson('/admin/inbox/contacts/'.$contact->id.'/messages/search?search=test')
         ->assertUnauthorized();
 });
 
 test('搜索接口返回 JSON 结果', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '李四',
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -295,7 +269,7 @@ test('搜索接口返回 JSON 结果', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/messages/search?search=你好')
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/messages/search?search=你好')
         ->assertOk()
         ->assertJsonCount(1, 'results')
         ->assertJsonPath('results.0.conversation_id', $conversation->id)
@@ -308,10 +282,9 @@ test('搜索接口返回 JSON 结果', function () {
 
 test('搜索关键词为空时返回验证错误', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/messages/search?search=')
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/messages/search?search=')
         ->assertUnprocessable();
 });

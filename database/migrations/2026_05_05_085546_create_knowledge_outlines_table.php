@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->ulid('knowledge_base_id');
             $table->ulid('document_id');
 

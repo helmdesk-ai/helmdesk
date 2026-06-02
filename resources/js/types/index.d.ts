@@ -7,7 +7,6 @@ import type {
   AiModelOptionData,
   GeneralSettingsData,
   UserNotificationPreferencesData,
-  WorkspaceData,
   WorkspaceUserContextData,
 } from './generated';
 
@@ -31,7 +30,6 @@ export type AppPageProps<T extends object = Record<string, never>> = T & {
   canAccessManageCenter?: boolean;
   canManageAi?: boolean;
   aiAssistantLlmModelOptions?: AiModelOptionData[];
-  workspaces?: WorkspaceData[];
   workspaceUserContext?: WorkspaceUserContextData;
 };
 

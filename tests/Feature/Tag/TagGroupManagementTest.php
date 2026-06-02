@@ -13,14 +13,14 @@ beforeEach(function () {
 
 test('可以创建标签组并指定适用维度', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.tags.groups.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.tags.index'))
+        ->post(route('workspace.manage.tags.groups.store'), [
             'name' => '  咨询意图  ',
             'scope' => 'conversation',
         ])
         ->assertRedirect();
 
-    $group = TagGroup::query()->where('workspace_id', $this->workspace->id)->first();
+    $group = TagGroup::query()->first();
     expect($group)->not()->toBeNull();
     expect($group->name)->toBe('咨询意图');
     expect($group->normalized_name)->toBe('咨询意图');
@@ -30,12 +30,11 @@ test('可以创建标签组并指定适用维度', function () {
 
 test('不能创建重复名称的标签组', function () {
     TagGroup::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '咨询意图',
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.groups.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.tags.groups.store'), [
             'name' => '咨询意图',
             'scope' => 'conversation',
         ])
@@ -44,7 +43,7 @@ test('不能创建重复名称的标签组', function () {
 
 test('创建标签组拒绝非法维度', function () {
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.groups.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.tags.groups.store'), [
             'name' => '非法维度组',
             'scope' => 'invalid_scope',
         ])
@@ -53,12 +52,11 @@ test('创建标签组拒绝非法维度', function () {
 
 test('可以重命名标签组', function () {
     $group = TagGroup::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '旧组名',
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.groups.update', ['slug' => $this->workspaceSlug(), 'id' => $group->id]), [
+        ->put(route('workspace.manage.tags.groups.update', ['id' => $group->id]), [
             'name' => '新组名',
         ])
         ->assertRedirect();
@@ -68,11 +66,10 @@ test('可以重命名标签组', function () {
 
 test('空标签组可以删除', function () {
     $group = TagGroup::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.tags.groups.destroy', ['slug' => $this->workspaceSlug(), 'id' => $group->id]))
+        ->delete(route('workspace.manage.tags.groups.destroy', ['id' => $group->id]))
         ->assertRedirect();
 
     $this->assertSoftDeleted('tag_groups', ['id' => $group->id]);
@@ -80,19 +77,18 @@ test('空标签组可以删除', function () {
 
 test('非空标签组不能删除', function () {
     $group = TagGroup::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     Tag::factory()->forGroup($group)->create();
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.tags.groups.destroy', ['slug' => $this->workspaceSlug(), 'id' => $group->id]))
+        ->delete(route('workspace.manage.tags.groups.destroy', ['id' => $group->id]))
         ->assertUnprocessable();
 
     expect(TagGroup::query()->find($group->id))->not()->toBeNull();
 });
 
 test('恢复标签时连带恢复已被删除的标签组', function () {
-    $group = TagGroup::factory()->contact()->create(['workspace_id' => $this->workspace->id]);
+    $group = TagGroup::factory()->contact()->create([]);
     $tag = Tag::factory()->forGroup($group)->create(['name' => 'VIP']);
 
     // 先删标签，再删空组（删组时组内已无未删除标签，允许删除）。
@@ -100,7 +96,7 @@ test('恢复标签时连带恢复已被删除的标签组', function () {
     $group->delete();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.restore', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]))
+        ->put(route('workspace.manage.tags.restore', ['id' => $tag->id]))
         ->assertRedirect();
 
     expect($tag->fresh()->deleted_at)->toBeNull();
@@ -109,12 +105,12 @@ test('恢复标签时连带恢复已被删除的标签组', function () {
 });
 
 test('标签只能在同维度的组之间移动', function () {
-    $conversationGroup = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
-    $contactGroup = TagGroup::factory()->contact()->create(['workspace_id' => $this->workspace->id]);
+    $conversationGroup = TagGroup::factory()->conversation()->create([]);
+    $contactGroup = TagGroup::factory()->contact()->create([]);
     $tag = Tag::factory()->forGroup($conversationGroup)->create(['name' => '退款']);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.update', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]), [
+        ->put(route('workspace.manage.tags.update', ['id' => $tag->id]), [
             'tag_group_id' => $contactGroup->id,
             'name' => '退款',
         ])

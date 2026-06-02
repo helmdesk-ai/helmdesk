@@ -26,7 +26,7 @@ class ResolveConversationTranslationProviderAction
             return null;
         }
 
-        $provider = $conversation->workspace->translationProviders()->whereKey($providerId)->first();
+        $provider = TranslationProvider::query()->whereKey($providerId)->first();
 
         if ($provider === null) {
             return null;

@@ -10,6 +10,7 @@ use App\Jobs\KnowledgeDocument\RebuildWorkspaceKnowledgeIndexJob;
 use App\Models\AiModel;
 use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
+use App\Settings\KnowledgeSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 更新工作区知识库统一检索配置，并按需派发索引重建任务。
+ * 更新知识库统一检索配置，并按需派发索引重建任务。
  *
  * - 保存嵌入模型、向量维度、重排序模型、摘要模型、分段策略等检索参数；
  * - 维度由用户在表单里手填（不少模型支持可变维度，统一不做后端探测），与嵌入模型一起作为
@@ -31,6 +32,7 @@ class UpdateWorkspaceKnowledgeSettingsAction
 
     public function __construct(
         private readonly AiModelResolver $resolver,
+        private readonly KnowledgeSettings $settings,
     ) {}
 
     /**
@@ -38,6 +40,7 @@ class UpdateWorkspaceKnowledgeSettingsAction
      */
     public function handle(Workspace $workspace, FormUpdateWorkspaceKnowledgeSettingsData $data): void
     {
+        $this->settings->refresh();
         $this->ensureRequiredFieldsArePresent($data);
 
         // 启用 vector 或 raptor 中任意一个都需要嵌入模型——RAPTOR 现在也会给摘要节点
@@ -47,8 +50,8 @@ class UpdateWorkspaceKnowledgeSettingsAction
         $rerankModel = $this->resolveActiveModel($workspace, $data->rerank_model_id, AiModelType::Rerank, 'rerank_model_id');
         $summaryModel = $this->resolveActiveModel($workspace, $data->summary_model_id, AiModelType::Llm, 'summary_model_id', $data->raptor_index_enabled);
 
-        $previousDimension = $workspace->knowledge_embedding_dimension !== null
-            ? (int) $workspace->knowledge_embedding_dimension
+        $previousDimension = $this->settings->embedding_dimension !== null
+            ? (int) $this->settings->embedding_dimension
             : null;
         $newDimension = $embeddingRequired && $embeddingModel !== null
             ? (int) $data->embedding_dimension
@@ -59,17 +62,16 @@ class UpdateWorkspaceKnowledgeSettingsAction
         $rebuildQaVectorIndex = $this->shouldRebuildQaVectorIndex($workspace, $data, $embeddingModel, $dimensionChanged);
         $rebuildRaptorIndex = $this->shouldRebuildRaptorIndex($workspace, $data, $embeddingModel, $summaryModel, $dimensionChanged);
 
-        $workspace->update([
-            'knowledge_embedding_model_id' => $embeddingModel?->id,
-            'knowledge_rerank_model_id' => $rerankModel?->id,
-            'knowledge_summary_model_id' => $summaryModel?->id,
-            'knowledge_embedding_dimension' => $newDimension,
-            'knowledge_vector_index_enabled' => $data->vector_index_enabled,
-            'knowledge_raptor_index_enabled' => $data->raptor_index_enabled,
-            'knowledge_chunking_strategy' => $data->chunking_strategy,
-            'knowledge_chunk_max_tokens' => $data->chunk_max_tokens,
-            'knowledge_chunk_overlap_tokens' => $data->chunk_overlap_tokens,
-        ]);
+        $this->settings->embedding_model_id = filled($embeddingModel?->id) ? (string) $embeddingModel->id : null;
+        $this->settings->rerank_model_id = filled($rerankModel?->id) ? (string) $rerankModel->id : null;
+        $this->settings->summary_model_id = filled($summaryModel?->id) ? (string) $summaryModel->id : null;
+        $this->settings->embedding_dimension = $newDimension;
+        $this->settings->vector_index_enabled = $data->vector_index_enabled;
+        $this->settings->raptor_index_enabled = $data->raptor_index_enabled;
+        $this->settings->chunking_strategy = $data->chunking_strategy->value;
+        $this->settings->chunk_max_tokens = $data->chunk_max_tokens;
+        $this->settings->chunk_overlap_tokens = $data->chunk_overlap_tokens;
+        $this->settings->save();
 
         $strategies = array_values(array_filter([
             $rebuildVectorIndex ? KnowledgeIndexingStrategy::Vector->value : null,
@@ -78,7 +80,6 @@ class UpdateWorkspaceKnowledgeSettingsAction
 
         if ($strategies !== [] || $rebuildQaVectorIndex) {
             RebuildWorkspaceKnowledgeIndexJob::dispatch(
-                workspaceId: (string) $workspace->id,
                 documentStrategyValues: $strategies,
                 rebuildQaVectorIndex: $rebuildQaVectorIndex,
                 resetVectorTables: $dimensionChanged,
@@ -129,8 +130,8 @@ class UpdateWorkspaceKnowledgeSettingsAction
      */
     private function shouldRebuildQaVectorIndex(Workspace $workspace, FormUpdateWorkspaceKnowledgeSettingsData $data, ?AiModel $embeddingModel, bool $dimensionChanged): bool
     {
-        return (bool) $workspace->knowledge_vector_index_enabled !== $data->vector_index_enabled
-            || $this->modelIdChanged($workspace->knowledge_embedding_model_id, $embeddingModel)
+        return (bool) $this->settings->vector_index_enabled !== $data->vector_index_enabled
+            || $this->modelIdChanged($this->settings->embedding_model_id, $embeddingModel)
             || $dimensionChanged;
     }
 
@@ -140,9 +141,9 @@ class UpdateWorkspaceKnowledgeSettingsAction
      */
     private function shouldRebuildRaptorIndex(Workspace $workspace, FormUpdateWorkspaceKnowledgeSettingsData $data, ?AiModel $embeddingModel, ?AiModel $summaryModel, bool $dimensionChanged): bool
     {
-        return (bool) $workspace->knowledge_raptor_index_enabled !== $data->raptor_index_enabled
-            || $this->modelIdChanged($workspace->knowledge_summary_model_id, $summaryModel)
-            || $this->modelIdChanged($workspace->knowledge_embedding_model_id, $embeddingModel)
+        return (bool) $this->settings->raptor_index_enabled !== $data->raptor_index_enabled
+            || $this->modelIdChanged($this->settings->summary_model_id, $summaryModel)
+            || $this->modelIdChanged($this->settings->embedding_model_id, $embeddingModel)
             || $dimensionChanged
             || $workspace->knowledge_chunking_strategy !== $data->chunking_strategy
             || (int) $workspace->knowledge_chunk_max_tokens !== $data->chunk_max_tokens

@@ -1,5 +1,5 @@
 <!--
-  文件说明：认证页面，承接 Fortify 登录、注册、重置密码和邮箱验证流程。
+  文件说明：认证页面，承接系统初始化时的首个超级管理员注册流程。
 -->
 <script setup lang="ts">
 import InputError from '@/components/common/InputError.vue';

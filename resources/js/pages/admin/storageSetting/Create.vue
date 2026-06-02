@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import admin from '@/routes/admin';
 import storageProfile from '@/routes/admin/storage/profiles';
 import type {
@@ -159,7 +160,7 @@ const submit = () => {
   <SystemAppLayout>
     <Head :title="t('新增存储配置')" />
 
-    <div class="px-4 py-6 sm:px-6">
+    <SystemSettingsLayout>
       <div class="mx-auto w-full max-w-none space-y-12">
         <div class="space-y-6">
           <HeadingSmall
@@ -343,6 +344,6 @@ const submit = () => {
           </form>
         </div>
       </div>
-    </div>
+    </SystemSettingsLayout>
   </SystemAppLayout>
 </template>

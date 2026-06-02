@@ -24,7 +24,6 @@ class DeleteAiModelAction
             ->whereHas(
                 'provider',
                 fn ($q) => $q
-                    ->where('workspace_id', $workspace->id)
                     ->where('slug', $providerSlug),
             )
             ->where('id', $modelId)
@@ -53,7 +52,7 @@ class DeleteAiModelAction
         $model->delete();
     }
 
-    public function asController(Request $request, string $slug, string $provider, string $model)
+    public function asController(Request $request, string $provider, string $model)
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

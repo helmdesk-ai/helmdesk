@@ -12,14 +12,12 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->string('name');
             $table->string('category')->default('standard');
             $table->ulid('avatar_id')->nullable();
             $table->text('description')->nullable();
 
-            $table->index(['workspace_id', 'name'], 'idx_kb_workspace_name');
-            $table->unique(['workspace_id', 'name'], 'uniq_kb_workspace_name');
+            $table->unique('name', 'uniq_kb_name');
         });
     }
 

@@ -53,7 +53,6 @@ class ShowWebChannelDetailPageAction
     public function handle(Workspace $workspace, string $channelId): ShowWebChannelDetailPagePropsData
     {
         $channel = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->with(['receptionPlan'])
             ->findOrFail($channelId);
@@ -76,7 +75,6 @@ class ShowWebChannelDetailPageAction
                 query_param_trust_options: EnumOptionData::fromCases(WebChannelParamTrust::cases()),
                 query_param_write_mode_options: EnumOptionData::fromCases(WebChannelParamWriteMode::cases()),
                 writable_attribute_definition_options: AttributeDefinition::query()
-                    ->where('workspace_id', $workspace->id)
                     ->whereNull('deleted_at')
                     ->where('is_api_writable', true)
                     ->whereIn('type', [
@@ -99,7 +97,7 @@ class ShowWebChannelDetailPageAction
     /**
      * 返回网站渠道详情页面。
      */
-    public function asController(Request $request, string $slug, string $channel): Response
+    public function asController(Request $request, string $channel): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

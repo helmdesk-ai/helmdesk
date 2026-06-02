@@ -24,7 +24,6 @@ beforeEach(function () {
 function buildWebChannel(Workspace $workspace, array $mappings): Channel
 {
     return Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'settings' => ChannelWebSettingsData::defaults([
             'query_param_mappings' => $mappings,
         ]),
@@ -33,13 +32,13 @@ function buildWebChannel(Workspace $workspace, array $mappings): Channel
 
 function freshContact(Workspace $workspace): Contact
 {
-    return Contact::factory()->for($workspace)->create([
+    return Contact::factory()->create([
         'name' => null,
     ]);
 }
 
 test('未配置映射或空 query 直接 noop', function () {
-    $channel = Channel::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create([]);
     $contact = freshContact($this->workspace);
 
     ApplyVisitorQueryParamsAction::run($channel, $contact, [], false);
@@ -73,7 +72,7 @@ test('OnlyIfEmpty + 联系人已有姓名时不覆盖', function () {
             'write_mode' => 'only_if_empty',
         ],
     ]);
-    $contact = Contact::factory()->for($this->workspace)->create(['name' => '原姓名']);
+    $contact = Contact::factory()->create(['name' => '原姓名']);
 
     ApplyVisitorQueryParamsAction::run($channel, $contact, ['name' => '新姓名'], false);
 
@@ -89,7 +88,7 @@ test('Overwrite 模式覆盖已有姓名', function () {
             'write_mode' => 'overwrite',
         ],
     ]);
-    $contact = Contact::factory()->for($this->workspace)->create(['name' => '原姓名']);
+    $contact = Contact::factory()->create(['name' => '原姓名']);
 
     ApplyVisitorQueryParamsAction::run($channel, $contact, ['name' => '新姓名'], false);
 
@@ -152,7 +151,7 @@ test('contact_importance 的 OnlyIfEmpty 不覆盖已有重点客户标记', fun
             'write_mode' => 'only_if_empty',
         ],
     ]);
-    $contact = Contact::factory()->for($this->workspace)->create([
+    $contact = Contact::factory()->create([
         'is_important' => true,
         'important_at' => now(),
         'important_source' => 'manual',
@@ -196,9 +195,8 @@ test('email 已被其他联系人占用时跳过', function () {
             'write_mode' => 'overwrite',
         ],
     ]);
-    $occupied = Contact::factory()->for($this->workspace)->create();
+    $occupied = Contact::factory()->create();
     ContactIdentity::query()->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $occupied->id,
         'type' => IdentityType::Email,
         'namespace' => '',
@@ -213,11 +211,11 @@ test('email 已被其他联系人占用时跳过', function () {
 });
 
 test('attribute 仅当 definition 存在且 is_api_writable=true 时写入', function () {
-    $writable = AttributeDefinition::factory()->for($this->workspace)->text()->create([
+    $writable = AttributeDefinition::factory()->text()->create([
         'key' => 'plan_level',
         'is_api_writable' => true,
     ]);
-    AttributeDefinition::factory()->for($this->workspace)->text()->create([
+    AttributeDefinition::factory()->text()->create([
         'key' => 'locked_field',
         'is_api_writable' => false,
     ]);
@@ -264,7 +262,7 @@ test('attribute 仅当 definition 存在且 is_api_writable=true 时写入', fun
 });
 
 test('attribute single_select 必须命中 options.code', function () {
-    $definition = AttributeDefinition::factory()->for($this->workspace)->singleSelect([
+    $definition = AttributeDefinition::factory()->singleSelect([
         ['code' => 'gold', 'label' => 'Gold'],
         ['code' => 'silver', 'label' => 'Silver'],
     ])->create([
@@ -307,10 +305,10 @@ test('tag 模板 {value} 占位只接受白名单字符', function () {
     $contact = freshContact($this->workspace);
 
     ApplyVisitorQueryParamsAction::run($channel, $contact, ['utm_source' => '<svg>'], false);
-    expect(Tag::query()->where('workspace_id', $this->workspace->id)->count())->toBe(0);
+    expect(Tag::query()->count())->toBe(0);
 
     ApplyVisitorQueryParamsAction::run($channel, $contact, ['utm_source' => 'google_ads'], false);
-    $tag = Tag::query()->where('workspace_id', $this->workspace->id)->first();
+    $tag = Tag::query()->first();
     expect($tag)->not->toBeNull()
         ->and($tag->name)->toBe('src:google_ads')
         ->and($tag->source)->toBe(TagSource::Channel);
@@ -337,7 +335,7 @@ test('tag 模板无 {value} 占位时直接使用模板字面量', function () {
 
     ApplyVisitorQueryParamsAction::run($channel, $contact, ['campaign' => 'whatever'], false);
 
-    $tag = Tag::query()->where('workspace_id', $this->workspace->id)->first();
+    $tag = Tag::query()->first();
     expect($tag)->not->toBeNull()
         ->and($tag->name)->toBe('本季活动客户');
 });

@@ -77,7 +77,7 @@ class CheckTranslationProviderAction
     /**
      * 鉴权后把请求拆成 FormData + 可选 configuration override，调用 handle() 并把结果以 JSON 形式返回给前端。
      */
-    public function asController(Request $request, string $slug, ?string $provider = null): JsonResponse
+    public function asController(Request $request, ?string $provider = null): JsonResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
@@ -127,7 +127,6 @@ class CheckTranslationProviderAction
 
         $protocol = TranslationProviderType::from((string) $validated['protocol']);
         $provider = new TranslationProvider([
-            'workspace_id' => $workspace->id,
             'slug' => 'draft',
             'name' => 'Draft',
             'protocol' => $protocol,

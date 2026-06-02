@@ -44,7 +44,6 @@ function makeInboundTelegramChannel(): Channel
     $version = createTelegramDeployablePlanVersion($workspace);
 
     return Channel::factory()->telegram()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 }
@@ -83,7 +82,6 @@ test('Telegram 入站消息创建会话与访客消息', function () {
 
     // 访客身份以 ExternalId + telegram:{code} namespace 落库。
     $identity = ContactIdentity::query()
-        ->where('workspace_id', $channel->workspace_id)
         ->where('type', IdentityType::ExternalId)
         ->where('namespace', 'telegram:'.$channel->code)
         ->where('value', '99001')
@@ -124,7 +122,6 @@ test('Telegram 入站消息会同步用户头像到联系人', function () {
     );
 
     $identity = ContactIdentity::query()
-        ->where('workspace_id', $channel->workspace_id)
         ->where('namespace', 'telegram:'.$channel->code)
         ->where('value', '99021')
         ->firstOrFail();
@@ -168,7 +165,6 @@ test('Telegram 无头像访客只探测一次头像，后续消息不再请求 B
         ->count();
 
     $contact = ContactIdentity::query()
-        ->where('workspace_id', $channel->workspace_id)
         ->where('namespace', 'telegram:'.$channel->code)
         ->where('value', '99022')
         ->firstOrFail()

@@ -14,8 +14,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->ulid('workspace_id');
-            // user_id 为 NULL 表示工作区共享；非 NULL 表示该用户私有。
+            // user_id 为 NULL 表示系统共享；非 NULL 表示该用户私有。
             // 用户被删除时由 App\Models\User 的 forceDeleted 钩子负责清理其私有模版。
             $table->ulid('user_id')->nullable();
 
@@ -32,15 +31,15 @@ return new class extends Migration
             $table->ulid('created_by_user_id')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->index(['workspace_id', 'user_id']);
-            $table->index(['workspace_id', 'last_used_at']);
+            $table->index('user_id');
+            $table->index('last_used_at');
         });
 
-        // 同 workspace + 同归属（个人/共享）下，shortcut 不重复。
+        // 同归属（个人/共享）下，shortcut 不重复。
         // SQLite 中 NULL 不参与唯一约束，使用 COALESCE 把 user_id 归一化。
         DB::statement(
             'CREATE UNIQUE INDEX uniq_canned_replies_shortcut '
-            ."ON canned_replies (workspace_id, COALESCE(user_id, ''), shortcut) "
+            ."ON canned_replies (COALESCE(user_id, ''), shortcut) "
             .'WHERE deleted_at IS NULL AND shortcut IS NOT NULL'
         );
     }

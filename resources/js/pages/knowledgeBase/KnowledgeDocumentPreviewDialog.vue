@@ -11,7 +11,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { renderMarkdownToSafeHtml } from '@/lib/markdown';
 import type { ListKnowledgeDocumentItemData } from '@/types/generated';
 import { renderAsync as renderDocxAsync } from 'docx-preview';
@@ -57,7 +56,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { toast } = useToast();
-const currentWorkspace = useRequiredWorkspace();
 
 const loading = ref(false);
 const textContent = ref('');
@@ -80,7 +78,6 @@ const streamUrl = computed(() => {
   }
 
   return KnowledgeBase.Document.StreamKnowledgeDocumentPreviewFileAction.url({
-    slug: currentWorkspace.value.slug,
     knowledgeBase: props.knowledgeBaseId,
     document: props.document.id,
   });

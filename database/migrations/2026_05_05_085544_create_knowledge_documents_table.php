@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->ulid('knowledge_base_id');
             $table->ulid('group_id');
             $table->ulid('uploaded_by_user_id')->nullable();
@@ -42,7 +41,7 @@ return new class extends Migration
             $table->timestamp('raptor_indexed_at')->nullable();
 
             $table->index(['knowledge_base_id', 'group_id'], 'idx_kb_doc_kb_group');
-            $table->index(['workspace_id', 'created_at'], 'idx_kb_doc_workspace_created_at');
+            $table->index('created_at', 'idx_kb_doc_created_at');
             $table->index(['knowledge_base_id', 'parse_status'], 'idx_kb_doc_kb_parse_status');
             $table->index(['knowledge_base_id', 'vector_status'], 'idx_kb_doc_kb_vector_status');
             $table->index(['knowledge_base_id', 'raptor_status'], 'idx_kb_doc_kb_raptor_status');

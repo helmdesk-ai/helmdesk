@@ -19,7 +19,6 @@ class ListTagUsageAction
     public function handle(Workspace $workspace, string $id): TagUsageData
     {
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->withTrashed()
             ->withCount('contacts')
             ->findOrFail($id);
@@ -32,7 +31,7 @@ class ListTagUsageAction
         );
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
 

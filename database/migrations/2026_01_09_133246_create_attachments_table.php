@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
             $table->softDeletes();
-            $table->ulid('workspace_id')->nullable();
             $table->ulid('uploaded_by_user_id')->nullable();
             $table->ulid('storage_profile_id');
             $table->string('disk', 20);
@@ -33,7 +32,7 @@ return new class extends Migration
             $table->timestamp('attached_at')->nullable();
             $table->timestamp('expires_at')->nullable();
 
-            $table->index(['workspace_id', 'purpose', 'status']);
+            $table->index(['purpose', 'status']);
             $table->index(['storage_profile_id', 'status']);
             $table->index('expires_at');
             $table->unique(['storage_profile_id', 'object_key']);

@@ -147,6 +147,8 @@ export default {
   大模型供应商: 'LLM Providers',
   '管理当前工作区下的大模型供应商凭据与可用模型。':
     'Manage LLM provider credentials and available models for this workspace.',
+  '管理系统级大模型供应商凭据与可用模型。':
+    'Manage system-wide LLM provider credentials and available models.',
   默认模型: 'Default model',
   大语言模型: 'LLM Model',
   默认大语言模型: 'Default LLM Model',
@@ -441,6 +443,8 @@ export default {
   知识库检索配置: 'Knowledge base retrieval settings',
   '当前工作区内所有知识库共用这套检索配置。':
     'All knowledge bases in this workspace share these retrieval settings.',
+  '系统内所有知识库共用这套检索配置。':
+    'All knowledge bases in the system share these retrieval settings.',
   标准索引: 'Standard index',
   '为文档建立基础索引，用于日常知识库问答。':
     'Builds the baseline index used for everyday knowledge base answers.',
@@ -460,6 +464,8 @@ export default {
   确认更新检索配置: 'Update retrieval settings?',
   '保存后会清理当前工作区已有知识库索引，并按新的配置重新构建。':
     'Saving will clear existing knowledge base indexes in this workspace and rebuild them with the new settings.',
+  '保存后会清理系统已有知识库索引，并按新的配置重新构建。':
+    'Saving will clear existing system knowledge base indexes and rebuild them with the new settings.',
   继续保存: 'Continue saving',
   请从左侧选择一个知识库: 'Select a knowledge base on the left',
   全部文档: 'All documents',
@@ -525,12 +531,21 @@ export default {
     'Upload up to {count} files at a time. Extra files were ignored.',
   管理工作区下的知识库和文档分组:
     'Manage knowledge bases and document groups in this workspace',
+  管理系统知识库和文档分组: 'Manage system knowledge bases and document groups',
 
   网站渠道: 'Web channels',
   '管理当前工作区的网站 AI 入口。':
     'Manage the web AI entry points for the current workspace.',
   网站: 'Website',
   管理工作区下的访客接入渠道: 'Manage visitor channels for this workspace',
+  管理系统访客接入渠道: 'Manage system visitor channels',
+  系统共享: 'System shared',
+  系统名称: 'System name',
+  '维护客服常用的标准回复，可在收件箱直接调用。支持个人沉淀与系统共享。':
+    'Maintain standard replies for the inbox. Supports personal drafts and system-shared templates.',
+  '管理系统接待方案配置，保存即生效。':
+    'Manage system reception plan configuration. Saves take effect immediately.',
+  '为系统添加一个知识库。': 'Add a knowledge base to the system.',
   创建渠道: 'Create channel',
   编辑渠道: 'Edit channel',
   返回渠道列表: 'Back to channels',

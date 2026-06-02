@@ -90,7 +90,6 @@ class RequestHandoffAction
                 quotedMessageId: $resolvedQuotedMessageId,
             );
             ConversationEvent::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'type' => ConversationEventType::HandoffRequested,
                 'payload' => [
@@ -217,7 +216,6 @@ class RequestHandoffAction
         [$aiSenderName] = ReceptionStateBuilder::channelMessageIdentity($channel, $conversation);
 
         return ConversationMessage::query()->create([
-            'workspace_id' => $conversation->workspace_id,
             'conversation_id' => $conversation->id,
             'role' => MessageRole::Ai,
             'kind' => MessageKind::Text,

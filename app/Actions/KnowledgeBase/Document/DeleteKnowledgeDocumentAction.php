@@ -50,13 +50,12 @@ class DeleteKnowledgeDocumentAction
     /**
      * 处理「删除文档」按钮的提交，并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $document): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $documentModel = KnowledgeDocument::query()
@@ -73,7 +72,6 @@ class DeleteKnowledgeDocumentAction
         }
 
         return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
             ...$query,
         ]);
     }

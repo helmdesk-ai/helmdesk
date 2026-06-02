@@ -64,20 +64,18 @@ class UpdateTelegramChannelTokenAction
     /**
      * 接收 Token 轮换表单并返回详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $channelModel = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->findOrFail($channel);
 
         $this->handle($channelModel, FormUpdateTelegramChannelTokenData::from($request));
 
         return redirect()->route('workspace.manage.channels.telegram.show', [
-            'slug' => $workspace->slug,
             'channel' => $channelModel->id,
         ]);
     }

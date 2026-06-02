@@ -21,7 +21,6 @@ function workspaceTranslationProvider(string $slug = 'google-tr'): TranslationPr
 {
     return TranslationProvider::factory()
         ->create([
-            'workspace_id' => test()->workspace->id,
             'slug' => $slug,
             'credentials' => ['api_key' => 'real-key'],
         ]);
@@ -32,23 +31,21 @@ function workspaceTranslationProvider(string $slug = 'google-tr'): TranslationPr
 // ---------------------------------------------------------------------------
 
 test('未登录用户被重定向到登录页', function () {
-    $this->get(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
+    $this->get(route('workspace.manage.translation.providers.index'))
         ->assertRedirect('/login');
 });
 
 test('非 owner 角色无法访问翻译供应商设置', function () {
     $admin = User::factory()->create();
-    $admin->workspaces()->attach($this->workspace, ['role' => 'admin']);
 
     $operator = User::factory()->create();
-    $operator->workspaces()->attach($this->workspace, ['role' => 'operator']);
 
     $this->actingAs($admin)
-        ->get(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.translation.providers.index'))
         ->assertForbidden();
 
     $this->actingAs($operator)
-        ->get(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.translation.providers.index'))
         ->assertForbidden();
 });
 
@@ -60,7 +57,7 @@ test('owner 可以查看翻译供应商列表页', function () {
     workspaceTranslationProvider();
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.translation.providers.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('workspaceSettings/translationProviders/Index')
@@ -80,7 +77,7 @@ test('owner 可以查看翻译供应商列表页', function () {
 
 test('创建新的翻译供应商后保持待配置状态', function () {
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.translation.providers.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.translation.providers.store'), [
             'name' => 'My Google',
             'protocol' => TranslationProviderType::GoogleTranslate->value,
             'configuration' => ['api_key' => 'created-key'],
@@ -105,7 +102,7 @@ test('新建表单可以用未保存的凭据测试翻译供应商', function ()
     ]);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.manage.translation.providers.check-new', ['slug' => $this->workspaceSlug()]), [
+        ->postJson(route('workspace.manage.translation.providers.check-new'), [
             'text' => 'Hello',
             'target_lang' => 'zh-CN',
             'protocol' => TranslationProviderType::GoogleTranslate->value,
@@ -124,9 +121,7 @@ test('更新凭据时 secret 字段提交空值会保留原值', function () {
     $provider = workspaceTranslationProvider();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.translation.providers.update', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->put(route('workspace.manage.translation.providers.update', ['provider' => $provider->slug,
         ]), [
             'name' => $provider->name,
             'configuration' => ['api_key' => ''],
@@ -140,9 +135,7 @@ test('更新凭据时提交新值会覆盖', function () {
     $provider = workspaceTranslationProvider();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.translation.providers.update', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->put(route('workspace.manage.translation.providers.update', ['provider' => $provider->slug,
         ]), [
             'name' => 'Updated Google',
             'configuration' => ['api_key' => 'new-key'],
@@ -155,20 +148,17 @@ test('更新凭据时提交新值会覆盖', function () {
 
 test('更新凭据校验 required 字段', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => null,
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
-        ->put(route('workspace.manage.translation.providers.update', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->from(route('workspace.manage.translation.providers.index'))
+        ->put(route('workspace.manage.translation.providers.update', ['provider' => $provider->slug,
         ]), [
             'name' => $provider->name,
             'configuration' => ['api_key' => ''],
         ])
-        ->assertRedirect(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.translation.providers.index'))
         ->assertSessionHasErrors(['configuration.api_key']);
 });
 
@@ -180,9 +170,7 @@ test('清空凭据后供应商不再具备完整凭据', function () {
     $provider = workspaceTranslationProvider();
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.translation.providers.clear-credentials', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->delete(route('workspace.manage.translation.providers.clear-credentials', ['provider' => $provider->slug,
         ]))
         ->assertRedirect();
 
@@ -197,14 +185,11 @@ test('清空凭据后供应商不再具备完整凭据', function () {
 
 test('删除非内置 provider 成功', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'is_builtin' => false,
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.translation.providers.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->delete(route('workspace.manage.translation.providers.destroy', ['provider' => $provider->slug,
         ]))
         ->assertRedirect();
 
@@ -213,10 +198,9 @@ test('删除非内置 provider 成功', function () {
 
 test('被接待方案引用的 provider 不允许删除', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'is_builtin' => false,
     ]);
-    ReceptionPlan::factory()->for($this->workspace)->create([
+    ReceptionPlan::factory()->create([
         'translation_config' => [
             'enabled' => true,
             'failure_mode' => 'skip',
@@ -226,10 +210,8 @@ test('被接待方案引用的 provider 不允许删除', function () {
 
     $this->actingAs($this->user)
         ->withHeader('X-Inertia', 'true')
-        ->from(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
-        ->delete(route('workspace.manage.translation.providers.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->from(route('workspace.manage.translation.providers.index'))
+        ->delete(route('workspace.manage.translation.providers.destroy', ['provider' => $provider->slug,
         ]))
         ->assertSessionHasErrors('toast');
 
@@ -238,16 +220,13 @@ test('被接待方案引用的 provider 不允许删除', function () {
 
 test('内置 provider 不允许删除', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'is_builtin' => true,
     ]);
 
     $this->actingAs($this->user)
         ->withHeader('X-Inertia', 'true')
-        ->from(route('workspace.manage.translation.providers.index', ['slug' => $this->workspaceSlug()]))
-        ->delete(route('workspace.manage.translation.providers.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->from(route('workspace.manage.translation.providers.index'))
+        ->delete(route('workspace.manage.translation.providers.destroy', ['provider' => $provider->slug,
         ]))
         ->assertSessionHasErrors('toast');
 
@@ -272,9 +251,7 @@ test('测试翻译连通 - 成功', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.manage.translation.providers.check', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->postJson(route('workspace.manage.translation.providers.check', ['provider' => $provider->slug,
         ]), [
             'text' => 'Hello',
             'target_lang' => 'zh-CN',
@@ -296,9 +273,7 @@ test('测试翻译连通 - 失败时返回 success=false', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.manage.translation.providers.check', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->postJson(route('workspace.manage.translation.providers.check', ['provider' => $provider->slug,
         ]), [
             'text' => 'Hello',
             'target_lang' => 'zh-CN',
@@ -309,7 +284,6 @@ test('测试翻译连通 - 失败时返回 success=false', function () {
 
 test('测试连通时允许临时覆盖未保存的凭据', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'stale-key'],
     ]);
 
@@ -330,9 +304,7 @@ test('测试连通时允许临时覆盖未保存的凭据', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.manage.translation.providers.check', [
-            'slug' => $this->workspaceSlug(),
-            'provider' => $provider->slug,
+        ->postJson(route('workspace.manage.translation.providers.check', ['provider' => $provider->slug,
         ]), [
             'text' => 'Hello',
             'target_lang' => 'zh-CN',

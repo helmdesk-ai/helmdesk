@@ -28,6 +28,7 @@ use App\Enums\ReceptionLanguage;
 use App\Enums\ReplyAssistantMode;
 use App\Enums\ReplyPolishTone;
 use App\Enums\TagScope;
+use App\Models\AttributeDefinition;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactAttributeValue;
@@ -130,7 +131,6 @@ class ShowInboxAction
     private function computeTabCounts(Workspace $workspace, User $user): InboxTabCountsData
     {
         $pending = (int) Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->where('status', ConversationStatus::Open)
             ->where('inbox_status', ConversationInboxStatus::TeammatePending)
             ->count();
@@ -149,7 +149,6 @@ class ShowInboxAction
     private function countMyOpenConversationsWithUnreadVisitorMessages(Workspace $workspace, User $user): int
     {
         return (int) Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->where('status', ConversationStatus::Open)
             ->where('assigned_user_id', $user->id)
             ->where('unread_visitor_message_count', '>', 0)
@@ -159,7 +158,7 @@ class ShowInboxAction
     /**
      * 返回工作台收件箱页面。
      */
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
@@ -211,7 +210,7 @@ class ShowInboxAction
      */
     private function buildQuery(Workspace $workspace, User $user, InboxFiltersData $filters): Builder
     {
-        $query = Conversation::query()->where('conversations.workspace_id', $workspace->id);
+        $query = Conversation::query();
 
         $this->applyView($query, $user, $filters);
         $this->applyChannelFilter($query, $filters->channel_id);
@@ -307,7 +306,6 @@ class ShowInboxAction
                 $openConversation
                     ->selectRaw('1')
                     ->from('conversations as open_conversations')
-                    ->whereColumn('open_conversations.workspace_id', 'conversations.workspace_id')
                     ->whereColumn('open_conversations.contact_id', 'conversations.contact_id')
                     ->whereColumn('open_conversations.channel_id', 'conversations.channel_id')
                     ->where('open_conversations.status', ConversationStatus::Open);
@@ -354,7 +352,6 @@ class ShowInboxAction
             $newerConversation
                 ->selectRaw('1')
                 ->from('conversations as newer_closed_conversations')
-                ->whereColumn('newer_closed_conversations.workspace_id', 'conversations.workspace_id')
                 ->where('newer_closed_conversations.status', ConversationStatus::Closed);
 
             $this->whereSameNullableColumn($newerConversation, 'newer_closed_conversations.contact_id', 'conversations.contact_id');
@@ -377,7 +374,6 @@ class ShowInboxAction
                             ->selectRaw('1')
                             ->from('conversation_events')
                             ->whereColumn('conversation_events.conversation_id', $table.'.id')
-                            ->whereColumn('conversation_events.workspace_id', $table.'.workspace_id')
                             ->where('conversation_events.actor_user_id', $user->id)
                             ->where('conversation_events.type', ConversationEventType::StatusChanged)
                             ->where('conversation_events.payload->status', ConversationStatus::Closed);
@@ -489,7 +485,6 @@ class ShowInboxAction
     private function loadEnabledWebChannels(Workspace $workspace): array
     {
         return Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->orderBy('name')
             ->get()
@@ -498,14 +493,14 @@ class ShowInboxAction
     }
 
     /**
-     * 查询当前工作区的其他成员选项。
+     * 查询其他后台用户选项。
      *
      * @return UserOptionData[]
      */
     private function loadTeammates(Workspace $workspace, User $currentUser): array
     {
-        return $workspace->users()
-            ->where('users.id', '!=', $currentUser->id)
+        return User::query()
+            ->whereKeyNot($currentUser->id)
             ->orderBy('name')
             ->get()
             ->map(fn (User $user) => UserOptionData::fromModel($user))
@@ -540,7 +535,6 @@ class ShowInboxAction
     private function loadAvailableTagsForScope(Workspace $workspace, TagScope $scope): array
     {
         return Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->whereHas('tagGroup', fn (Builder $query) => $query->where('scope', $scope->value))
             ->orderBy('name')
             ->get()
@@ -567,7 +561,6 @@ class ShowInboxAction
             $selected = $conversations->firstWhere('id', $conversationId);
             if ($selected === null && $filters->view !== InboxView::Closed) {
                 $selected = Conversation::query()
-                    ->where('workspace_id', $workspace->id)
                     ->with(['contact', 'receptionPlanVersion.plan', 'assignedUser', 'channel'])
                     ->find($conversationId);
             }
@@ -587,7 +580,7 @@ class ShowInboxAction
         $selected->loadCount(['messages as display_message_count' => Conversation::displayMessageCountQuery()]);
 
         $stitched = $this->contactTimelineAction->handle(
-            $selected->contact ?? (new Contact)->forceFill(['workspace_id' => $workspace->id]),
+            $selected->contact ?? new Contact,
             viewer: $user,
         );
         $customAttributes = $selected->contact
@@ -661,7 +654,6 @@ class ShowInboxAction
         }
 
         return Conversation::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('contact_id', $conversation->contact_id)
             ->where('channel_id', $conversation->channel_id)
             ->where('status', ConversationStatus::Open)
@@ -676,13 +668,12 @@ class ShowInboxAction
      */
     private function buildCustomAttributeFields(Workspace $workspace, Contact $contact): array
     {
-        $activeDefinitions = $workspace->attributeDefinitions()
+        $activeDefinitions = AttributeDefinition::query()
             ->active()
             ->ordered()
             ->get();
 
         $contactValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->with('definition')
             ->get()
@@ -718,21 +709,20 @@ class ShowInboxAction
     }
 
     /**
-     * 判断渠道筛选值是否属于当前工作区。
+     * 判断渠道筛选值是否存在。
      */
     private function channelBelongsToWorkspace(Workspace $workspace, string $channelId): bool
     {
         return Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->whereKey($channelId)
             ->exists();
     }
 
     /**
-     * 判断负责人筛选值是否属于当前工作区。
+     * 判断负责人筛选值是否存在。
      */
     private function userBelongsToWorkspace(Workspace $workspace, string $userId): bool
     {
-        return $workspace->users()->whereKey($userId)->exists();
+        return User::query()->whereKey($userId)->exists();
     }
 }

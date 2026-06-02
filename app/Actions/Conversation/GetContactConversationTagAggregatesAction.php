@@ -24,7 +24,6 @@ class GetContactConversationTagAggregatesAction
         return DB::table('conversation_tag_assignments as cta')
             ->join('conversations as c', 'c.id', '=', 'cta.conversation_id')
             ->join('tags as t', 't.id', '=', 'cta.tag_id')
-            ->where('c.workspace_id', $workspace->id)
             ->where('c.contact_id', $contactId)
             ->whereNull('cta.removed_at')
             ->whereNull('t.deleted_at')

@@ -21,7 +21,6 @@ class ContactIdentityFactory extends Factory
 
         return [
             'contact_id' => Contact::factory(),
-            'workspace_id' => fn (array $attributes) => Contact::find($attributes['contact_id'])?->workspace_id,
             'type' => IdentityType::Email,
             'namespace' => '',
             'value' => $email,

@@ -27,7 +27,6 @@ class CreateTagGroupAction
         $normalizedName = mb_strtolower($name);
 
         $exists = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->where('normalized_name', $normalizedName)
             ->whereNull('deleted_at')
             ->exists();
@@ -39,7 +38,6 @@ class CreateTagGroupAction
         }
 
         return TagGroup::query()->create([
-            'workspace_id' => $workspace->id,
             'name' => $name,
             'scope' => $data->scope,
             'created_by_user_id' => $actor?->id,

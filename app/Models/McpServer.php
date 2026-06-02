@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -17,7 +16,6 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $slug
  * @property string $name
  * @property McpTransport $transport
@@ -31,9 +29,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $last_sync_error
  * @property int $sort_order
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $tools_count
- * @property-read Workspace $workspace
  * @property-read Collection|McpTool[] $tools
  *
  * @method static \Database\Factories\McpServerFactory<self> factory($count = null, $state = [])
@@ -41,7 +37,7 @@ use Illuminate\Support\Carbon;
 class McpServer extends Model
 {
     /**
-     * 工作区级 MCP 服务注册表。
+     * MCP 服务注册表。
      * 保存 endpoint / 认证方式 / 加密凭据 / 用户自定义请求头，
      * 以及最近一次同步工具列表的状态。tools 关系是 Go 同步回来的缓存。
      */
@@ -70,14 +66,6 @@ class McpServer extends Model
             'last_sync_status' => McpSyncStatus::class,
             'sort_order' => 'integer',
         ];
-    }
-
-    /**
-     * MCP 服务所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

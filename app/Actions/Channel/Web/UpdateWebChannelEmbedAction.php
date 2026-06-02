@@ -55,7 +55,7 @@ class UpdateWebChannelEmbedAction
     /**
      * 接收业务参数映射表单并返回渠道详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
@@ -65,7 +65,6 @@ class UpdateWebChannelEmbedAction
         $this->handle($channelModel, FormUpdateWebChannelEmbedData::from($request));
 
         return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
             'channel' => $channelModel->id,
         ]));
     }

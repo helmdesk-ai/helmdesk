@@ -46,7 +46,6 @@ class UseAndRenderCannedReplyAction
         ?string $conversationId,
     ): RenderedCannedReplyData {
         $reply = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->find($cannedReplyId);
 
         if ($reply === null) {
@@ -92,7 +91,7 @@ class UseAndRenderCannedReplyAction
     /**
      * XHR 入口：返回 JSON 给前端 composer。
      */
-    public function asController(Request $request, string $slug, string $cannedReply): JsonResponse
+    public function asController(Request $request, string $cannedReply): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
@@ -120,7 +119,6 @@ class UseAndRenderCannedReplyAction
         }
 
         return Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->with('contact')
             ->find($conversationId);
     }

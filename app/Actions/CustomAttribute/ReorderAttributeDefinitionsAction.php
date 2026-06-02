@@ -52,7 +52,7 @@ class ReorderAttributeDefinitionsAction
         });
     }
 
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
         $validated = $request->validate([
             'ordered_ids' => ['required', 'array'],

@@ -47,7 +47,7 @@ class GrepRetriever
      * @param  list<string>  $knowledgeBaseIds
      * @return list<GrepMatch>
      */
-    public function retrieve(string $workspaceId, array $knowledgeBaseIds, array $queries, int $topK): array
+    public function retrieve(array $knowledgeBaseIds, array $queries, int $topK): array
     {
         $cleanedQueries = $this->cleanQueries($queries);
         if ($cleanedQueries === [] || $knowledgeBaseIds === [] || $topK <= 0) {
@@ -56,7 +56,6 @@ class GrepRetriever
 
         $knowledgeBases = KnowledgeBase::query()
             ->whereIn('id', $knowledgeBaseIds)
-            ->where('workspace_id', $workspaceId)
             ->get()
             ->keyBy('id');
         if ($knowledgeBases->isEmpty()) {
@@ -65,8 +64,8 @@ class GrepRetriever
 
         $hits = [];
         foreach ($cleanedQueries as $query) {
-            $docHits = $this->grepDocuments($workspaceId, $knowledgeBases, $query);
-            $qaHits = $this->grepQaEntries($workspaceId, $knowledgeBases, $query);
+            $docHits = $this->grepDocuments($knowledgeBases, $query);
+            $qaHits = $this->grepQaEntries($knowledgeBases, $query);
             $hits = array_merge($hits, $docHits, $qaHits);
             if (count($hits) >= self::TOTAL_HITS_HARD_LIMIT) {
                 $hits = array_slice($hits, 0, self::TOTAL_HITS_HARD_LIMIT);
@@ -106,7 +105,7 @@ class GrepRetriever
      * @param  Collection<string, KnowledgeBase>  $knowledgeBases
      * @return list<GrepMatch>
      */
-    private function grepDocuments(string $workspaceId, Collection $knowledgeBases, string $query): array
+    private function grepDocuments(Collection $knowledgeBases, string $query): array
     {
         $documents = KnowledgeDocument::query()
             ->whereIn('knowledge_base_id', $knowledgeBases->keys()->all())
@@ -123,7 +122,6 @@ class GrepRetriever
             foreach ($matches as $position) {
                 $hits[] = new GrepMatch(
                     knowledgeBaseId: (string) $document->knowledge_base_id,
-                    workspaceId: $workspaceId,
                     documentId: (string) $document->id,
                     documentTitle: (string) $document->original_filename,
                     qaEntryId: null,
@@ -152,7 +150,7 @@ class GrepRetriever
      * @param  Collection<string, KnowledgeBase>  $knowledgeBases
      * @return list<GrepMatch>
      */
-    private function grepQaEntries(string $workspaceId, Collection $knowledgeBases, string $query): array
+    private function grepQaEntries(Collection $knowledgeBases, string $query): array
     {
         $needle = mb_strtolower($query);
 
@@ -170,7 +168,6 @@ class GrepRetriever
             foreach ($matches as $position) {
                 $hits[] = new GrepMatch(
                     knowledgeBaseId: (string) $entry->knowledge_base_id,
-                    workspaceId: $workspaceId,
                     documentId: null,
                     documentTitle: null,
                     qaEntryId: (string) $entry->id,
@@ -211,7 +208,6 @@ class GrepRetriever
             foreach ($matches as $position) {
                 $hits[] = new GrepMatch(
                     knowledgeBaseId: (string) $entry->knowledge_base_id,
-                    workspaceId: $workspaceId,
                     documentId: null,
                     documentTitle: null,
                     qaEntryId: (string) $entry->id,
@@ -252,7 +248,6 @@ class GrepRetriever
             foreach ($matches as $position) {
                 $hits[] = new GrepMatch(
                     knowledgeBaseId: (string) $entry->knowledge_base_id,
-                    workspaceId: $workspaceId,
                     documentId: null,
                     documentTitle: null,
                     qaEntryId: (string) $entry->id,

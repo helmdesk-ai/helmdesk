@@ -66,7 +66,6 @@ class ReleaseConversationToAiAction
             ]);
 
             ConversationEvent::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'actor_user_id' => $actor->id,
                 'type' => ConversationEventType::AssignmentChanged,
@@ -113,7 +112,6 @@ class ReleaseConversationToAiAction
     private function lastMessageIsFromVisitor(Conversation $conversation): bool
     {
         $lastMessage = ConversationMessage::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('conversation_id', $conversation->id)
             ->orderByDesc('created_at')
             ->orderByDesc('id')

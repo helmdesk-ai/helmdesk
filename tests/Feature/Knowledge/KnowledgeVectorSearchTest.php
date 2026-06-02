@@ -27,7 +27,6 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function (): void {
     $this->user = $this->createUserWithWorkspace();
     $this->provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'vec-search-'.Str::lower((string) Str::ulid()),
         'name' => 'Vector Search Provider',
@@ -46,7 +45,6 @@ beforeEach(function (): void {
         'sort_order' => 0,
     ]);
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '向量召回测试库',
     ]);
 });
@@ -65,7 +63,6 @@ function seedVectorNode(
 ): KnowledgeNode {
     $node = KnowledgeNode::query()->create([
         'id' => (string) Str::ulid(),
-        'workspace_id' => $workspace->id,
         'knowledge_base_id' => $kb->id,
         'document_id' => null,
         'qa_entry_id' => null,
@@ -104,7 +101,6 @@ test('VectorRetriever 跨 workspace 时仍能从小集合的目标 workspace 召
 
     $otherWorkspace = Workspace::factory()->create();
     $otherProvider = AiProvider::query()->create([
-        'workspace_id' => $otherWorkspace->id,
         'brand' => 'custom-openai',
         'slug' => 'other-'.Str::lower((string) Str::ulid()),
         'name' => 'Other Provider',
@@ -122,13 +118,12 @@ test('VectorRetriever 跨 workspace 时仍能从小集合的目标 workspace 召
         'is_builtin' => false,
         'sort_order' => 0,
     ]);
-    $otherKb = KnowledgeBase::factory()->create(['workspace_id' => $otherWorkspace->id]);
+    $otherKb = KnowledgeBase::factory()->create([]);
     for ($i = 0; $i < 200; $i++) {
         seedVectorNode($otherWorkspace, $otherKb, $otherModel, [0.99, 0.01 * $i, 0.0, 0.0]);
     }
 
     $hits = app(VectorRetriever::class)->retrieve(
-        workspaceId: $this->workspace->id,
         knowledgeBaseIds: [$this->kb->id],
         dimension: $dim,
         queryEmbeddings: [$queryEmbedding],
@@ -157,7 +152,6 @@ test('VectorRetriever 按 embedding_model_id 隔离：切换模型后旧向量�
     ]);
 
     $hits = app(VectorRetriever::class)->retrieve(
-        workspaceId: $this->workspace->id,
         knowledgeBaseIds: [$this->kb->id],
         dimension: $dim,
         queryEmbeddings: [[1.0, 0.0, 0.0, 0.0]],
@@ -171,7 +165,6 @@ test('VectorRetriever 按 embedding_model_id 隔离：切换模型后旧向量�
 
 test('VectorRetriever 允许集合为空时直接返回空数组', function (): void {
     $hits = app(VectorRetriever::class)->retrieve(
-        workspaceId: $this->workspace->id,
         knowledgeBaseIds: [$this->kb->id],
         dimension: 4,
         queryEmbeddings: [[1.0, 0.0, 0.0, 0.0]],

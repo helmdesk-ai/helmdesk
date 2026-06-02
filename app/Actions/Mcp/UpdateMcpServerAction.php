@@ -48,7 +48,7 @@ class UpdateMcpServerAction
     /**
      * 路由入口：仅 manageAi 角色可调用。
      */
-    public function asController(Request $request, string $slug, string $server): RedirectResponse
+    public function asController(Request $request, string $server): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

@@ -56,7 +56,6 @@ test('真实运行时完成 canonical 段 + 向量索引', function (): void {
         'knowledge_chunk_overlap_tokens' => 0,
     ]);
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $document = KnowledgeDocument::factory()->create([
         'knowledge_base_id' => $knowledgeBase->id,
@@ -117,7 +116,6 @@ test('真实运行时完成 RAPTOR 摘要树', function (): void {
         'knowledge_chunk_overlap_tokens' => 0,
     ]);
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     // 内容刻意写到多段，让固定分段产生 ≥2 个叶子，RAPTOR 才会真正调外部 LLM 跑摘要。
     $document = KnowledgeDocument::factory()->create([
@@ -151,7 +149,6 @@ test('真实运行时完成 RAPTOR 摘要树', function (): void {
 function createLiveOpenRouterProvider(string $workspaceId): AiProvider
 {
     return AiProvider::query()->create([
-        'workspace_id' => $workspaceId,
         'brand' => 'custom-openai',
         'slug' => 'kb-live-openrouter-'.Str::lower((string) Str::ulid()),
         'name' => 'Knowledge Runtime OpenRouter',

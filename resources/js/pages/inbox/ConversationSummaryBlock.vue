@@ -11,7 +11,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import workspace from '@/routes/workspace';
 import type {
   ConversationSummaryData,
@@ -45,7 +44,6 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 type SummaryTranslationPayload = Record<string, { text?: unknown }>;
 
@@ -125,7 +123,6 @@ async function attachTag(tagId: string): Promise<void> {
   try {
     await axios.post(
       workspace.inbox.conversations.tags.attach.url({
-        slug: currentWorkspace.value.slug,
         conversation: props.conversation.id,
       }),
       { tag_id: tagId },
@@ -148,7 +145,6 @@ async function detachTag(tagId: string): Promise<void> {
   try {
     await axios.delete(
       workspace.inbox.conversations.tags.detach.url({
-        slug: currentWorkspace.value.slug,
         conversation: props.conversation.id,
         tagId,
       }),

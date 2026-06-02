@@ -24,7 +24,6 @@ class CollectActiveKnowledgeBasesAction
     public function handle(Workspace $workspace): array
     {
         $knowledgeBases = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->orderBy('created_at')
             ->get(['id', 'name', 'description']);
 

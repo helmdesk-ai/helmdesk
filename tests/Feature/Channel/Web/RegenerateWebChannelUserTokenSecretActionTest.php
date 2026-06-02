@@ -13,7 +13,7 @@ beforeEach(function () {
 });
 
 test('重新生成签名访客密钥会立即覆盖当前密钥并返回明文', function () {
-    $channel = Channel::factory()->for($this->workspace)->create([
+    $channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'current-secret-1234567890',
         ]),
@@ -28,28 +28,22 @@ test('重新生成签名访客密钥会立即覆盖当前密钥并返回明文',
 });
 
 test('重置密钥路由会回到详情页并更新密钥', function () {
-    $channel = Channel::factory()->for($this->workspace)->create([
+    $channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'current-secret-1234567890',
         ]),
     ]);
 
     $response = $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.show', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->from(route('workspace.manage.channels.web.show', ['channel' => $channel->id,
         ]))
-        ->post(route('workspace.manage.channels.web.user-token-secret.regenerate', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->post(route('workspace.manage.channels.web.user-token-secret.regenerate', ['channel' => $channel->id,
         ]));
 
     $storedSecret = $channel->fresh()->settings->user_token_secret;
 
     $response
-        ->assertRedirect(route('workspace.manage.channels.web.show', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->assertRedirect(route('workspace.manage.channels.web.show', ['channel' => $channel->id,
         ]));
 
     expect($storedSecret)->not->toBe('current-secret-1234567890');

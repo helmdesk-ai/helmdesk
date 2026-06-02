@@ -57,9 +57,8 @@ class CreateContactAction
         $this->checkDuplicateIdentity($workspace, IdentityType::Email, $email);
         $this->checkDuplicateIdentity($workspace, IdentityType::Phone, $phone);
 
-        return DB::transaction(function () use ($workspace, $data, $email, $phone, $actor) {
+        return DB::transaction(function () use ($data, $email, $phone, $actor) {
             $contact = Contact::query()->create([
-                'workspace_id' => $workspace->id,
                 'type' => ContactType::Contact,
                 'source' => ContactSource::Manual,
                 'name' => $data->name ? trim($data->name) : null,
@@ -68,7 +67,6 @@ class CreateContactAction
 
             if ($email) {
                 ContactIdentity::query()->create([
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $contact->id,
                     'type' => IdentityType::Email,
                     'namespace' => '',
@@ -79,7 +77,6 @@ class CreateContactAction
 
             if ($phone) {
                 ContactIdentity::query()->create([
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $contact->id,
                     'type' => IdentityType::Phone,
                     'namespace' => '',
@@ -106,7 +103,7 @@ class CreateContactAction
         });
     }
 
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
@@ -124,7 +121,6 @@ class CreateContactAction
         }
 
         $existing = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', $type)
             ->where('namespace', '')
             ->where('value', $value)

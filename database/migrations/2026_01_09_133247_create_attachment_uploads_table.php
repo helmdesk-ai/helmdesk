@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('attachment_uploads', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id')->nullable();
             $table->ulid('attachment_id');
             $table->ulid('storage_profile_id');
             $table->string('mode', 30);
@@ -32,7 +31,6 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
 
             $table->index('attachment_id');
-            $table->index(['workspace_id', 'status']);
             $table->index(['status', 'expires_at']);
         });
     }

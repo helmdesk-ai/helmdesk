@@ -20,7 +20,6 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property string $workspace_id
  * @property ChannelType $type
  * @property string $name
  * @property string|null $description
@@ -34,9 +33,7 @@ use Illuminate\Support\Str;
  * @property string|null $last_embed_host
  * @property Carbon|null $last_embed_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $reception_plan_versions_count
- * @property-read Workspace $workspace
  * @property-read ReceptionPlan|null $receptionPlan
  * @property-read ReceptionPlanVersion|null $receptionPlanVersion
  *
@@ -66,14 +63,6 @@ class Channel extends Model
             'first_embed_at' => 'datetime',
             'last_embed_at' => 'datetime',
         ];
-    }
-
-    /**
-     * 渠道所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

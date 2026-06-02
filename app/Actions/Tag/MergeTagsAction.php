@@ -21,7 +21,7 @@ class MergeTagsAction
 
     public function handle(Workspace $workspace, FormMergeTagData $data): Tag
     {
-        return DB::transaction(function () use ($workspace, $data): Tag {
+        return DB::transaction(function () use ($data): Tag {
             if ($data->target_tag_id === $data->merged_tag_id) {
                 throw ValidationException::withMessages([
                     'merged_tag_id' => __('tag.errors.merge_same_tag'),
@@ -29,11 +29,9 @@ class MergeTagsAction
             }
 
             $targetTag = Tag::query()
-                ->where('workspace_id', $workspace->id)
                 ->findOrFail($data->target_tag_id);
 
             $mergedTag = Tag::query()
-                ->where('workspace_id', $workspace->id)
                 ->findOrFail($data->merged_tag_id);
 
             if ($mergedTag->is_locked) {
@@ -73,7 +71,7 @@ class MergeTagsAction
         });
     }
 
-    public function asController(Request $request, string $slug)
+    public function asController(Request $request)
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormMergeTagData::from($request);

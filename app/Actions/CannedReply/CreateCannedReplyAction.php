@@ -43,7 +43,6 @@ class CreateCannedReplyAction
         $this->guardShortcutUnique($workspace, $userId, $shortcut);
 
         return CannedReply::query()->create([
-            'workspace_id' => $workspace->id,
             'user_id' => $userId,
             'name' => trim($data->name),
             'shortcut' => $shortcut,
@@ -64,7 +63,7 @@ class CreateCannedReplyAction
 
         $this->handle($workspace, $user, FormCreateCannedReplyData::from($request));
 
-        return redirect()->route('workspace.canned-replies.index', ['slug' => $workspace->slug]);
+        return redirect()->route('workspace.canned-replies.index');
     }
 
     /**
@@ -91,7 +90,6 @@ class CreateCannedReplyAction
         }
 
         $query = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->where('shortcut', $shortcut);
 
         if ($userId === null) {

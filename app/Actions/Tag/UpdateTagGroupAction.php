@@ -24,14 +24,12 @@ class UpdateTagGroupAction
     public function handle(Workspace $workspace, string $id, FormUpdateTagGroupData $data, ?User $actor = null): TagGroup
     {
         $group = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($id);
 
         $name = trim($data->name);
         $normalizedName = mb_strtolower($name);
 
         $exists = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->where('normalized_name', $normalizedName)
             ->where('id', '!=', $group->id)
             ->whereNull('deleted_at')
@@ -54,7 +52,7 @@ class UpdateTagGroupAction
     /**
      * 接收重命名标签组表单提交并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormUpdateTagGroupData::from($request);

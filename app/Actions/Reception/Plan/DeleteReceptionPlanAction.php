@@ -55,19 +55,17 @@ class DeleteReceptionPlanAction
     /**
      * Controller 入口：鉴权 + 跳回活跃 view 列表。
      */
-    public function asController(Request $request, string $slug, string $plan): RedirectResponse
+    public function asController(Request $request, string $plan): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $planModel = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
         $this->handle($planModel);
 
         return redirect()->route('workspace.manage.reception.plans.index', [
-            'slug' => $workspace->slug,
         ]);
     }
 }

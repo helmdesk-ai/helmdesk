@@ -27,7 +27,6 @@ class UpdateContactAttributeValuesAction
     public function handle(Workspace $workspace, string $contactId, array $attributes, int|string|null $userId = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $definitions = $workspace->attributeDefinitions()
@@ -36,14 +35,13 @@ class UpdateContactAttributeValuesAction
             ->keyBy('key');
 
         $existingValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->get()
             ->keyBy('definition_id');
 
         $changed = [];
 
-        DB::transaction(function () use ($workspace, $contact, $attributes, $definitions, $existingValues, $userId, &$changed) {
+        DB::transaction(function () use ($contact, $attributes, $definitions, $existingValues, $userId, &$changed) {
             foreach ($attributes as $key => $rawValue) {
                 $definition = $definitions->get($key);
 
@@ -83,7 +81,6 @@ class UpdateContactAttributeValuesAction
                     } else {
                         $changed[] = ['key' => $key, 'old' => null, 'new' => $normalizedValue];
                         ContactAttributeValue::query()->create([
-                            'workspace_id' => $workspace->id,
                             'contact_id' => $contact->id,
                             'definition_id' => $definition->id,
                             'value_json' => $valueJson,
@@ -96,7 +93,6 @@ class UpdateContactAttributeValuesAction
 
             if (! empty($changed)) {
                 ContactActivityLog::query()->create([
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $contact->id,
                     'actor_user_id' => $userId,
                     'action' => 'custom_attributes_updated',
@@ -106,7 +102,7 @@ class UpdateContactAttributeValuesAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

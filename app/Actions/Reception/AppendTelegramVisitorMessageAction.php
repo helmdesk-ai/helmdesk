@@ -98,7 +98,6 @@ class AppendTelegramVisitorMessageAction
         try {
             $message = DB::transaction(function () use ($conversation, $text, $visitorSenderName, $clientMsgId, $telegramMessageId, $telegramChatId): ConversationMessage {
                 $message = ConversationMessage::query()->create([
-                    'workspace_id' => $conversation->workspace_id,
                     'conversation_id' => $conversation->id,
                     'role' => MessageRole::Visitor,
                     'sender_name' => $visitorSenderName,

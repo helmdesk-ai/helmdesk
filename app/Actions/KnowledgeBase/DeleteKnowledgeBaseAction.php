@@ -70,17 +70,16 @@ class DeleteKnowledgeBaseAction
     /**
      * 接收删除知识库请求并返回列表页。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $knowledgeBaseModel = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $this->handle($knowledgeBaseModel);
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', ['slug' => $workspace->slug]);
+        return redirect()->route('workspace.manage.knowledge-bases.index');
     }
 }

@@ -100,7 +100,7 @@ class SyncMcpServerToolsAction
     /**
      * 路由入口：仅 manageAi 角色可调用，结果交给前端直接 toast。
      */
-    public function asController(Request $request, string $slug, string $server): JsonResponse
+    public function asController(Request $request, string $server): JsonResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

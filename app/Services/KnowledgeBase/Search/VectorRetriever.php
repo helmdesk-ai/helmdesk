@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
  * 向量召回器。
  *
  * 入参一组 embedding 向量（同一维度），输出一批 KnowledgeSearchHit。流程：
- *  - 先按 workspace / kb / strategy / embedding_model_id / embedding_dim 在节点表上取出
+ *  - 先按 kb / strategy / embedding_model_id / embedding_dim 在节点表上取出
  *    本次允许参与召回的 node_id 集合，命中 idx_kn_node_kb_dim 索引；
  *  - 再调用 KnowledgeVectorTableManager::knnSearch 拿候选 (node_id, distance)，KNN 的 k
  *    根据允许集合大小自适应：scope 小时 k 取到 scope 全集，scope 大时按 topK * MULTIPLIER
@@ -47,7 +47,6 @@ class VectorRetriever
      * @return list<KnowledgeSearchHit>
      */
     public function retrieve(
-        string $workspaceId,
         array $knowledgeBaseIds,
         int $dimension,
         array $queryEmbeddings,
@@ -65,7 +64,6 @@ class VectorRetriever
         }
 
         $allowedNodes = $this->loadAllowedNodes(
-            workspaceId: $workspaceId,
             knowledgeBaseIds: $knowledgeBaseIds,
             strategyValues: $strategyValues,
             dimension: $dimension,
@@ -114,7 +112,6 @@ class VectorRetriever
                     rank: $rank,
                     knowledgeNodeId: $node->id,
                     knowledgeBaseId: $node->knowledge_base_id,
-                    workspaceId: $node->workspace_id,
                     documentId: $node->document_id,
                     qaEntryId: $node->qa_entry_id,
                     qaQuestionId: $node->qa_question_id,
@@ -137,7 +134,7 @@ class VectorRetriever
     }
 
     /**
-     * 按 workspace / kb / strategy / dim / embedding_model_id 取出本次允许参与召回的节点集合。
+     * 按 kb / strategy / dim / embedding_model_id 取出本次允许参与召回的节点集合。
      *
      * 这一步把检索 scope 收敛到节点层面：KNN 拿到的候选会跟这个集合做交集，scope 之外的向量
      * 不会进入排序。
@@ -147,14 +144,12 @@ class VectorRetriever
      * @return Collection<string, KnowledgeNode>
      */
     private function loadAllowedNodes(
-        string $workspaceId,
         array $knowledgeBaseIds,
         array $strategyValues,
         int $dimension,
         ?string $embeddingModelId,
     ): Collection {
         $query = KnowledgeNode::query()
-            ->where('workspace_id', $workspaceId)
             ->whereIn('knowledge_base_id', $knowledgeBaseIds)
             ->whereIn('strategy', $strategyValues)
             ->where('embedding_dim', $dimension);

@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * 快捷回复模版的权限判断服务。
- * 个人模版仅作者可改；工作区共享模版需要 canAccessManageCenter；
- * 所有工作区成员都可读到自己可见的模版（个人 + 工作区共享）。
+ * 个人模版仅作者可改；系统共享模版需要 canAccessManageCenter；
+ * 所有后台成员都可读到自己可见的模版（个人 + 系统共享）。
  */
 class CannedReplyPermission
 {
     /**
-     * 当前用户能否管理（创建 / 编辑 / 删除）工作区共享模版。
+     * 当前用户能否管理（创建 / 编辑 / 删除）系统共享模版。
      */
     public function canManageWorkspaceShared(Workspace $workspace, User $user): bool
     {
@@ -27,10 +27,6 @@ class CannedReplyPermission
      */
     public function canEdit(CannedReply $reply, Workspace $workspace, User $user): bool
     {
-        if ((string) $reply->workspace_id !== (string) $workspace->id) {
-            return false;
-        }
-
         if ($reply->isOwnedBy($user)) {
             return true;
         }
@@ -51,14 +47,10 @@ class CannedReplyPermission
     }
 
     /**
-     * 当前用户能看到的模版（自己个人 + 工作区共享）。
+     * 当前用户能看到的模版（自己个人 + 系统共享）。
      */
     public function canView(CannedReply $reply, Workspace $workspace, User $user): bool
     {
-        if ((string) $reply->workspace_id !== (string) $workspace->id) {
-            return false;
-        }
-
         return $reply->isWorkspaceShared() || $reply->isOwnedBy($user);
     }
 }

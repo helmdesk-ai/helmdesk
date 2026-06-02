@@ -87,7 +87,6 @@ class SendAiAssistantMessageAction
                 'is_active' => (bool) $model->is_active,
             ],
             'messages' => $messages,
-            'workspace_id' => (string) $workspace->id,
             'mcp_servers' => $this->collectMcpServers->handle($workspace),
             'knowledge_bases' => $this->collectKnowledgeBases->handle($workspace),
         ];
@@ -96,7 +95,6 @@ class SendAiAssistantMessageAction
             $response = $this->goBridge->postJson(self::GO_CHAT_STREAM_PATH, $payload, timeoutSeconds: 10);
         } catch (GoBridgeException $exception) {
             Log::warning('AI chat bridge call failed.', [
-                'workspace_id' => $workspace->id,
                 // 上游错误可能回吐凭据，写日志前先脱敏。
                 'exception' => $this->sanitizeUpstreamError($exception->getMessage()),
             ]);
@@ -127,7 +125,7 @@ class SendAiAssistantMessageAction
     }
 
     /**
-     * Laravel 路由入口：处理 /w/{slug}/ai-chat/messages 的 POST。
+     * Laravel 路由入口：处理后台 AI 对话消息提交。
      */
     public function asController(Request $request): JsonResponse
     {
@@ -172,7 +170,7 @@ class SendAiAssistantMessageAction
 
         $model = AiModel::query()
             ->with('provider')
-            ->whereHas('provider', fn ($q) => $q->where('workspace_id', $workspace->id))
+            ->whereHas('provider')
             ->find($modelId);
 
         if ($model === null || $model->provider === null) {

@@ -23,7 +23,6 @@ class MarkInboxConversationReadAction
     public function handle(Workspace $workspace, string $userId, string $conversationId): void
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -42,7 +41,7 @@ class MarkInboxConversationReadAction
     /**
      * 接收前端打开会话后的已读标记请求。
      */
-    public function asController(Request $request, string $slug, string $conversationId): Response
+    public function asController(Request $request, string $conversationId): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
 

@@ -10,7 +10,7 @@ use App\Models\KnowledgeQaEntry;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 问答条目索引流水线，先写 canonical 节点 + 全文索引，再按工作区配置投递问题侧向量索引。
+ * 问答条目索引流水线，先写 canonical 节点 + 全文索引，再按系统配置投递问题侧向量索引。
  */
 class DispatchKnowledgeQaEntryPipelineAction
 {
@@ -26,7 +26,7 @@ class DispatchKnowledgeQaEntryPipelineAction
     public function handle(KnowledgeQaEntry $entry): void
     {
         $entry->refresh();
-        $entry->loadMissing('knowledgeBase.workspace', 'similarQuestions', 'answers');
+        $entry->loadMissing('knowledgeBase', 'similarQuestions', 'answers');
         $knowledgeBase = $entry->knowledgeBase;
         if ($knowledgeBase === null) {
             return;

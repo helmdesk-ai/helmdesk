@@ -57,7 +57,6 @@ class KnowledgeQueryEmbedder
             : null;
         if ($expected !== null && $expected > 0 && $dimension !== $expected) {
             Log::warning('Knowledge query embedding dimension mismatch; falling back to non-vector retrieval.', [
-                'workspace_id' => (string) $workspace->id,
                 'expected_dimension' => $expected,
                 'actual_dimension' => $dimension,
             ]);

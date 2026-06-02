@@ -11,16 +11,17 @@ use App\Models\AiProvider;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
 use App\Models\Workspace;
+use App\Settings\KnowledgeSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
 /**
- * 解析工作区范围内的可用模型和模型引用状态。
+ * 解析当前系统内的可用模型和模型引用状态。
  */
 class AiModelResolver
 {
     /**
-     * 列出工作区内可选的 LLM 模型。
+     * 列出可选的 LLM 模型。
      *
      * @return AiModelOptionData[]
      */
@@ -33,7 +34,7 @@ class AiModelResolver
     }
 
     /**
-     * 判断模型选择是否仍然可用，模型必须属于指定工作区。
+     * 判断模型选择是否仍然可用。
      */
     public function resolveModelStatus(Workspace $workspace, ?string $modelId): ModelSelectionStatusData
     {
@@ -49,7 +50,6 @@ class AiModelResolver
 
         $model = AiModel::query()
             ->with('provider')
-            ->whereHas('provider', fn (Builder $q) => $q->where('workspace_id', $workspace->id))
             ->find($modelId);
 
         if ($model === null) {
@@ -80,7 +80,7 @@ class AiModelResolver
     }
 
     /**
-     * 检查模型是否是该工作区内启用中的 LLM。
+     * 检查模型是否是启用中的 LLM。
      */
     public function isValidActiveLlmModel(Workspace $workspace, ?string $modelId): bool
     {
@@ -105,7 +105,7 @@ class AiModelResolver
     }
 
     /**
-     * 取当前工作区内排序最靠前的可用 LLM 模型。
+     * 取当前系统内排序最靠前的可用 LLM 模型。
      */
     public function firstActiveLlmModel(Workspace $workspace): ?AiModel
     {
@@ -130,18 +130,19 @@ class AiModelResolver
      */
     public function isModelReferencedByKnowledgeBases(string $modelId): bool
     {
-        return Workspace::query()
-            ->where(function (Builder $query) use ($modelId): void {
-                $query
-                    ->where('knowledge_embedding_model_id', $modelId)
-                    ->orWhere('knowledge_rerank_model_id', $modelId)
-                    ->orWhere('knowledge_summary_model_id', $modelId);
-            })
-            ->exists();
+        /** @var KnowledgeSettings $settings */
+        $settings = app(KnowledgeSettings::class);
+        $settings->refresh();
+
+        return in_array($modelId, [
+            $settings->embedding_model_id,
+            $settings->rerank_model_id,
+            $settings->summary_model_id,
+        ], true);
     }
 
     /**
-     * 检查供应商下任一模型是否被所属工作区的接待方案草稿或已发布版本引用。
+     * 检查供应商下任一模型是否被接待方案草稿或已发布版本引用。
      */
     public function isProviderReferencedByReceptionPlans(AiProvider $provider): bool
     {
@@ -286,7 +287,7 @@ class AiModelResolver
     }
 
     /**
-     * 检查供应商模型是否被所属工作区的知识库统一配置引用。
+     * 检查供应商模型是否被知识库统一配置引用。
      */
     public function isProviderReferencedByKnowledgeBases(AiProvider $provider): bool
     {
@@ -296,15 +297,15 @@ class AiModelResolver
             return false;
         }
 
-        return Workspace::query()
-            ->whereKey($provider->workspace_id)
-            ->where(function (Builder $query) use ($modelIds): void {
-                $query
-                    ->whereIn('knowledge_embedding_model_id', $modelIds)
-                    ->orWhereIn('knowledge_rerank_model_id', $modelIds)
-                    ->orWhereIn('knowledge_summary_model_id', $modelIds);
-            })
-            ->exists();
+        /** @var KnowledgeSettings $settings */
+        $settings = app(KnowledgeSettings::class);
+        $settings->refresh();
+
+        return collect([
+            $settings->embedding_model_id,
+            $settings->rerank_model_id,
+            $settings->summary_model_id,
+        ])->filter()->intersect($modelIds)->isNotEmpty();
     }
 
     /**
@@ -316,7 +317,7 @@ class AiModelResolver
     }
 
     /**
-     * 校验并取得当前工作区启用供应商下的启用模型。
+     * 校验并取得启用供应商下的启用模型。
      */
     public function resolveActiveKnowledgeBaseModel(Workspace $workspace, string $modelId, AiModelType $type, string $field): AiModel
     {
@@ -338,7 +339,7 @@ class AiModelResolver
     }
 
     /**
-     * 取得当前工作区可用于知识库的启用模型选项。
+     * 取得可用于知识库的启用模型选项。
      *
      * @return AiModelOptionData[]
      */
@@ -351,7 +352,7 @@ class AiModelResolver
     }
 
     /**
-     * 当前工作区下启用模型的统一查询（供应商存在即可用），按供应商和模型自身的 sort_order 排序。
+     * 启用模型的统一查询（供应商存在即可用），按供应商和模型自身的 sort_order 排序。
      */
     private function activeWorkspaceModelsQuery(Workspace $workspace, AiModelType $type): Builder
     {
@@ -360,8 +361,7 @@ class AiModelResolver
             ->where('is_active', true)
             ->whereHas(
                 'provider',
-                fn (Builder $query) => $query
-                    ->where('workspace_id', $workspace->id),
+                fn (Builder $query) => $query,
             )
             ->with('provider')
             ->orderBy(

@@ -15,7 +15,6 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property Carbon|null $created_at
- * @property string $workspace_id
  * @property string $conversation_id
  * @property string|null $actor_user_id
  * @property ConversationEventType $type
@@ -50,7 +49,6 @@ class ConversationEvent extends Model
             RecordConversationTimelineEntryAction::run(
                 entryType: ConversationTimelineEntryType::Event,
                 entryId: (string) $event->id,
-                workspaceId: (string) $event->workspace_id,
                 conversationId: (string) $event->conversation_id,
                 occurredAt: $event->created_at,
             );

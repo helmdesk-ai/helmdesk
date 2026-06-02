@@ -7,19 +7,17 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\WithWorkspace;
 
 uses(RefreshDatabase::class, WithWorkspace::class);
 
 beforeEach(function (): void {
     $this->user = $this->createUserWithWorkspace();
-    $this->contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
+    $this->contact = Contact::factory()->create(['locale' => null]);
     $this->conversation = Conversation::factory()
         ->forContact($this->contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'visitor_locale' => ReceptionLanguage::ChineseSimplified->value,
         ]);
 });
@@ -33,33 +31,28 @@ test('更新会话访客语言', function (): void {
 
 test('控制器更新访客语言并返回收件箱页面', function (): void {
     $this->actingAs($this->user)
-        ->from(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->from(route('workspace.inbox.show', ['conversation' => $this->conversation->id,
         ]))
-        ->put(route('workspace.inbox.conversations.visitor-locale.update', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->put(route('workspace.inbox.conversations.visitor-locale.update', ['conversation' => $this->conversation->id,
         ]), [
             'visitor_locale' => 'en',
         ])
-        ->assertRedirect(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->assertRedirect(route('workspace.inbox.show', ['conversation' => $this->conversation->id,
         ]));
 
     expect($this->conversation->fresh()->visitor_locale)->toBe('en');
 });
 
-test('不能更新其他工作区的会话语言', function (): void {
-    [$otherWorkspace] = createWorkspaceWithOwner();
-    $otherConversation = Conversation::factory()->for($otherWorkspace)->create();
+test('单租户后台可以更新任意会话访客语言', function (): void {
+    $otherConversation = Conversation::factory()->create();
 
-    expect(fn () => UpdateConversationVisitorLocaleAction::run(
+    $conversation = UpdateConversationVisitorLocaleAction::run(
         $this->workspace,
         $otherConversation->id,
         ReceptionLanguage::English,
-    ))->toThrow(NotFoundHttpException::class);
+    );
+
+    expect($conversation->visitor_locale)->toBe('en');
 });
 
 test('访客语言必须在接待语言选项内', function (): void {

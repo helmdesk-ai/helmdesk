@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->workspace = Workspace::factory()->create();
-    $this->channel = Channel::factory()->for($this->workspace)->create([
+    $this->channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'existing-secret-1234567890abcdef',
         ]),

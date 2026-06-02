@@ -29,11 +29,9 @@ class AttachConversationTagAction
     public function handle(Workspace $workspace, string $conversationId, FormAttachConversationTagData $data, ?User $actor = null): void
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($conversationId);
 
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->with('tagGroup')
             ->findOrFail($data->tag_id);
 
@@ -66,7 +64,7 @@ class AttachConversationTagAction
     /**
      * 接收会话标签附加的 XHR 请求并返回 JSON。
      */
-    public function asController(Request $request, string $slug, string $conversation): JsonResponse
+    public function asController(Request $request, string $conversation): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormAttachConversationTagData::from($request);

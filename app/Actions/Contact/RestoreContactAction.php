@@ -25,7 +25,6 @@ class RestoreContactAction
     public function handle(Workspace $workspace, string $contactId, ?User $actor = null): Contact
     {
         $contact = Contact::withTrashed()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         if (! $contact->trashed()) {
@@ -40,7 +39,6 @@ class RestoreContactAction
         $conflicts = [];
         foreach ($trashedIdentities as $identity) {
             $activeConflict = ContactIdentity::query()
-                ->where('workspace_id', $identity->workspace_id)
                 ->where('type', $identity->type)
                 ->where('namespace', $identity->namespace)
                 ->where('value', $identity->value)
@@ -78,7 +76,7 @@ class RestoreContactAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

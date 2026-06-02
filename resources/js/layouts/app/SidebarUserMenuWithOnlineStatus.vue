@@ -14,7 +14,6 @@ import {
 import { SidebarMenuButton } from '@/components/ui/sidebar';
 import { useI18n } from '@/composables/useI18n';
 import { getInitials } from '@/composables/useInitials';
-import { useCurrentWorkspace } from '@/composables/useWorkspace';
 import workspace from '@/routes/workspace';
 import type { AppPageProps } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
@@ -39,12 +38,9 @@ const showAvatar = computed(
 );
 
 const workspaceUserContext = computed(() => page.props.workspaceUserContext);
-const currentWorkspace = useCurrentWorkspace();
-const workspaceSlug = computed(() => currentWorkspace.value?.slug ?? null);
 
 const hasWorkspaceOnlineStatus = computed(
-  () =>
-    !!workspaceUserContext.value?.user_online_status && !!workspaceSlug.value,
+  () => !!workspaceUserContext.value?.user_online_status,
 );
 const isOnline = computed(
   () => Number(workspaceUserContext.value?.user_online_status?.value) === 1,
@@ -64,13 +60,9 @@ const dropdownSide = computed(() => {
 });
 
 const updateOnlineStatus = (status: number) => {
-  if (!workspaceSlug.value) {
-    return;
-  }
-
   updatingOnlineStatus.value = true;
   router.put(
-    workspace.onlineStatus.update.url(workspaceSlug.value),
+    workspace.onlineStatus.update.url(),
     { online_status: Number(status) },
     {
       preserveScroll: true,

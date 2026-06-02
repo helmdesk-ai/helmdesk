@@ -50,7 +50,6 @@ class ReopenConversationAction
             ]);
 
             ConversationEvent::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'actor_user_id' => $actor->id,
                 'type' => ConversationEventType::StatusChanged,
@@ -85,7 +84,6 @@ class ReopenConversationAction
         }
 
         return Conversation::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('contact_id', $conversation->contact_id)
             ->where('channel_id', $conversation->channel_id)
             ->where('status', ConversationStatus::Open)

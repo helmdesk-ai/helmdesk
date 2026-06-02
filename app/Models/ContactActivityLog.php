@@ -10,7 +10,6 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property Carbon|null $created_at
- * @property string $workspace_id
  * @property string $contact_id
  * @property string|null $related_contact_id
  * @property string|null $actor_user_id

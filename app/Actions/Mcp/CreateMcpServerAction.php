@@ -45,7 +45,7 @@ class CreateMcpServerAction
     /**
      * 路由入口：校验权限后创建并 302 回列表页。
      */
-    public function asController(Request $request, string $slug): RedirectResponse
+    public function asController(Request $request): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

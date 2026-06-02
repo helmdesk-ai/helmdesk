@@ -29,6 +29,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type {
   FormSendMailSettingsTestEmailData,
   FormUpdateMailSettingData,
@@ -190,7 +191,7 @@ const handleTestMailDialogOpen = (open: boolean) => {
   <SystemAppLayout>
     <Head :title="t('邮箱服务器')" />
 
-    <div class="px-4 py-6 sm:px-6">
+    <SystemSettingsLayout>
       <div class="mx-auto w-full max-w-none space-y-12">
         <div class="space-y-6">
           <HeadingSmall
@@ -756,7 +757,7 @@ const handleTestMailDialogOpen = (open: boolean) => {
           </form>
         </div>
       </div>
-    </div>
+    </SystemSettingsLayout>
 
     <Dialog :open="testMailDialogOpen" @update:open="handleTestMailDialogOpen">
       <DialogContent class="sm:max-w-md">

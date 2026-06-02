@@ -21,7 +21,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   EnumOptionData,
   KnowledgeRecallTestResultData,
@@ -42,7 +41,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { toast } = useToast();
-const currentWorkspace = useRequiredWorkspace();
 
 const defaultMode: KnowledgeSearchMode = props.modeOptions.some(
   (option) => option.value === 'semantic',
@@ -101,7 +99,6 @@ function runSearch(): void {
 
   http.post(
     KnowledgeBase.RunKnowledgeRecallTestAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: props.knowledgeBaseId,
     }),
     {

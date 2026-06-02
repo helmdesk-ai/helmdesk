@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->ulid('knowledge_base_id');
             $table->ulid('group_id');
             $table->ulid('created_by_user_id')->nullable();
@@ -27,7 +26,7 @@ return new class extends Migration
 
             $table->index(['knowledge_base_id', 'group_id'], 'idx_kb_qa_entry_kb_group');
             $table->index(['knowledge_base_id', 'status'], 'idx_kb_qa_entry_kb_status');
-            $table->index(['workspace_id', 'created_at'], 'idx_kb_qa_entry_workspace_created_at');
+            $table->index('created_at', 'idx_kb_qa_entry_created_at');
             $table->index(['knowledge_base_id', 'question'], 'idx_kb_qa_entry_kb_question');
         });
     }

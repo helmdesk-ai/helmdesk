@@ -2,9 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Attachment;
 use App\Models\AttachmentUpload;
-use App\Models\User;
 use App\Services\Storage\AttachmentAccessContext;
 
 /**
@@ -13,7 +11,7 @@ use App\Services\Storage\AttachmentAccessContext;
 class AttachmentAccessPolicy
 {
     /**
-     * 已认证用户在自己的工作区里、或访客 token 与上传记录绑定时，允许继续操作上传。
+     * 已认证用户是上传创建者、或访客 token 与上传记录绑定时，允许继续操作上传。
      */
     public function canControlUpload(AttachmentAccessContext $context, AttachmentUpload $upload): bool
     {
@@ -25,8 +23,7 @@ class AttachmentAccessPolicy
                     continue;
                 }
 
-                return $upload->attachment->workspace_id === null
-                    || $this->userCanAccess($user, $upload->attachment);
+                return true;
             }
         }
 
@@ -41,23 +38,5 @@ class AttachmentAccessPolicy
         }
 
         return false;
-    }
-
-    /**
-     * 判断用户是否可以访问附件所属的工作区。
-     */
-    private function userCanAccess(User $user, Attachment $attachment): bool
-    {
-        if ($user->is_super_admin) {
-            return true;
-        }
-
-        if ($attachment->workspace_id === null) {
-            return false;
-        }
-
-        return $user->workspaces()
-            ->where('workspaces.id', $attachment->workspace_id)
-            ->exists();
     }
 }

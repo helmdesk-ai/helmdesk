@@ -29,11 +29,9 @@ class DeleteContactIdentityAction
         ?User $actor = null,
     ): void {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $identity = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->findOrFail($identityId);
 
@@ -61,7 +59,6 @@ class DeleteContactIdentityAction
 
     public function asController(
         Request $request,
-        string $slug,
         string $contactId,
         string $identityId,
     ): Response {

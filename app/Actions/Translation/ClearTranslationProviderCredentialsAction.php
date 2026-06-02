@@ -35,7 +35,7 @@ class ClearTranslationProviderCredentialsAction
     /**
      * 鉴权后清空。
      */
-    public function asController(Request $request, string $slug, string $provider): RedirectResponse
+    public function asController(Request $request, string $provider): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

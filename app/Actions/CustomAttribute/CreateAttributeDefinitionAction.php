@@ -31,7 +31,6 @@ class CreateAttributeDefinitionAction
             ->max('display_order') ?? -1;
 
         return AttributeDefinition::query()->create([
-            'workspace_id' => $workspace->id,
             'key' => $data->key,
             'name' => $data->name,
             'description' => $data->description,

@@ -1,5 +1,5 @@
 <!--
-  文件说明：工作区数据设置页面，承接自定义属性的列表和配置表单。
+  文件说明：系统数据设置页面，承接自定义属性的列表和配置表单。
 -->
 <script setup lang="ts">
 import ConfirmDeleteDialog from '@/components/common/ConfirmDeleteDialog.vue';
@@ -28,9 +28,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import WorkspaceSettingsLayout from '@/layouts/WorkspaceSettingsLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import workspace from '@/routes/workspace';
 import type {
   FormCreateAttributeDefinitionData,
@@ -51,7 +50,6 @@ import {
 
 const { t } = useI18n();
 const props = defineProps<ShowListAttributeDefinitionPagePropsData>();
-const currentWorkspace = useRequiredWorkspace();
 
 const SELECT_TYPES = ['single_select', 'multi_select'];
 const FILTERABLE_TYPES = ['single_select', 'boolean', 'date', 'number'];
@@ -201,16 +199,13 @@ const openCreate = () => {
 };
 
 const submitCreate = () => {
-  createForm.post(
-    workspace.manage.attributes.store.url(currentWorkspace.value.slug),
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        createOpen.value = false;
-        createForm.reset();
-      },
+  createForm.post(workspace.manage.attributes.store.url(), {
+    preserveScroll: true,
+    onSuccess: () => {
+      createOpen.value = false;
+      createForm.reset();
     },
-  );
+  });
 };
 
 const openEdit = (def: ListAttributeDefinitionItemData) => {
@@ -240,7 +235,6 @@ const submitEdit = () => {
 
   editForm.put(
     workspace.manage.attributes.update.url({
-      slug: currentWorkspace.value.slug,
       id: editingDef.value.id,
     }),
     {
@@ -271,7 +265,6 @@ const submitArchive = () => {
 
   archiveForm.put(
     workspace.manage.attributes.archive.url({
-      slug: currentWorkspace.value.slug,
       id: archiveTarget.value.id,
     }),
     {
@@ -305,12 +298,9 @@ const moveDefinition = (definitionId: string, direction: 'up' | 'down') => {
   reorderForm.ordered_ids = orderedDefinitions.map(
     (definition) => definition.id,
   );
-  reorderForm.put(
-    workspace.manage.attributes.reorder.url(currentWorkspace.value.slug),
-    {
-      preserveScroll: true,
-    },
-  );
+  reorderForm.put(workspace.manage.attributes.reorder.url(), {
+    preserveScroll: true,
+  });
 };
 </script>
 
@@ -318,344 +308,344 @@ const moveDefinition = (definitionId: string, direction: 'up' | 'down') => {
   <AppLayout>
     <Head :title="t('自定义属性')" />
 
-    <WorkspaceSettingsLayout>
-      <div class="space-y-6">
-        <div class="flex items-start justify-between gap-4">
-          <HeadingSmall
-            :title="t('自定义属性')"
-            :description="t('为联系人和会话扩展自定义字段，记录业务所需信息。')"
-          />
+    <SystemSettingsLayout>
+      <section class="mx-auto w-full max-w-none space-y-12">
+        <div class="space-y-6">
+          <div class="flex items-start justify-between gap-4">
+            <HeadingSmall
+              :title="t('自定义属性')"
+              :description="
+                t('为联系人和会话扩展自定义字段，记录业务所需信息。')
+              "
+            />
 
-          <div class="flex items-center gap-2">
-            <Dialog v-model:open="createOpen">
-              <DialogTrigger as-child>
-                <Button @click="openCreate">
-                  {{ t('新增属性') }}
-                </Button>
-              </DialogTrigger>
-              <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-                <DialogHeader class="space-y-3">
-                  <DialogTitle>{{ t('新增属性') }}</DialogTitle>
-                </DialogHeader>
+            <div class="flex items-center gap-2">
+              <Dialog v-model:open="createOpen">
+                <DialogTrigger as-child>
+                  <Button @click="openCreate">
+                    {{ t('新增属性') }}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+                  <DialogHeader class="space-y-3">
+                    <DialogTitle>{{ t('新增属性') }}</DialogTitle>
+                  </DialogHeader>
 
-                <form class="space-y-4" @submit.prevent="submitCreate">
-                  <div class="space-y-2">
-                    <Label for="create-name">{{ t('属性名称') }}</Label>
-                    <Input
-                      id="create-name"
-                      v-model="createForm.name"
-                      :disabled="createForm.processing"
-                    />
-                    <InputError :message="createForm.errors.name" />
-                  </div>
+                  <form class="space-y-4" @submit.prevent="submitCreate">
+                    <div class="space-y-2">
+                      <Label for="create-name">{{ t('属性名称') }}</Label>
+                      <Input
+                        id="create-name"
+                        v-model="createForm.name"
+                        :disabled="createForm.processing"
+                      />
+                      <InputError :message="createForm.errors.name" />
+                    </div>
 
-                  <div class="space-y-2">
-                    <Label for="create-key">{{ t('属性标识') }}</Label>
-                    <Input
-                      id="create-key"
-                      v-model="createForm.key"
-                      :disabled="createForm.processing"
-                      class="font-mono"
-                      @input="keyManuallyEdited = true"
-                    />
-                    <p class="text-xs text-muted-foreground">
-                      {{ t('属性标识创建后不可修改') }}
-                    </p>
-                    <InputError :message="createForm.errors.key" />
-                  </div>
+                    <div class="space-y-2">
+                      <Label for="create-key">{{ t('属性标识') }}</Label>
+                      <Input
+                        id="create-key"
+                        v-model="createForm.key"
+                        :disabled="createForm.processing"
+                        class="font-mono"
+                        @input="keyManuallyEdited = true"
+                      />
+                      <p class="text-xs text-muted-foreground">
+                        {{ t('属性标识创建后不可修改') }}
+                      </p>
+                      <InputError :message="createForm.errors.key" />
+                    </div>
 
-                  <div class="space-y-2">
-                    <Label for="create-type">{{ t('属性类型') }}</Label>
-                    <Select
-                      v-model="createForm.type"
-                      :disabled="createForm.processing"
-                    >
-                      <SelectTrigger id="create-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem
-                          v-for="opt in props.type_options"
-                          :key="String(opt.value)"
-                          :value="String(opt.value)"
-                        >
-                          {{ opt.label }}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <InputError :message="createForm.errors.type" />
-                  </div>
-
-                  <div class="space-y-2">
-                    <Label for="create-desc">{{ t('属性描述') }}</Label>
-                    <Input
-                      id="create-desc"
-                      v-model="createDescription"
-                      :disabled="createForm.processing"
-                    />
-                    <InputError :message="createForm.errors.description" />
-                  </div>
-
-                  <div v-if="isCreateSelectType">
-                    <OptionListEditor
-                      v-model="createOptions"
-                      :disabled="createForm.processing"
-                      :errors="createForm.errors.config"
-                    />
-                  </div>
-
-                  <div
-                    v-if="createTypeSupportsFiltering"
-                    class="flex items-center gap-2"
-                  >
-                    <Checkbox
-                      id="create-filterable"
-                      v-model="createForm.is_filterable"
-                      :disabled="createForm.processing"
-                    />
-                    <Label for="create-filterable" class="cursor-pointer">
-                      {{ t('可筛选') }}
-                    </Label>
-                  </div>
-                  <InputError :message="createForm.errors.is_filterable" />
-
-                  <DialogFooter class="gap-2">
-                    <DialogClose as-child>
-                      <Button
-                        type="button"
-                        variant="secondary"
+                    <div class="space-y-2">
+                      <Label for="create-type">{{ t('属性类型') }}</Label>
+                      <Select
+                        v-model="createForm.type"
                         :disabled="createForm.processing"
                       >
-                        {{ t('取消') }}
-                      </Button>
-                    </DialogClose>
-                    <Button type="submit" :disabled="createForm.processing">
-                      {{ t('保存') }}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                        <SelectTrigger id="create-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="opt in props.type_options"
+                            :key="String(opt.value)"
+                            :value="String(opt.value)"
+                          >
+                            {{ opt.label }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <InputError :message="createForm.errors.type" />
+                    </div>
 
-            <Button variant="outline" as-child>
-              <Link
-                :href="
-                  workspace.manage.attributes.trash.url(currentWorkspace.slug)
-                "
-              >
-                {{ t('回收站') }}
-              </Link>
-            </Button>
+                    <div class="space-y-2">
+                      <Label for="create-desc">{{ t('属性描述') }}</Label>
+                      <Input
+                        id="create-desc"
+                        v-model="createDescription"
+                        :disabled="createForm.processing"
+                      />
+                      <InputError :message="createForm.errors.description" />
+                    </div>
+
+                    <div v-if="isCreateSelectType">
+                      <OptionListEditor
+                        v-model="createOptions"
+                        :disabled="createForm.processing"
+                        :errors="createForm.errors.config"
+                      />
+                    </div>
+
+                    <div
+                      v-if="createTypeSupportsFiltering"
+                      class="flex items-center gap-2"
+                    >
+                      <Checkbox
+                        id="create-filterable"
+                        v-model="createForm.is_filterable"
+                        :disabled="createForm.processing"
+                      />
+                      <Label for="create-filterable" class="cursor-pointer">
+                        {{ t('可筛选') }}
+                      </Label>
+                    </div>
+                    <InputError :message="createForm.errors.is_filterable" />
+
+                    <DialogFooter class="gap-2">
+                      <DialogClose as-child>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          :disabled="createForm.processing"
+                        >
+                          {{ t('取消') }}
+                        </Button>
+                      </DialogClose>
+                      <Button type="submit" :disabled="createForm.processing">
+                        {{ t('保存') }}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="outline" as-child>
+                <Link :href="workspace.manage.attributes.trash.url()">
+                  {{ t('回收站') }}
+                </Link>
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div class="rounded-lg border">
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="border-b bg-muted/30 text-muted-foreground">
-                <tr class="text-left">
-                  <th class="px-4 py-3">{{ t('属性名称') }}</th>
-                  <th class="px-4 py-3">{{ t('属性标识') }}</th>
-                  <th class="px-4 py-3">{{ t('属性类型') }}</th>
-                  <th class="px-4 py-3">{{ t('可筛选') }}</th>
-                  <th class="px-4 py-3">{{ t('使用数') }}</th>
-                  <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(def, index) in props.definition_list"
-                  :key="def.id"
-                  class="border-t bg-background"
-                >
-                  <td class="px-4 py-3 font-medium">
-                    {{ def.name }}
-                  </td>
-                  <td class="px-4 py-3">
-                    <code class="rounded bg-muted px-1.5 py-0.5 text-xs">
-                      {{ def.key }}
-                    </code>
-                  </td>
-                  <td class="px-4 py-3">
-                    {{ def.type_label }}
-                  </td>
-                  <td class="px-4 py-3">
-                    <Badge v-if="def.is_filterable" variant="secondary">
-                      {{ t('可筛选') }}
-                    </Badge>
-                    <span v-else class="text-muted-foreground">-</span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="text-muted-foreground">
-                      {{ def.usage_count }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex justify-end gap-2">
-                      <div class="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="h-8 w-8"
-                          :disabled="reorderForm.processing || index === 0"
-                          @click="moveDefinition(def.id, 'up')"
-                        >
-                          <ArrowUp class="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="h-8 w-8"
-                          :disabled="
-                            reorderForm.processing ||
-                            index === props.definition_list.length - 1
-                          "
-                          @click="moveDefinition(def.id, 'down')"
-                        >
-                          <ArrowDown class="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        :disabled="
-                          editForm.processing ||
-                          archiveForm.processing ||
-                          reorderForm.processing
-                        "
-                        @click="openEdit(def)"
-                      >
-                        {{ t('编辑') }}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger as-child>
+          <div class="rounded-lg border">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b bg-muted/30 text-muted-foreground">
+                  <tr class="text-left">
+                    <th class="px-4 py-3">{{ t('属性名称') }}</th>
+                    <th class="px-4 py-3">{{ t('属性标识') }}</th>
+                    <th class="px-4 py-3">{{ t('属性类型') }}</th>
+                    <th class="px-4 py-3">{{ t('可筛选') }}</th>
+                    <th class="px-4 py-3">{{ t('使用数') }}</th>
+                    <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(def, index) in props.definition_list"
+                    :key="def.id"
+                    class="border-t bg-background"
+                  >
+                    <td class="px-4 py-3 font-medium">
+                      {{ def.name }}
+                    </td>
+                    <td class="px-4 py-3">
+                      <code class="rounded bg-muted px-1.5 py-0.5 text-xs">
+                        {{ def.key }}
+                      </code>
+                    </td>
+                    <td class="px-4 py-3">
+                      {{ def.type_label }}
+                    </td>
+                    <td class="px-4 py-3">
+                      <Badge v-if="def.is_filterable" variant="secondary">
+                        {{ t('可筛选') }}
+                      </Badge>
+                      <span v-else class="text-muted-foreground">-</span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="text-muted-foreground">
+                        {{ def.usage_count }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex justify-end gap-2">
+                        <div class="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             class="h-8 w-8"
-                            :aria-label="t('更多操作')"
+                            :disabled="reorderForm.processing || index === 0"
+                            @click="moveDefinition(def.id, 'up')"
                           >
-                            <MoreHorizontal class="h-4 w-4" />
+                            <ArrowUp class="h-4 w-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-36">
-                          <DropdownMenuItem
-                            class="text-destructive focus:text-destructive"
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            class="h-8 w-8"
                             :disabled="
-                              archiveForm.processing || reorderForm.processing
+                              reorderForm.processing ||
+                              index === props.definition_list.length - 1
                             "
-                            @select="openArchiveDialog(def)"
+                            @click="moveDefinition(def.id, 'down')"
                           >
-                            {{ t('删除') }}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </td>
-                </tr>
+                            <ArrowDown class="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          :disabled="
+                            editForm.processing ||
+                            archiveForm.processing ||
+                            reorderForm.processing
+                          "
+                          @click="openEdit(def)"
+                        >
+                          {{ t('编辑') }}
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger as-child>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              class="h-8 w-8"
+                              :aria-label="t('更多操作')"
+                            >
+                              <MoreHorizontal class="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" class="w-36">
+                            <DropdownMenuItem
+                              class="text-destructive focus:text-destructive"
+                              :disabled="
+                                archiveForm.processing || reorderForm.processing
+                              "
+                              @select="openArchiveDialog(def)"
+                            >
+                              {{ t('删除') }}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
 
-                <tr v-if="props.definition_list.length === 0">
-                  <td
-                    class="px-4 py-8 text-center text-muted-foreground"
-                    colspan="6"
-                  >
-                    {{ t('暂无自定义属性') }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  <tr v-if="props.definition_list.length === 0">
+                    <td
+                      class="px-4 py-8 text-center text-muted-foreground"
+                      colspan="6"
+                    >
+                      {{ t('暂无自定义属性') }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <Dialog v-model:open="editOpen">
-          <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader class="space-y-3">
-              <DialogTitle>{{ t('编辑属性') }}</DialogTitle>
-            </DialogHeader>
+          <Dialog v-model:open="editOpen">
+            <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+              <DialogHeader class="space-y-3">
+                <DialogTitle>{{ t('编辑属性') }}</DialogTitle>
+              </DialogHeader>
 
-            <form class="space-y-4" @submit.prevent="submitEdit">
-              <div class="space-y-2">
-                <Label>{{ t('属性标识') }}</Label>
-                <Input
-                  :model-value="editingDef?.key"
-                  disabled
-                  class="font-mono"
-                />
-                <p class="text-xs text-muted-foreground">
-                  {{ t('属性标识创建后不可修改') }}
-                </p>
-              </div>
+              <form class="space-y-4" @submit.prevent="submitEdit">
+                <div class="space-y-2">
+                  <Label>{{ t('属性标识') }}</Label>
+                  <Input
+                    :model-value="editingDef?.key"
+                    disabled
+                    class="font-mono"
+                  />
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('属性标识创建后不可修改') }}
+                  </p>
+                </div>
 
-              <div class="space-y-2">
-                <Label>{{ t('属性类型') }}</Label>
-                <Input :model-value="editingDef?.type_label" disabled />
-                <p class="text-xs text-muted-foreground">
-                  {{ t('属性类型创建后不可修改') }}
-                </p>
-              </div>
+                <div class="space-y-2">
+                  <Label>{{ t('属性类型') }}</Label>
+                  <Input :model-value="editingDef?.type_label" disabled />
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('属性类型创建后不可修改') }}
+                  </p>
+                </div>
 
-              <div class="space-y-2">
-                <Label for="edit-name">{{ t('属性名称') }}</Label>
-                <Input
-                  id="edit-name"
-                  v-model="editForm.name"
-                  :disabled="editForm.processing"
-                />
-                <InputError :message="editForm.errors.name" />
-              </div>
-
-              <div class="space-y-2">
-                <Label for="edit-desc">{{ t('属性描述') }}</Label>
-                <Input
-                  id="edit-desc"
-                  v-model="editDescription"
-                  :disabled="editForm.processing"
-                />
-                <InputError :message="editForm.errors.description" />
-              </div>
-
-              <div v-if="isEditSelectType">
-                <OptionListEditor
-                  v-model="editOptions"
-                  :disabled="editForm.processing"
-                  :errors="editForm.errors.config"
-                />
-              </div>
-
-              <div
-                v-if="editTypeSupportsFiltering"
-                class="flex items-center gap-2"
-              >
-                <Checkbox
-                  id="edit-filterable"
-                  v-model="editForm.is_filterable"
-                  :disabled="editForm.processing"
-                />
-                <Label for="edit-filterable" class="cursor-pointer">
-                  {{ t('可筛选') }}
-                </Label>
-              </div>
-              <InputError :message="editForm.errors.is_filterable" />
-
-              <DialogFooter class="gap-2">
-                <DialogClose as-child>
-                  <Button
-                    type="button"
-                    variant="secondary"
+                <div class="space-y-2">
+                  <Label for="edit-name">{{ t('属性名称') }}</Label>
+                  <Input
+                    id="edit-name"
+                    v-model="editForm.name"
                     :disabled="editForm.processing"
-                  >
-                    {{ t('取消') }}
+                  />
+                  <InputError :message="editForm.errors.name" />
+                </div>
+
+                <div class="space-y-2">
+                  <Label for="edit-desc">{{ t('属性描述') }}</Label>
+                  <Input
+                    id="edit-desc"
+                    v-model="editDescription"
+                    :disabled="editForm.processing"
+                  />
+                  <InputError :message="editForm.errors.description" />
+                </div>
+
+                <div v-if="isEditSelectType">
+                  <OptionListEditor
+                    v-model="editOptions"
+                    :disabled="editForm.processing"
+                    :errors="editForm.errors.config"
+                  />
+                </div>
+
+                <div
+                  v-if="editTypeSupportsFiltering"
+                  class="flex items-center gap-2"
+                >
+                  <Checkbox
+                    id="edit-filterable"
+                    v-model="editForm.is_filterable"
+                    :disabled="editForm.processing"
+                  />
+                  <Label for="edit-filterable" class="cursor-pointer">
+                    {{ t('可筛选') }}
+                  </Label>
+                </div>
+                <InputError :message="editForm.errors.is_filterable" />
+
+                <DialogFooter class="gap-2">
+                  <DialogClose as-child>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      :disabled="editForm.processing"
+                    >
+                      {{ t('取消') }}
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit" :disabled="editForm.processing">
+                    {{ t('保存') }}
                   </Button>
-                </DialogClose>
-                <Button type="submit" :disabled="editForm.processing">
-                  {{ t('保存') }}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </WorkspaceSettingsLayout>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </section>
+    </SystemSettingsLayout>
 
     <ConfirmDeleteDialog
       :open="archiveTarget !== null"

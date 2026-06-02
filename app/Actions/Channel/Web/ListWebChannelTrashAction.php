@@ -42,7 +42,6 @@ class ListWebChannelTrashAction
 
         $paginator = Channel::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->with(['receptionPlan'])
             ->latest('deleted_at')

@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   AiModelOptionData,
   EnumOptionData,
@@ -49,7 +48,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const noEmbeddingModelValue = '__none__';
 const noRerankModelValue = '__none__';
@@ -68,9 +66,7 @@ const rebuildWarningOpen = ref(false);
 const acknowledgedSignature = ref<string | null>(null);
 
 const formDef = computed(() =>
-  KnowledgeBase.UpdateWorkspaceKnowledgeSettingsAction.form({
-    slug: currentWorkspace.value.slug,
-  }),
+  KnowledgeBase.UpdateWorkspaceKnowledgeSettingsAction.form({}),
 );
 
 const submittedEmbeddingModelId = computed(() =>
@@ -223,7 +219,7 @@ function onFormSuccess() {
   <div class="mx-auto w-full max-w-none space-y-6">
     <HeadingSmall
       :title="t('知识库检索配置')"
-      :description="t('当前工作区内所有知识库共用这套检索配置。')"
+      :description="t('系统内所有知识库共用这套检索配置。')"
     />
 
     <Form
@@ -503,11 +499,7 @@ function onFormSuccess() {
           <DialogHeader class="space-y-3">
             <DialogTitle>{{ t('确认更新检索配置') }}</DialogTitle>
             <DialogDescription>
-              {{
-                t(
-                  '保存后会清理当前工作区已有知识库索引，并按新的配置重新构建。',
-                )
-              }}
+              {{ t('保存后会清理系统已有知识库索引，并按新的配置重新构建。') }}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter class="gap-2">

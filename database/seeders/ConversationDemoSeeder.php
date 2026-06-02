@@ -7,7 +7,7 @@ use App\Services\DemoData\ConversationDemoGenerator;
 use Illuminate\Database\Seeder;
 
 /**
- * 本地开发用：向第一个 workspace 造一批会话 demo 数据（含标签 & 自定义属性）。
+ * 本地开发用：向单租户系统造一批会话 demo 数据（含标签 & 自定义属性）。
  *
  *   php artisan db:seed --class=ConversationDemoSeeder
  */
@@ -15,13 +15,7 @@ class ConversationDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $workspace = Workspace::query()->first();
-
-        if (! $workspace) {
-            $this->command?->warn('No workspace found; create one first, then re-run this seeder.');
-
-            return;
-        }
+        $workspace = Workspace::current();
 
         $result = app(ConversationDemoGenerator::class)->generate(
             $workspace,
@@ -29,7 +23,7 @@ class ConversationDemoSeeder extends Seeder
         );
 
         $this->command?->info(
-            "Seeded {$result['conversations']} conversations / {$result['messages']} messages for workspace [{$workspace->slug}]."
+            "Seeded {$result['conversations']} conversations / {$result['messages']} messages."
         );
     }
 }

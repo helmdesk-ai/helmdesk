@@ -27,7 +27,6 @@ class ClaimInboxConversationAction
     public function handle(Workspace $workspace, User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -37,7 +36,7 @@ class ClaimInboxConversationAction
         return $this->claimConversationAction->handle($conversation, $user);
     }
 
-    public function asController(Request $request, string $slug, string $conversationId): RedirectResponse
+    public function asController(Request $request, string $conversationId): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $conversation = $this->handle(
@@ -47,7 +46,6 @@ class ClaimInboxConversationAction
         );
 
         return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
             'view' => InboxView::Mine,
             'conversation_id' => $conversation->id,
         ]);

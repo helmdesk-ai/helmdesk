@@ -40,7 +40,6 @@ class ShowTelegramChannelDetailPageAction
     public function handle(Workspace $workspace, string $channelId): ShowTelegramChannelDetailPagePropsData
     {
         $channel = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->with(['receptionPlan'])
             ->findOrFail($channelId);
@@ -60,7 +59,7 @@ class ShowTelegramChannelDetailPageAction
     /**
      * 返回 Telegram 渠道详情页面。
      */
-    public function asController(Request $request, string $slug, string $channel): Response
+    public function asController(Request $request, string $channel): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

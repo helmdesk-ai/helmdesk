@@ -20,7 +20,6 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $knowledge_base_id
  * @property string $group_id
  * @property string|null $uploaded_by_user_id
@@ -46,12 +45,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $raptor_error
  * @property Carbon|null $raptor_indexed_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $knowledge_bases_count
  * @property int|null $groups_count
  * @property int|null $uploaded_bies_count
  * @property int|null $original_files_count
- * @property-read Workspace $workspace
  * @property-read KnowledgeBase $knowledgeBase
  * @property-read KnowledgeGroup $group
  * @property-read User|null $uploadedBy
@@ -228,14 +225,6 @@ class KnowledgeDocument extends Model
         }
 
         return $anyTouched ? KnowledgeDocumentStatus::Indexing : KnowledgeDocumentStatus::Parsed;
-    }
-
-    /**
-     * 文档归属的工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

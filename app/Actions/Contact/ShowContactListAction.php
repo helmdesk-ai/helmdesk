@@ -86,14 +86,12 @@ class ShowContactListAction
 
         if (filled($search)) {
             $contactIds = Contact::search($search)
-                ->where('workspace_id', $workspace->id)
                 ->keys();
 
             $query->whereIn('id', $contactIds);
         }
 
         $availableTagModels = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->orderBy('name')
             ->get();
 
@@ -135,7 +133,7 @@ class ShowContactListAction
         );
     }
 
-    public function asController(Request $request, string $slug, string $type): Response
+    public function asController(Request $request, string $type): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

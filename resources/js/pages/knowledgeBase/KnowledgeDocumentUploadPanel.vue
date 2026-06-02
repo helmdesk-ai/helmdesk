@@ -8,7 +8,6 @@ import KnowledgeBase from '@/actions/App/Actions/KnowledgeBase';
 import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { formatFileSize } from '@/lib/format';
 import { router } from '@inertiajs/vue3';
 import axios, { AxiosError } from 'axios';
@@ -45,7 +44,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = `${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`;
@@ -270,7 +268,6 @@ async function uploadOne(item: UploadItem): Promise<boolean> {
   try {
     await axios.post(
       KnowledgeBase.Document.UploadKnowledgeDocumentAction.url({
-        slug: currentWorkspace.value.slug,
         knowledgeBase: props.knowledgeBaseId,
       }),
       formData,

@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { getAvatarInitial } from '@/lib/initials';
 import workspace from '@/routes/workspace';
 import type {
@@ -33,7 +32,6 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { formatDateTime } = useDateTime();
 const { formatVisitorName } = useVisitorDisplay();
-const currentWorkspace = useRequiredWorkspace();
 
 const loading = ref(false);
 const loadingMore = ref(false);
@@ -116,7 +114,6 @@ const fetchDetail = async (append = false) => {
     const response = await fetch(
       workspace.conversations.show.url(
         {
-          slug: currentWorkspace.value.slug,
           id: requestedConversationId,
         },
         {

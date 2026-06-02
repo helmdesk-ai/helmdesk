@@ -41,8 +41,7 @@ class QueueInboxConversationMessageTranslationsAction
     public function handle(Workspace $workspace, User $user, string $conversationId, array $messageIds): int
     {
         $conversation = Conversation::query()
-            ->with(['channel', 'workspace'])
-            ->where('workspace_id', $workspace->id)
+            ->with(['channel'])
             ->find($conversationId);
 
         if ($conversation === null || $conversation->channel === null) {
@@ -68,7 +67,7 @@ class QueueInboxConversationMessageTranslationsAction
     /**
      * 接收当前可见消息补翻请求并返回排队数量。
      */
-    public function asController(Request $request, string $slug, string $conversationId): JsonResponse
+    public function asController(Request $request, string $conversationId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);

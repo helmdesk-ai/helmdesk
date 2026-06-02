@@ -14,12 +14,11 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 
 beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
-    $this->contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $this->contact = Contact::factory()->create([]);
     $this->conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $this->contact->id,
     ]);
-    $this->group = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
+    $this->group = TagGroup::factory()->conversation()->create([]);
 });
 
 function makeConversationTag(string $name): Tag

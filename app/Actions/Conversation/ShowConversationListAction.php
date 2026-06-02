@@ -121,7 +121,6 @@ class ShowConversationListAction
         }
 
         $availableContactTagModels = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->orderBy('name')
             ->get();
 
@@ -175,7 +174,6 @@ class ShowConversationListAction
 
         for ($page = 1; $page <= $maxPages; $page++) {
             $paginator = $this->messageSearch->query($search)
-                ->where('workspace_id', $workspace->id)
                 ->paginate($perPage, 'page', $page);
             $messagesById = ConversationMessage::query()
                 ->with(['conversation.channel', 'conversation.contact'])
@@ -215,7 +213,7 @@ class ShowConversationListAction
     /**
      * 返回工作区会话列表页面。
      */
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

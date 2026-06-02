@@ -45,11 +45,6 @@ class GeneralSettings extends Settings
     public ?string $version;
 
     /**
-     * 是否允许访客在登录页自主注册账号。
-     */
-    public bool $allow_registration = true;
-
-    /**
      * 返回系统基础设置所属的 settings 分组。
      */
     public static function group(): string

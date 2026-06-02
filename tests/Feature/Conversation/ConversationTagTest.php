@@ -14,22 +14,19 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 
 beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
-    $this->contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $this->contact = Contact::factory()->create([]);
     $this->conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $this->contact->id,
     ]);
-    $this->conversationGroup = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
-    $this->contactGroup = TagGroup::factory()->contact()->create(['workspace_id' => $this->workspace->id]);
+    $this->conversationGroup = TagGroup::factory()->conversation()->create([]);
+    $this->contactGroup = TagGroup::factory()->contact()->create([]);
 });
 
 test('人工可以给会话附加会话维度标签', function () {
     $tag = Tag::factory()->forGroup($this->conversationGroup)->create(['name' => '退款']);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.inbox.conversations.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->postJson(route('workspace.inbox.conversations.tags.attach', ['conversation' => $this->conversation->id,
         ]), ['tag_id' => $tag->id])
         ->assertOk();
 
@@ -48,9 +45,7 @@ test('不能给会话打联系人维度标签', function () {
     $tag = Tag::factory()->forGroup($this->contactGroup)->create(['name' => 'VIP']);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.inbox.conversations.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->postJson(route('workspace.inbox.conversations.tags.attach', ['conversation' => $this->conversation->id,
         ]), ['tag_id' => $tag->id])
         ->assertStatus(422);
 
@@ -70,9 +65,7 @@ test('人工移除会话标签写入抑制墓碑而非物理删除', function ()
     ]);
 
     $this->actingAs($this->user)
-        ->deleteJson(route('workspace.inbox.conversations.tags.detach', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->deleteJson(route('workspace.inbox.conversations.tags.detach', ['conversation' => $this->conversation->id,
             'tagId' => $tag->id,
         ]))
         ->assertOk();
@@ -103,9 +96,7 @@ test('重新人工附加被抑制的标签会复活为人工来源', function ()
     ]);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.inbox.conversations.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'conversation' => $this->conversation->id,
+        ->postJson(route('workspace.inbox.conversations.tags.attach', ['conversation' => $this->conversation->id,
         ]), ['tag_id' => $tag->id])
         ->assertOk();
 
@@ -123,7 +114,6 @@ test('联系人咨询概况按标签聚合计数且忽略被抑制标签', funct
     $tech = Tag::factory()->forGroup($this->conversationGroup)->create(['name' => '技术支持']);
 
     $secondConversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $this->contact->id,
     ]);
 

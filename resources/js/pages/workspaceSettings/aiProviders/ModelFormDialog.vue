@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { AiModelData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
@@ -47,7 +46,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const workspace = useRequiredWorkspace();
 
 const defaultModelFormState = (): ModelFormState => ({
   model_id: '',
@@ -113,7 +111,6 @@ const handleSave = () => {
     }))
     .post(
       AiProvider.CreateAiModelAction.url({
-        slug: workspace.value.slug,
         provider: props.providerSlug,
       }),
       {

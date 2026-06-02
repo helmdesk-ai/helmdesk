@@ -56,12 +56,12 @@ class CreateAttachmentUploadAction
     ): AttachmentUploadIntentData {
         $mimeType = $data->normalizedMimeType();
         $rule = $this->uploadValidator->handle($data->purpose, $mimeType, $data->byte_size);
-        [$workspaceId, $userId, $sessionToken] = $this->resolveUploadActor($context, $data->context, $data->purpose, $preferVisitorSession);
+        [, $userId, $sessionToken] = $this->resolveUploadActor($context, $data->context, $data->purpose, $preferVisitorSession);
         $profile = $this->profileResolver->resolveForNewUpload();
         $driver = $profile->driver;
 
         $attachmentId = (string) Str::ulid();
-        $objectKey = $this->pathGenerator->generate($attachmentId, $data->purpose, $workspaceId, $data->file_name, $mimeType);
+        $objectKey = $this->pathGenerator->generate($attachmentId, $data->purpose, $data->file_name, $mimeType);
         $mode = $this->initialMode($driver, $profile->metadata ?? [], $rule['multipart_threshold'], $data->byte_size);
         $expiresAt = now()->addHour();
 
@@ -74,7 +74,6 @@ class CreateAttachmentUploadAction
             $data,
             $mimeType,
             $rule,
-            $workspaceId,
             $userId,
             $sessionToken,
             $mode,
@@ -84,7 +83,6 @@ class CreateAttachmentUploadAction
         ): AttachmentUpload {
             Attachment::query()->create([
                 'id' => $attachmentId,
-                'workspace_id' => $workspaceId,
                 'uploaded_by_user_id' => $userId,
                 'storage_profile_id' => $profile->id,
                 'disk' => $driver,
@@ -103,7 +101,6 @@ class CreateAttachmentUploadAction
             ]);
 
             return AttachmentUpload::query()->create([
-                'workspace_id' => $workspaceId,
                 'attachment_id' => $attachmentId,
                 'storage_profile_id' => $profile->id,
                 'mode' => $mode,
@@ -164,12 +161,7 @@ class CreateAttachmentUploadAction
 
         $user = $accessContext->firstUser();
         if ($user !== null) {
-            $workspaceId = is_string($context['workspace_id'] ?? null) ? $context['workspace_id'] : null;
-            if ($workspaceId && ! $user->is_super_admin && ! $user->workspaces()->where('workspaces.id', $workspaceId)->exists()) {
-                throw ValidationException::withMessages(['workspace_id' => __('auth.unauthorized')]);
-            }
-
-            return [$workspaceId, (string) $user->id, null];
+            return [null, (string) $user->id, null];
         }
 
         return $this->resolveVisitorUploadActor($accessContext, $context, $purpose);
@@ -200,7 +192,7 @@ class CreateAttachmentUploadAction
             throw ValidationException::withMessages(['purpose' => __('auth.unauthorized')]);
         }
 
-        return [(string) $channel->workspace_id, null, $token];
+        return [null, null, $token];
     }
 
     /**

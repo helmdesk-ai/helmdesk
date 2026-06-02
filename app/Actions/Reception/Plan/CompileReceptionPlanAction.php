@@ -197,7 +197,7 @@ class CompileReceptionPlanAction
     }
 
     /**
-     * 按方案级知识库 ID 列表加载 KB 快照，验证所有 ID 仍在工作区内可见。
+     * 按方案级知识库 ID 列表加载 KB 快照，验证所有 ID 仍可见。
      * description 透传给 Go 端，让 knowledge_search 工具描述里能体现每个 KB 的用途。
      *
      * @param  list<string>  $knowledgeBaseIds
@@ -212,7 +212,6 @@ class CompileReceptionPlanAction
 
         $snapshots = [];
         KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->whereIn('id', $ids)
             ->get(['id', 'name', 'description', 'category'])
             ->each(function (KnowledgeBase $kb) use (&$snapshots): void {
@@ -234,7 +233,7 @@ class CompileReceptionPlanAction
     }
 
     /**
-     * 按方案级 MCP 工具 ID 列表加载工具快照，验证所有 ID 仍在工作区内可见。
+     * 按方案级 MCP 工具 ID 列表加载工具快照，验证所有 ID 仍可见。
      *
      * @param  list<string>  $mcpToolIds
      * @return list<array{id: string, name: string, description: string|null, server_id: string, server_slug: string, server_name: string}>
@@ -248,9 +247,8 @@ class CompileReceptionPlanAction
 
         $snapshots = [];
         McpTool::query()
-            ->with('server:id,workspace_id,slug,name')
+            ->with('server:id,slug,name')
             ->whereIn('id', $ids)
-            ->whereHas('server', fn ($q) => $q->where('workspace_id', $workspace->id))
             ->get(['id', 'mcp_server_id', 'name', 'description'])
             ->each(function (McpTool $tool) use (&$snapshots): void {
                 $snapshots[(string) $tool->id] = [

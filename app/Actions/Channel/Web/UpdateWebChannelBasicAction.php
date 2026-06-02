@@ -63,7 +63,7 @@ class UpdateWebChannelBasicAction
     /**
      * 接收渠道基础信息表单并返回详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
@@ -73,7 +73,6 @@ class UpdateWebChannelBasicAction
         $this->handle($workspace, $channelModel, FormUpdateWebChannelBasicData::from($request));
 
         return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
             'channel' => $channelModel->id,
         ]));
     }
@@ -87,25 +86,22 @@ class UpdateWebChannelBasicAction
             return;
         }
 
-        AttachUploadedAttachmentsAction::run($channel, $attachmentId, (string) $channel->workspace_id);
+        AttachUploadedAttachmentsAction::run($channel, $attachmentId);
     }
 
     /**
      * 附件只能使用未绑定资源或当前渠道已绑定资源。
      */
-    public static function assertAttachmentAssignable(Channel $channel, AttachmentPurpose $purpose, ?string $attachmentId, ?string $workspaceId = null): void
+    public static function assertAttachmentAssignable(Channel $channel, AttachmentPurpose $purpose, ?string $attachmentId, ?string $scope = null): void
     {
         if (! filled($attachmentId)) {
             return;
         }
 
-        $workspaceId ??= filled($channel->workspace_id) ? (string) $channel->workspace_id : null;
-
         try {
             app(AttachUploadedAttachmentsAction::class)->assertCanAttach(
                 attachable: $channel,
                 attachmentId: $attachmentId,
-                workspaceId: $workspaceId,
                 allowedPurposes: [$purpose],
             );
         } catch (ValidationException) {

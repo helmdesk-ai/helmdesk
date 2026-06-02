@@ -39,7 +39,6 @@ class ListTelegramChannelsAction
         $perPage = max(1, min($perPage, 24));
 
         $paginator = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->with(['receptionPlan'])
             ->latest('created_at')

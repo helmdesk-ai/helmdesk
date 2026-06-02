@@ -37,7 +37,6 @@ class ReplyInboxConversationAction
     public function handle(Workspace $workspace, User $user, string $conversationId, FormReplyInboxConversationData $data): Conversation
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -65,7 +64,7 @@ class ReplyInboxConversationAction
     /**
      * 接收收件箱回复表单并跳回对应会话。
      */
-    public function asController(Request $request, string $slug, string $conversationId): RedirectResponse
+    public function asController(Request $request, string $conversationId): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
@@ -79,7 +78,6 @@ class ReplyInboxConversationAction
         $view = $this->resolveViewFor($conversation, $user);
 
         return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
             'view' => $view,
             'conversation_id' => $conversation->id,
         ]);

@@ -44,7 +44,6 @@ beforeEach(function (): void {
     $this->user = $this->createUserWithWorkspace();
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-agent-openrouter-'.Str::lower((string) Str::ulid()),
         'name' => 'Knowledge Agent OpenRouter',
@@ -104,11 +103,9 @@ beforeEach(function (): void {
 
     // 起两个知识库，验证 Agent 多 KB 入参的端到端行为。
     $this->kbProduct = KnowledgeBase::factory()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'name' => 'Helmdesk 产品文档',
     ]);
     $this->kbPolicy = KnowledgeBase::factory()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'name' => 'Helmdesk 服务条款',
     ]);
 

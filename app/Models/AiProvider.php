@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
@@ -18,7 +17,6 @@ use JsonException;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $brand
  * @property string $slug
  * @property string $name
@@ -28,9 +26,7 @@ use JsonException;
  * @property bool $is_builtin
  * @property int $sort_order
  * @property ?array $credentials
- * @property int|null $workspaces_count
  * @property int|null $models_count
- * @property-read Workspace $workspace
  * @property-read Collection|AiModel[] $models
  */
 class AiProvider extends Model
@@ -66,11 +62,9 @@ class AiProvider extends Model
         );
     }
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
+    /**
+     * 供应商下可用的模型列表。
+     */
     public function models(): HasMany
     {
         return $this->hasMany(AiModel::class);

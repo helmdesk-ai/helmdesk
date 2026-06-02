@@ -77,7 +77,7 @@ class SendTelegramMessageJob implements ShouldQueue
             return;
         }
 
-        $chatId = $this->resolveChatId((string) $conversation->workspace_id, (string) $conversation->contact_id, $channel->code);
+        $chatId = $this->resolveChatId((string) $conversation->contact_id, $channel->code);
         if ($chatId === null) {
             Log::warning('Telegram 出站消息找不到目标 chat_id，标记投递失败。', [
                 'message_id' => $this->messageId,
@@ -148,10 +148,9 @@ class SendTelegramMessageJob implements ShouldQueue
     /**
      * 由联系人 Telegram 身份解析目标 chat_id（私聊场景 chat_id 即用户 id）。
      */
-    private function resolveChatId(string $workspaceId, string $contactId, string $channelCode): ?int
+    private function resolveChatId(string $contactId, string $channelCode): ?int
     {
         $value = ContactIdentity::query()
-            ->where('workspace_id', $workspaceId)
             ->where('contact_id', $contactId)
             ->where('type', IdentityType::ExternalId)
             ->where('namespace', ResolveTelegramReceptionContextAction::identityNamespace($channelCode))

@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { TelegramChannelData } from '@/types/generated';
 import { Form } from '@inertiajs/vue3';
 import { Bot } from 'lucide-vue-next';
@@ -24,7 +23,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const botToken = ref('');
 </script>
@@ -70,7 +68,6 @@ const botToken = ref('');
       <Form
         :action="
           Telegram.RegisterTelegramWebhookAction.url({
-            slug: currentWorkspace.slug,
             channel: props.channel.id,
           })
         "
@@ -95,7 +92,6 @@ const botToken = ref('');
     <Form
       :action="
         Telegram.UpdateTelegramChannelTokenAction.url({
-          slug: currentWorkspace.slug,
           channel: props.channel.id,
         })
       "

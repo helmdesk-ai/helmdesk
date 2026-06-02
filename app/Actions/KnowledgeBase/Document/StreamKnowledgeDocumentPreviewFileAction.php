@@ -82,13 +82,12 @@ class StreamKnowledgeDocumentPreviewFileAction
     /**
      * 接收预览文件请求，并限制在当前工作区知识库文档内。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $document): StreamedResponse
+    public function asController(Request $request, string $knowledgeBase, string $document): StreamedResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $documentModel = KnowledgeDocument::query()

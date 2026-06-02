@@ -19,15 +19,12 @@ beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
 
     $this->tagA = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'A',
     ]);
     $this->tagB = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'B',
     ]);
     $this->tagC = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'C',
     ]);
 
@@ -39,7 +36,6 @@ beforeEach(function () {
 
     $makeContact = function (array $letters) use ($tagIdByLetter): Contact {
         $contact = Contact::factory()->create([
-            'workspace_id' => $this->workspace->id,
             'name' => implode('', $letters),
         ]);
 
@@ -59,7 +55,7 @@ beforeEach(function () {
      * 构造 8 种联系人，覆盖 {A,B,C} × 有/无 的全排列，便于对每种模式下
      * 预期结果做精确断言。
      */
-    $this->cNone = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'none']);
+    $this->cNone = Contact::factory()->create(['name' => 'none']);
     $this->cA = $makeContact(['A']);
     $this->cB = $makeContact(['B']);
     $this->cC = $makeContact(['C']);
@@ -378,38 +374,26 @@ test('HTTP解析空白和重复', function () {
 
 test('HTTP解析拒绝无效标签模式', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->from(route('workspace.contacts.index', ['type' => 'all',
         ]))
-        ->get(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->get(route('workspace.contacts.index', ['type' => 'all',
             'include_tag_ids' => [$this->tagA->id],
             'include_tag_mode' => 'bogus',
         ]))
-        ->assertRedirect(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->assertRedirect(route('workspace.contacts.index', ['type' => 'all',
         ]))
         ->assertSessionHasErrors('include_tag_mode');
 });
 
 test('HTTP解析拒绝无效标签日期边界', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->from(route('workspace.contacts.index', ['type' => 'all',
         ]))
-        ->get(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->get(route('workspace.contacts.index', ['type' => 'all',
             'include_tag_ids' => [$this->tagA->id],
             'tag_tagged_after' => '2026/01/01',
         ]))
-        ->assertRedirect(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->assertRedirect(route('workspace.contacts.index', ['type' => 'all',
         ]))
         ->assertSessionHasErrors('tag_tagged_after');
 });

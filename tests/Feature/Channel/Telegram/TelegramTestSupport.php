@@ -16,7 +16,6 @@ if (! function_exists('createTelegramTestModel')) {
     function createTelegramTestModel(Workspace $workspace): AiModel
     {
         $provider = AiProvider::query()->create([
-            'workspace_id' => $workspace->id,
             'brand' => 'custom-openai',
             'slug' => 'tg-provider-'.Str::lower(Str::random(6)),
             'name' => 'Test Provider',
@@ -46,7 +45,7 @@ if (! function_exists('createTelegramDeployablePlanVersion')) {
     function createTelegramDeployablePlanVersion(Workspace $workspace, bool $withoutAutoMessages = false): ReceptionPlanVersion
     {
         $model = createTelegramTestModel($workspace);
-        $plan = ReceptionPlan::factory()->for($workspace)->create([
+        $plan = ReceptionPlan::factory()->create([
             'name' => 'TG 接待方案-'.Str::lower(Str::random(6)),
         ]);
 

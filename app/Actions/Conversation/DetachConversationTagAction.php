@@ -25,7 +25,6 @@ class DetachConversationTagAction
     public function handle(Workspace $workspace, string $conversationId, string $tagId, ?User $actor = null): void
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($conversationId);
 
         DB::table('conversation_tag_assignments')
@@ -42,7 +41,7 @@ class DetachConversationTagAction
     /**
      * 接收会话标签移除的 XHR 请求并返回 JSON。
      */
-    public function asController(Request $request, string $slug, string $conversation, string $tagId): JsonResponse
+    public function asController(Request $request, string $conversation, string $tagId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $this->handle($ctx->workspace(), $conversation, $tagId, $request->user());

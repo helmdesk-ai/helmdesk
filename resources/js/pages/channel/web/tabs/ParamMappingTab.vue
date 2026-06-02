@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   WebChannelData,
   WebChannelFormOptionsData,
@@ -52,7 +51,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const maskedSecret = computed(() => props.channel.user_token_secret_masked);
 const currentSecret = computed(() => props.channel.user_token_secret);
@@ -62,7 +60,6 @@ const isRegeneratingSecret = ref(false);
 function regenerateSecret(): void {
   router.post(
     Web.RegenerateWebChannelUserTokenSecretAction.url({
-      slug: currentWorkspace.value.slug,
       channel: props.channel.id,
     }),
     {},
@@ -187,7 +184,6 @@ function onDraftTargetChange(value: unknown): void {
   <Form
     :action="
       Web.UpdateWebChannelEmbedAction.url({
-        slug: currentWorkspace.slug,
         channel: props.channel.id,
       })
     "

@@ -40,7 +40,6 @@ class ListTelegramChannelTrashAction
 
         $paginator = Channel::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->with(['receptionPlan'])
             ->latest('deleted_at')

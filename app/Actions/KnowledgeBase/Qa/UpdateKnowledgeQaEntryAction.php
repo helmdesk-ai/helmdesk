@@ -60,13 +60,12 @@ class UpdateKnowledgeQaEntryAction
     /**
      * 接收编辑问答提交并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $entry): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $entry): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $entryModel = KnowledgeQaEntry::query()
@@ -77,7 +76,6 @@ class UpdateKnowledgeQaEntryAction
         $this->handle($entryModel, FormCreateKnowledgeQaEntryData::from($request));
 
         return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
             'kb' => $kb->id,
             'group' => (string) $entryModel->group_id,
         ]);

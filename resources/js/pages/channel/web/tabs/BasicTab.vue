@@ -19,7 +19,6 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useChannelPreviewDraft } from '@/composables/useChannelPreviewDraft';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   WebChannelData,
   WebChannelFormOptionsData,
@@ -34,7 +33,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 const draft = useChannelPreviewDraft();
 
 const allOptions = computed(() => props.formOptions.reception_plan_options);
@@ -93,7 +91,6 @@ watch(
   <Form
     :action="
       Web.UpdateWebChannelBasicAction.url({
-        slug: currentWorkspace.slug,
         channel: props.channel.id,
       })
     "
@@ -194,13 +191,7 @@ watch(
             class="flex flex-wrap items-center gap-2"
           >
             <Button size="sm" variant="outline" as-child>
-              <Link
-                :href="
-                  Plan.ShowReceptionPlanIndexPageAction.url(
-                    currentWorkspace.slug,
-                  )
-                "
-              >
+              <Link :href="Plan.ShowReceptionPlanIndexPageAction.url()">
                 {{ t('去创建接待方案') }}
               </Link>
             </Button>

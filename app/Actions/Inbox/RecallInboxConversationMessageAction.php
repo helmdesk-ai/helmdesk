@@ -32,7 +32,6 @@ class RecallInboxConversationMessageAction
     public function handle(Workspace $workspace, User $user, string $conversationId, string $messageId): void
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -49,7 +48,7 @@ class RecallInboxConversationMessageAction
     /**
      * 接收撤回请求并回到收件箱页面。
      */
-    public function asController(Request $request, string $slug, string $conversationId, string $messageId): RedirectResponse
+    public function asController(Request $request, string $conversationId, string $messageId): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
@@ -62,7 +61,6 @@ class RecallInboxConversationMessageAction
         );
 
         return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
             'conversation_id' => $conversationId,
         ]);
     }

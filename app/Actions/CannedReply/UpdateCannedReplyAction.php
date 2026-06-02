@@ -33,7 +33,6 @@ class UpdateCannedReplyAction
     public function handle(Workspace $workspace, User $user, string $cannedReplyId, FormUpdateCannedReplyData $data): CannedReply
     {
         $reply = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->find($cannedReplyId);
 
         if ($reply === null) {
@@ -71,7 +70,7 @@ class UpdateCannedReplyAction
     /**
      * Inertia 入口。
      */
-    public function asController(Request $request, string $slug, string $cannedReply): RedirectResponse
+    public function asController(Request $request, string $cannedReply): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
@@ -79,7 +78,7 @@ class UpdateCannedReplyAction
 
         $this->handle($workspace, $user, $cannedReply, FormUpdateCannedReplyData::from($request));
 
-        return redirect()->route('workspace.canned-replies.index', ['slug' => $workspace->slug]);
+        return redirect()->route('workspace.canned-replies.index');
     }
 
     /**
@@ -107,7 +106,6 @@ class UpdateCannedReplyAction
         }
 
         $query = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->where('shortcut', $shortcut)
             ->whereKeyNot($current->id);
 

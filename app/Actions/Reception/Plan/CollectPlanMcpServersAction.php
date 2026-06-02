@@ -5,7 +5,6 @@ namespace App\Actions\Reception\Plan;
 use App\Enums\McpTransport;
 use App\Models\McpServer;
 use App\Models\McpTool;
-use App\Models\Workspace;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -20,12 +19,12 @@ class CollectPlanMcpServersAction
     use AsAction;
 
     /**
-     * 按工具 ID 列表聚合服务列表，丢弃不可用或不归属当前工作区的工具。
+     * 按工具 ID 列表聚合服务列表，丢弃不可用工具。
      *
      * @param  list<string>  $mcpToolIds
      * @return list<array<string, mixed>>
      */
-    public function handle(Workspace $workspace, array $mcpToolIds): array
+    public function handle(array $mcpToolIds): array
     {
         if ($mcpToolIds === []) {
             return [];
@@ -36,8 +35,7 @@ class CollectPlanMcpServersAction
             ->whereIn('id', $mcpToolIds)
             ->where('is_enabled', true)
             ->whereNull('removed_at')
-            ->whereHas('server', fn ($q) => $q->where('workspace_id', $workspace->id)
-                ->where('is_active', true)
+            ->whereHas('server', fn ($q) => $q->where('is_active', true)
                 ->whereNotNull('endpoint_url')
                 ->where('endpoint_url', '!=', '')
             )

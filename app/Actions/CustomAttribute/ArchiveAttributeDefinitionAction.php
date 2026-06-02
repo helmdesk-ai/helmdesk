@@ -25,7 +25,7 @@ class ArchiveAttributeDefinitionAction
         return $definition;
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
 

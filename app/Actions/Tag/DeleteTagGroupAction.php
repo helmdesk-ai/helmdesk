@@ -23,7 +23,6 @@ class DeleteTagGroupAction
     public function handle(Workspace $workspace, string $id): void
     {
         $group = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($id);
 
         $hasTags = Tag::query()
@@ -41,7 +40,7 @@ class DeleteTagGroupAction
     /**
      * 接收删除标签组请求并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $this->handle($ctx->workspace(), $id);

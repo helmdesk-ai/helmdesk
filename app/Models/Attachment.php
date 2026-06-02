@@ -21,13 +21,12 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * @property string $id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property string|null $workspace_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property string|null $uploaded_by_user_id
  * @property string $storage_profile_id
- * @property \App\Enums\StorageDriver $disk
+ * @property StorageDriver $disk
  * @property string|null $bucket
  * @property string $object_key
  * @property string $original_name
@@ -36,27 +35,24 @@ use Illuminate\Support\Facades\Storage;
  * @property int $byte_size
  * @property string|null $checksum_sha256
  * @property string|null $etag
- * @property \App\Enums\AttachmentVisibility $visibility
- * @property \App\Enums\AttachmentPurpose $purpose
- * @property \App\Enums\AttachmentStatus $status
+ * @property AttachmentVisibility $visibility
+ * @property AttachmentPurpose $purpose
+ * @property AttachmentStatus $status
  * @property string|null $attachable_type
  * @property string|null $attachable_id
  * @property array|null $metadata
- * @property \Illuminate\Support\Carbon|null $uploaded_at
- * @property \Illuminate\Support\Carbon|null $attached_at
- * @property \Illuminate\Support\Carbon|null $expires_at
+ * @property Carbon|null $uploaded_at
+ * @property Carbon|null $attached_at
+ * @property Carbon|null $expires_at
  * @property string $full_url
  * @property ?string $preview_url
  * @property mixed $use_factory
  * @property int|null $attachables_count
- * @property int|null $workspaces_count
  * @property int|null $uploaded_bies_count
  * @property int|null $storage_profiles_count
- *
- * @property-read \Illuminate\Database\Eloquent\Model|null $attachable
- * @property-read \App\Models\Workspace|null $workspace
- * @property-read \App\Models\User|null $uploadedBy
- * @property-read \App\Models\StorageProfile $storageProfile
+ * @property-read Model|null $attachable
+ * @property-read User|null $uploadedBy
+ * @property-read StorageProfile $storageProfile
  *
  * @method static \Database\Factories\AttachmentFactory<self> factory($count = null, $state = [])
  */
@@ -119,14 +115,6 @@ class Attachment extends Model
     public function getPreviewUrlAttribute(): ?string
     {
         return app(AttachmentUrlResolver::class)->previewUrl($this);
-    }
-
-    /**
-     * 关联附件所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

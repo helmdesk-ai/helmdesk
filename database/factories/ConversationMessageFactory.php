@@ -7,7 +7,6 @@ use App\Enums\MessageRole;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,10 +19,7 @@ class ConversationMessageFactory extends Factory
         $createdAt = fake()->dateTimeBetween('-7 days', 'now');
 
         return [
-            'workspace_id' => Workspace::factory(),
-            'conversation_id' => fn (array $attributes) => Conversation::factory()->create([
-                'workspace_id' => $attributes['workspace_id'],
-            ])->id,
+            'conversation_id' => fn () => Conversation::factory()->create()->id,
             'sender_user_id' => null,
             'role' => MessageRole::Teammate,
             'sender_name' => function (array $attributes): string {
@@ -50,7 +46,6 @@ class ConversationMessageFactory extends Factory
     public function forConversation(Conversation $conversation): static
     {
         return $this->state([
-            'workspace_id' => $conversation->workspace_id,
             'conversation_id' => $conversation->id,
         ]);
     }

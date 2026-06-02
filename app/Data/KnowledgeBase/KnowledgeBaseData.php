@@ -16,7 +16,6 @@ class KnowledgeBaseData extends Data
      */
     public function __construct(
         public string $id,
-        public string $workspace_id,
         public string $name,
         public ?string $avatar_id,
         public ?string $avatar_url,
@@ -46,7 +45,6 @@ class KnowledgeBaseData extends Data
 
         return new self(
             id: (string) $knowledgeBase->id,
-            workspace_id: (string) $knowledgeBase->workspace_id,
             name: $knowledgeBase->name,
             avatar_id: filled($knowledgeBase->avatar_id) ? (string) $knowledgeBase->avatar_id : null,
             avatar_url: $knowledgeBase->avatar?->full_url,

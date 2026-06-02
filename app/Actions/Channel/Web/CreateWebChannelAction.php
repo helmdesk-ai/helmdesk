@@ -41,7 +41,6 @@ class CreateWebChannelAction
         );
 
         return Channel::query()->create([
-            'workspace_id' => $workspace->id,
             'type' => ChannelType::Web,
             'name' => $data->name,
             'description' => filled($data->description) ? $data->description : null,
@@ -65,7 +64,6 @@ class CreateWebChannelAction
         $channel = $this->handle($workspace, FormCreateWebChannelData::from($request));
 
         return redirect()->route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
             'channel' => $channel->id,
         ]);
     }

@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('contact_attribute_values', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id');
             $table->ulid('contact_id');
             $table->ulid('definition_id');
             $table->json('value_json');
@@ -19,10 +18,8 @@ return new class extends Migration
             $table->float('confidence')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->unique(['workspace_id', 'contact_id', 'definition_id']);
-            $table->index(['workspace_id', 'definition_id']);
-            $table->index(['contact_id', 'workspace_id']);
-            $table->index(['definition_id', 'workspace_id']);
+            $table->unique(['contact_id', 'definition_id']);
+            $table->index('definition_id');
         });
     }
 

@@ -47,7 +47,6 @@ class SearchCannedRepliesForComposerAction
         $normalizedQuery = mb_substr(trim($query), 0, self::MAX_QUERY_LENGTH);
 
         $builder = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->where(function (Builder $scope) use ($user): void {
                 $scope->whereNull('user_id')
                     ->orWhere('user_id', $user->id);

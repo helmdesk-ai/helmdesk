@@ -27,7 +27,6 @@ class ShowEditKnowledgeBasePageAction
     {
         $knowledgeBase = KnowledgeBase::query()
             ->with(['avatar'])
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBaseId);
 
         return new ShowEditKnowledgeBasePagePropsData(
@@ -38,7 +37,7 @@ class ShowEditKnowledgeBasePageAction
     /**
      * 返回编辑知识库页面。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): Response
+    public function asController(Request $request, string $knowledgeBase): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

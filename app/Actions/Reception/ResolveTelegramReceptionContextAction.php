@@ -15,6 +15,7 @@ use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\Workspace;
 use App\Services\Storage\AttachmentPathGenerator;
 use App\Services\Storage\StorageProfileDisk;
 use App\Services\Storage\StorageProfileResolver;
@@ -56,7 +57,7 @@ class ResolveTelegramReceptionContextAction
         $channel = $this->findActiveChannel($channelCode);
 
         $contact = $this->resolveContactIdentityAction->handle(
-            $channel->workspace,
+            Workspace::current(),
             [
                 'type' => IdentityType::ExternalId,
                 'value' => $telegramUserId,
@@ -107,7 +108,7 @@ class ResolveTelegramReceptionContextAction
             ->withTrashed()
             ->where('code', $channelCode)
             ->where('type', ChannelType::Telegram)
-            ->with(['receptionPlan', 'workspace'])
+            ->with(['receptionPlan'])
             ->first();
 
         if ($channel === null) {
@@ -216,7 +217,6 @@ class ResolveTelegramReceptionContextAction
         $objectKey = $this->pathGenerator->generate(
             attachmentId: $attachmentId,
             purpose: AttachmentPurpose::Avatar,
-            workspaceId: (string) $contact->workspace_id,
             originalName: $fileName,
             mimeType: $mimeType,
         );
@@ -228,7 +228,6 @@ class ResolveTelegramReceptionContextAction
 
         return Attachment::query()->create([
             'id' => $attachmentId,
-            'workspace_id' => $contact->workspace_id,
             'uploaded_by_user_id' => null,
             'storage_profile_id' => $profile->id,
             'disk' => $profile->driver,

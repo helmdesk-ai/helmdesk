@@ -11,7 +11,6 @@ import ImageUploadField from '@/components/common/ImageUploadField.vue';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { defaultKnowledgeBaseAvatar } from '@/lib/knowledgeBaseAvatar';
 import type { KnowledgeBaseData } from '@/types/generated';
 import type { RouteFormDefinition } from '@/wayfinder';
@@ -36,10 +35,9 @@ withDefaults(
 );
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const listHref = computed(() =>
-  KnowledgeBase.ListKnowledgeBasesAction.url(currentWorkspace.value.slug),
+  KnowledgeBase.ListKnowledgeBasesAction.url(),
 );
 </script>
 
@@ -86,7 +84,6 @@ const listHref = computed(() =>
         :label="t('知识库头像')"
         name="avatar_id"
         purpose="avatar"
-        :upload-context="{ workspace_id: currentWorkspace.id }"
         :initial-preview="
           knowledgeBaseForm?.avatar_url ?? defaultKnowledgeBaseAvatar
         "

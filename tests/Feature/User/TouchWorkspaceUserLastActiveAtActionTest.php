@@ -2,45 +2,27 @@
 
 use App\Actions\User\TouchWorkspaceUserLastActiveAtAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
-test('它刷新过期工作区成员最后活跃时间戳', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+test('它刷新过期后台用户最后活跃时间戳', function () {
+    [, $user] = createWorkspaceWithOwner();
     $previousLastActiveAt = now()->subMinutes(10);
+    $user->forceFill(['last_active_at' => $previousLastActiveAt])->save();
 
-    $user->workspaces()->updateExistingPivot($workspace->id, [
-        'last_active_at' => $previousLastActiveAt,
-    ]);
+    TouchWorkspaceUserLastActiveAtAction::run((string) $user->id);
 
-    TouchWorkspaceUserLastActiveAtAction::run($workspace, (string) $user->id);
-
-    $updatedLastActiveAt = DB::table('user_workspace')
-        ->where('workspace_id', $workspace->id)
-        ->where('user_id', $user->id)
-        ->value('last_active_at');
-
-    expect($updatedLastActiveAt)->not->toBeNull()
-        ->and(Carbon::parse((string) $updatedLastActiveAt)->isAfter($previousLastActiveAt))->toBeTrue();
+    expect($user->fresh()->last_active_at)->not->toBeNull()
+        ->and($user->fresh()->last_active_at->isAfter($previousLastActiveAt))->toBeTrue();
 });
 
-test('它跳过刷新最近活跃工作区成员', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+test('它跳过刷新最近活跃后台用户', function () {
+    [, $user] = createWorkspaceWithOwner();
     $recentLastActiveAt = now()->subSeconds(30)->startOfSecond();
+    $user->forceFill(['last_active_at' => $recentLastActiveAt])->save();
 
-    $user->workspaces()->updateExistingPivot($workspace->id, [
-        'last_active_at' => $recentLastActiveAt,
-    ]);
+    TouchWorkspaceUserLastActiveAtAction::run((string) $user->id);
 
-    TouchWorkspaceUserLastActiveAtAction::run($workspace, (string) $user->id);
-
-    $updatedLastActiveAt = DB::table('user_workspace')
-        ->where('workspace_id', $workspace->id)
-        ->where('user_id', $user->id)
-        ->value('last_active_at');
-
-    expect(Carbon::parse((string) $updatedLastActiveAt)->toDateTimeString())
+    expect($user->fresh()->last_active_at->toDateTimeString())
         ->toBe($recentLastActiveAt->toDateTimeString());
 });

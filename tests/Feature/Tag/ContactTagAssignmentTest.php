@@ -12,18 +12,14 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
     $this->contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $this->tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 });
 
 test('可以附加标签到联系人', function () {
     $this->actingAs($this->user)
-        ->postJson(route('workspace.contacts.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->postJson(route('workspace.contacts.tags.attach', ['id' => $this->contact->id,
         ]), [
             'tag_id' => $this->tag->id,
         ])
@@ -47,9 +43,7 @@ test('附加同一标签是幂等的', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->postJson(route('workspace.contacts.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->postJson(route('workspace.contacts.tags.attach', ['id' => $this->contact->id,
         ]), [
             'tag_id' => $this->tag->id,
         ])
@@ -72,9 +66,7 @@ test('可以分离标签来自联系人', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->deleteJson(route('workspace.contacts.tags.detach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->deleteJson(route('workspace.contacts.tags.detach', ['id' => $this->contact->id,
             'tagId' => $this->tag->id,
         ]))
         ->assertOk()
@@ -90,9 +82,7 @@ test('可以分离标签来自联系人', function () {
 
 test('附加创建活动日志', function () {
     $this->actingAs($this->user)
-        ->postJson(route('workspace.contacts.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->postJson(route('workspace.contacts.tags.attach', ['id' => $this->contact->id,
         ]), [
             'tag_id' => $this->tag->id,
         ])
@@ -108,18 +98,14 @@ test('附加创建活动日志', function () {
 
 test('联系人详情包含标签活动日志载荷', function () {
     $this->actingAs($this->user)
-        ->postJson(route('workspace.contacts.tags.attach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->postJson(route('workspace.contacts.tags.attach', ['id' => $this->contact->id,
         ]), [
             'tag_id' => $this->tag->id,
         ])
         ->assertOk();
 
     $this->actingAs($this->user)
-        ->getJson(route('workspace.contacts.show', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->getJson(route('workspace.contacts.show', ['id' => $this->contact->id,
         ]))
         ->assertOk()
         ->assertJsonPath('activity_logs.0.action', 'tag_attached')
@@ -135,9 +121,7 @@ test('分离创建活动日志', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->deleteJson(route('workspace.contacts.tags.detach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->deleteJson(route('workspace.contacts.tags.detach', ['id' => $this->contact->id,
             'tagId' => $this->tag->id,
         ]))
         ->assertOk();
@@ -152,9 +136,7 @@ test('分离创建活动日志', function () {
 
 test('分离标签是未附加是无操作', function () {
     $this->actingAs($this->user)
-        ->deleteJson(route('workspace.contacts.tags.detach', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->deleteJson(route('workspace.contacts.tags.detach', ['id' => $this->contact->id,
             'tagId' => $this->tag->id,
         ]))
         ->assertOk()
@@ -177,9 +159,7 @@ test('联系人详情包含标签', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->getJson(route('workspace.contacts.show', [
-            'slug' => $this->workspaceSlug(),
-            'id' => $this->contact->id,
+        ->getJson(route('workspace.contacts.show', ['id' => $this->contact->id,
         ]))
         ->assertOk()
         ->assertJsonPath('tags.0.id', $this->tag->id);
@@ -194,9 +174,7 @@ test('联系人列表包含联系人标签', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->get(route('workspace.contacts.index', ['type' => 'all',
         ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
@@ -210,11 +188,9 @@ test('联系人列表包含联系人标签', function () {
 
 test('联系人合并转移标签', function () {
     $contact2 = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $tag2 = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     DB::table('contact_tag_assignments')->insert([
@@ -231,7 +207,7 @@ test('联系人合并转移标签', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.contacts.merge', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.contacts.merge'), [
             'target_contact_id' => $this->contact->id,
             'merged_contact_id' => $contact2->id,
         ])
@@ -249,11 +225,9 @@ test('联系人合并转移标签', function () {
 
 test('联系人合并不会转移软已删除标签', function () {
     $contact2 = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $deletedTag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $deletedTag->delete();
 
@@ -265,7 +239,7 @@ test('联系人合并不会转移软已删除标签', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.contacts.merge', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.contacts.merge'), [
             'target_contact_id' => $this->contact->id,
             'merged_contact_id' => $contact2->id,
         ])

@@ -5,20 +5,20 @@ use Tests\WithWorkspace;
 
 uses(RefreshDatabase::class, WithWorkspace::class);
 
-test('普通用户会被重定向到登录访问时设置且不带from_workspace', function () {
+test('后台用户可以访问个人设置且不需要工作区参数', function () {
     $user = $this->createUserWithWorkspace();
 
     $this->actingAs($user)
         ->get(route('settings.profile.edit'))
-        ->assertRedirect(route('login'));
+        ->assertOk();
 });
 
-test('普通用户获得404访问时设置且无效from_workspace', function () {
+test('旧 from_workspace 参数不再影响个人设置访问', function () {
     $user = $this->createUserWithWorkspace();
 
     $this->actingAs($user)
         ->get(route('settings.profile.edit', ['from_workspace' => 'not-exists']))
-        ->assertNotFound();
+        ->assertOk();
 });
 
 test('超级管理员可以访问设置且不带from_workspace', function () {

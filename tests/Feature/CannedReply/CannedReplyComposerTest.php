@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\WorkspaceRole;
 use App\Models\CannedReply;
 use App\Models\Channel;
 use App\Models\Contact;
@@ -17,25 +16,23 @@ beforeEach(function () {
 });
 
 test('search 返回当前用户可见的模版（个人 + 共享）', function () {
-    $member = User::factory()->create();
-    $member->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Operator->value]);
+    $member = User::factory()->create([
+        'is_super_admin' => true,
+    ]);
     $other = User::factory()->create();
-    $other->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Operator->value]);
 
-    CannedReply::factory()->for($this->workspace)->create([
+    CannedReply::factory()->create([
         'name' => '工作区共享回复',
     ]);
-    CannedReply::factory()->for($this->workspace)->ownedBy($member)->create([
+    CannedReply::factory()->ownedBy($member)->create([
         'name' => '我的私有回复',
     ]);
-    CannedReply::factory()->for($this->workspace)->ownedBy($other)->create([
+    CannedReply::factory()->ownedBy($other)->create([
         'name' => '别人的私有',
     ]);
 
     $response = $this->actingAs($member)
-        ->getJson(route('workspace.canned-replies.search', [
-            'slug' => $this->workspaceSlug(),
-            'q' => '回复',
+        ->getJson(route('workspace.canned-replies.search', ['q' => '回复',
         ]));
 
     $response->assertOk();
@@ -46,19 +43,17 @@ test('search 返回当前用户可见的模版（个人 + 共享）', function (
 });
 
 test('search 按短码前缀匹配优先于内容', function () {
-    CannedReply::factory()->for($this->workspace)->withShortcut('refund')->create([
+    CannedReply::factory()->withShortcut('refund')->create([
         'name' => '退款流程',
         'content' => '退款相关内容',
     ]);
-    CannedReply::factory()->for($this->workspace)->create([
+    CannedReply::factory()->create([
         'name' => '其它',
         'content' => 'refund 是关键字',
     ]);
 
     $response = $this->actingAs($this->owner)
-        ->getJson(route('workspace.canned-replies.search', [
-            'slug' => $this->workspaceSlug(),
-            'q' => 'refund',
+        ->getJson(route('workspace.canned-replies.search', ['q' => 'refund',
         ]));
 
     $response->assertOk();
@@ -66,26 +61,23 @@ test('search 按短码前缀匹配优先于内容', function () {
 });
 
 test('use-and-render 渲染变量并自增 usage_count', function () {
-    $contact = Contact::factory()->for($this->workspace)->create([
+    $contact = Contact::factory()->create([
         'name' => '王小明',
     ]);
-    $channel = Channel::factory()->for($this->workspace)->create();
+    $channel = Channel::factory()->create();
     $conversation = Conversation::factory()
-        ->for($this->workspace)
         ->for($contact)
         ->for($channel)
         ->create(['subject' => '商品咨询']);
 
-    $reply = CannedReply::factory()->for($this->workspace)->create([
+    $reply = CannedReply::factory()->create([
         'content' => '你好 {{contact.name}}，关于 {{conversation.subject}}，我是 {{teammate.name}}。',
         'usage_count' => 3,
     ]);
 
     $response = $this->actingAs($this->owner)
         ->postJson(
-            route('workspace.canned-replies.use-and-render', [
-                'slug' => $this->workspaceSlug(),
-                'cannedReply' => $reply->id,
+            route('workspace.canned-replies.use-and-render', ['cannedReply' => $reply->id,
             ]),
             ['conversation_id' => $conversation->id]
         );
@@ -99,15 +91,13 @@ test('use-and-render 渲染变量并自增 usage_count', function () {
 });
 
 test('use-and-render 在 AI token 上保留原文并提示 warning', function () {
-    $reply = CannedReply::factory()->for($this->workspace)->create([
+    $reply = CannedReply::factory()->create([
         'content' => '建议：{{ai.suggested_reply}}',
     ]);
 
     $response = $this->actingAs($this->owner)
         ->postJson(
-            route('workspace.canned-replies.use-and-render', [
-                'slug' => $this->workspaceSlug(),
-                'cannedReply' => $reply->id,
+            route('workspace.canned-replies.use-and-render', ['cannedReply' => $reply->id,
             ]),
             ['conversation_id' => null]
         );
@@ -119,18 +109,16 @@ test('use-and-render 在 AI token 上保留原文并提示 warning', function ()
 
 test('use-and-render 拒绝访问别人的私有模版', function () {
     $other = User::factory()->create();
-    $other->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Operator->value]);
 
-    $reply = CannedReply::factory()->for($this->workspace)->ownedBy($other)->create();
+    $reply = CannedReply::factory()->ownedBy($other)->create();
 
-    $member = User::factory()->create();
-    $member->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Operator->value]);
+    $member = User::factory()->create([
+        'is_super_admin' => true,
+    ]);
 
     $this->actingAs($member)
         ->postJson(
-            route('workspace.canned-replies.use-and-render', [
-                'slug' => $this->workspaceSlug(),
-                'cannedReply' => $reply->id,
+            route('workspace.canned-replies.use-and-render', ['cannedReply' => $reply->id,
             ]),
             ['conversation_id' => null]
         )

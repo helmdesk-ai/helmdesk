@@ -43,7 +43,6 @@ class LogReceptionEventBridgeAction
         }
 
         $event = ConversationEvent::query()->create([
-            'workspace_id' => $conversation->workspace_id,
             'conversation_id' => $conversation->id,
             'type' => ConversationEventType::from($type),
             'payload' => $payload ?: null,

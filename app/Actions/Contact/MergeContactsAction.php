@@ -40,11 +40,9 @@ class MergeContactsAction
         }
 
         $target = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($targetContactId);
 
         $merged = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($mergedContactId);
 
         return DB::transaction(function () use ($workspace, $target, $merged, $actor) {
@@ -95,7 +93,6 @@ class MergeContactsAction
             }
 
             ContactAttributeValue::query()
-                ->where('workspace_id', $workspace->id)
                 ->where('contact_id', $merged->id)
                 ->delete();
 
@@ -184,14 +181,12 @@ class MergeContactsAction
     private function mergeCustomAttributes(Workspace $workspace, Contact $target, Contact $merged): array
     {
         $targetValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $target->id)
             ->with('definition')
             ->get()
             ->keyBy('definition_id');
 
         $mergedValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $merged->id)
             ->with('definition')
             ->get()
@@ -219,7 +214,6 @@ class MergeContactsAction
 
             ContactAttributeValue::query()->updateOrCreate(
                 [
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $target->id,
                     'definition_id' => $definitionId,
                 ],
@@ -269,7 +263,6 @@ class MergeContactsAction
     private function mergeTags(Contact $target, Contact $merged): void
     {
         $activeTagIds = Tag::query()
-            ->where('workspace_id', $target->workspace_id)
             ->pluck('id');
 
         $existingTagIds = DB::table('contact_tag_assignments')
@@ -298,7 +291,7 @@ class MergeContactsAction
             ->delete();
     }
 
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

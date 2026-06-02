@@ -30,7 +30,6 @@ class DeleteCannedReplyAction
     public function handle(Workspace $workspace, User $user, string $cannedReplyId): void
     {
         $reply = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->find($cannedReplyId);
 
         if ($reply === null) {
@@ -47,7 +46,7 @@ class DeleteCannedReplyAction
     /**
      * Inertia 入口。
      */
-    public function asController(Request $request, string $slug, string $cannedReply): RedirectResponse
+    public function asController(Request $request, string $cannedReply): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
@@ -55,6 +54,6 @@ class DeleteCannedReplyAction
 
         $this->handle($workspace, $user, $cannedReply);
 
-        return redirect()->route('workspace.canned-replies.index', ['slug' => $workspace->slug]);
+        return redirect()->route('workspace.canned-replies.index');
     }
 }

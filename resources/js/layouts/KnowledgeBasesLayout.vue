@@ -34,7 +34,7 @@ const { t } = useI18n();
             {{ t('知识库') }}
           </h2>
           <p class="text-sm text-muted-foreground">
-            {{ t('管理工作区下的知识库和文档分组') }}
+            {{ t('管理系统知识库和文档分组') }}
           </p>
         </div>
 
@@ -58,7 +58,7 @@ const { t } = useI18n();
               {{ t('知识库') }}
             </SheetTitle>
             <SheetDescription>
-              {{ t('管理工作区下的知识库和文档分组') }}
+              {{ t('管理系统知识库和文档分组') }}
             </SheetDescription>
           </SheetHeader>
           <div class="flex h-full flex-col overflow-hidden">

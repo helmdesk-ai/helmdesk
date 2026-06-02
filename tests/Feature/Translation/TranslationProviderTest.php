@@ -15,7 +15,6 @@ beforeEach(function () {
 
 it('加密持久化凭据并转换 protocol 枚举', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'super-secret'],
     ]);
 
@@ -34,7 +33,6 @@ it('加密持久化凭据并转换 protocol 枚举', function () {
 
 it('mergeCredentials 在输入为空时保留 secret 字段', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'existing-key'],
         'credential_fields' => [
             ['field' => 'api_key', 'label' => 'API Key', 'required' => true, 'secret' => true],
@@ -48,7 +46,6 @@ it('mergeCredentials 在输入为空时保留 secret 字段', function () {
 
 it('mergeCredentials 在输入为空时清除非 secret 字段', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['region' => 'us-central1'],
         'credential_fields' => [
             ['field' => 'region', 'label' => 'Region', 'required' => false, 'secret' => false],
@@ -62,12 +59,10 @@ it('mergeCredentials 在输入为空时清除非 secret 字段', function () {
 
 it('强制同一工作区内 slug 唯一', function () {
     TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'gtranslate',
     ]);
 
     expect(fn () => TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'gtranslate',
     ]))->toThrow(QueryException::class);
 });

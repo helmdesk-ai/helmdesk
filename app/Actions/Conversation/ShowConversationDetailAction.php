@@ -49,12 +49,11 @@ class ShowConversationDetailAction
     /**
      * 接收会话详情请求并返回 JSON 数据。
      */
-    public function asController(Request $request, string $slug, string $id): JsonResponse
+    public function asController(Request $request, string $id): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($id);
         $viewer = User::query()->find($ctx->user_id);
 
@@ -95,7 +94,6 @@ class ShowConversationDetailAction
                 conversation_messages.recalled_at
             ")
             ->leftJoin('users as sender_users', 'sender_users.id', '=', 'conversation_messages.sender_user_id')
-            ->where('conversation_messages.workspace_id', $conversation->workspace_id)
             ->where('conversation_messages.conversation_id', $conversation->id);
 
         $events = DB::table('conversation_events')
@@ -117,7 +115,6 @@ class ShowConversationDetailAction
                 null as quoted_message_id,
                 null as recalled_at
             ")
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('conversation_id', $conversation->id);
 
         ApplyConversationTimelineEventDisplayScopeAction::run($events);
@@ -145,8 +142,8 @@ class ShowConversationDetailAction
 
         $hasMore = $rows->count() > $perPage;
         $pageRows = $hasMore ? $rows->take($perPage) : $rows;
-        $quotedMessages = BuildQuotedMessageMapAction::run($pageRows, (string) $conversation->workspace_id);
-        $userNamesById = BuildConversationTimelineUserMapAction::run($pageRows, (string) $conversation->workspace_id);
+        $quotedMessages = BuildQuotedMessageMapAction::run($pageRows);
+        $userNamesById = BuildConversationTimelineUserMapAction::run($pageRows);
         $nextCursor = $hasMore ? $this->encodeCursor(
             (string) $pageRows->last()->occurred_at,
             (string) $pageRows->last()->id,

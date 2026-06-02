@@ -3,10 +3,18 @@
 -->
 <script setup lang="ts">
 import AppLayout from '@/layouts/app/SystemSidebarLayout.vue';
+
+interface Props {
+  hideHeader?: boolean;
+}
+
+withDefaults(defineProps<Props>(), {
+  hideHeader: false,
+});
 </script>
 
 <template>
-  <AppLayout>
+  <AppLayout :hide-header="hideHeader">
     <slot />
   </AppLayout>
 </template>

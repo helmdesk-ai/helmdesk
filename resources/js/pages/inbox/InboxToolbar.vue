@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import workspaceRoutes from '@/routes/workspace';
 import type { AppPageProps } from '@/types';
 import type {
@@ -50,7 +49,6 @@ interface Props {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 const page = usePage<AppPageProps>();
 
 const ANY_VALUE = '__any__';
@@ -153,7 +151,7 @@ function buildUrl(overrides: Record<string, string | null>): string {
     }
   }
 
-  return workspaceRoutes.inbox.show.url(currentWorkspace.value.slug, { query });
+  return workspaceRoutes.inbox.show.url({ query });
 }
 
 function navigatePartial(url: string, replace = false): void {

@@ -31,9 +31,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import WorkspaceSettingsLayout from '@/layouts/WorkspaceSettingsLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import workspace from '@/routes/workspace';
 import type {
   ListTagGroupItemData,
@@ -46,7 +45,6 @@ import { computed, ref, watch } from 'vue';
 
 const { t } = useI18n();
 const props = defineProps<ShowListTagPagePropsData>();
-const currentWorkspace = useRequiredWorkspace();
 
 const DEFAULT_COLOR = '#64748b';
 const CONVERSATION_SCOPE = 'conversation';
@@ -172,16 +170,13 @@ const openCreateGroup = () => {
 };
 
 const submitCreateGroup = () => {
-  createGroupForm.post(
-    workspace.manage.tags.groups.store.url(currentWorkspace.value.slug),
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        createGroupOpen.value = false;
-        createGroupForm.reset();
-      },
+  createGroupForm.post(workspace.manage.tags.groups.store.url(), {
+    preserveScroll: true,
+    onSuccess: () => {
+      createGroupOpen.value = false;
+      createGroupForm.reset();
     },
-  );
+  });
 };
 
 const openEditGroup = (group: ListTagGroupItemData) => {
@@ -197,7 +192,6 @@ const submitEditGroup = () => {
   }
   editGroupForm.put(
     workspace.manage.tags.groups.update.url({
-      slug: currentWorkspace.value.slug,
       id: editingGroup.value.id,
     }),
     {
@@ -216,7 +210,6 @@ const submitDeleteGroup = () => {
   }
   deleteGroupForm.delete(
     workspace.manage.tags.groups.destroy.url({
-      slug: currentWorkspace.value.slug,
       id: deletingGroup.value.id,
     }),
     {
@@ -238,16 +231,13 @@ const openCreateTag = (group: ListTagGroupItemData) => {
 };
 
 const submitCreateTag = () => {
-  createTagForm.post(
-    workspace.manage.tags.store.url(currentWorkspace.value.slug),
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        createTagOpen.value = false;
-        createTagForm.reset();
-      },
+  createTagForm.post(workspace.manage.tags.store.url(), {
+    preserveScroll: true,
+    onSuccess: () => {
+      createTagOpen.value = false;
+      createTagForm.reset();
     },
-  );
+  });
 };
 
 const openEditTag = (tag: ListTagItemData) => {
@@ -266,7 +256,6 @@ const submitEditTag = () => {
   }
   editTagForm.put(
     workspace.manage.tags.update.url({
-      slug: currentWorkspace.value.slug,
       id: editingTag.value.id,
     }),
     {
@@ -285,7 +274,6 @@ const submitDeleteTag = () => {
   }
   deleteTagForm.delete(
     workspace.manage.tags.destroy.url({
-      slug: currentWorkspace.value.slug,
       id: deletingTag.value.id,
     }),
     {
@@ -298,7 +286,7 @@ const submitDeleteTag = () => {
 };
 
 const submitMerge = () => {
-  mergeForm.post(workspace.manage.tags.merge.url(currentWorkspace.value.slug), {
+  mergeForm.post(workspace.manage.tags.merge.url(), {
     preserveScroll: true,
     onSuccess: () => {
       mergeOpen.value = false;
@@ -333,139 +321,139 @@ watch(mergeOpen, (open) => {
   <AppLayout>
     <Head :title="t('标签')" />
 
-    <WorkspaceSettingsLayout>
-      <div class="space-y-6">
-        <div class="flex items-start justify-between gap-4">
-          <HeadingSmall
-            :title="t('标签')"
-            :description="t('按维度分组管理会话标签与联系人标签')"
-          />
+    <SystemSettingsLayout>
+      <section class="mx-auto w-full max-w-none space-y-12">
+        <div class="space-y-6">
+          <div class="flex items-start justify-between gap-4">
+            <HeadingSmall
+              :title="t('标签')"
+              :description="t('按维度分组管理会话标签与联系人标签')"
+            />
 
-          <div class="flex gap-2">
-            <Button
-              variant="outline"
-              :disabled="mergeableTags.length < 2"
-              @click="mergeOpen = true"
-            >
-              {{ t('合并标签') }}
-            </Button>
-            <Button @click="openCreateGroup">{{ t('新建标签组') }}</Button>
-            <Button variant="outline" as-child>
-              <Link
-                :href="workspace.manage.tags.trash.url(currentWorkspace.slug)"
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                :disabled="mergeableTags.length < 2"
+                @click="mergeOpen = true"
               >
-                {{ t('回收站') }}
-              </Link>
-            </Button>
+                {{ t('合并标签') }}
+              </Button>
+              <Button @click="openCreateGroup">{{ t('新建标签组') }}</Button>
+              <Button variant="outline" as-child>
+                <Link :href="workspace.manage.tags.trash.url()">
+                  {{ t('回收站') }}
+                </Link>
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <!-- 维度切换：会话标签 / 联系人标签 -->
-        <div class="flex w-fit rounded-md border bg-background p-0.5 text-sm">
-          <button
-            v-for="option in props.scope_options"
-            :key="option.value"
-            type="button"
-            class="rounded px-3 py-1.5 transition-colors"
-            :class="
-              activeScope === String(option.value)
-                ? 'bg-foreground text-background'
-                : 'text-muted-foreground hover:bg-muted'
-            "
-            @click="activeScope = String(option.value)"
-          >
-            {{ option.label }}
-          </button>
-        </div>
-
-        <!-- 标签组列表 -->
-        <div class="space-y-4">
-          <div
-            v-for="group in groupsForScope"
-            :key="group.id"
-            class="rounded-lg border"
-          >
-            <div
-              class="flex items-center justify-between gap-2 border-b px-4 py-2.5"
+          <!-- 维度切换：会话标签 / 联系人标签 -->
+          <div class="flex w-fit rounded-md border bg-background p-0.5 text-sm">
+            <button
+              v-for="option in props.scope_options"
+              :key="option.value"
+              type="button"
+              class="rounded px-3 py-1.5 transition-colors"
+              :class="
+                activeScope === String(option.value)
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:bg-muted'
+              "
+              @click="activeScope = String(option.value)"
             >
-              <div class="font-medium">{{ group.name }}</div>
-              <div class="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  @click="openCreateTag(group)"
+              {{ option.label }}
+            </button>
+          </div>
+
+          <!-- 标签组列表 -->
+          <div class="space-y-4">
+            <div
+              v-for="group in groupsForScope"
+              :key="group.id"
+              class="rounded-lg border"
+            >
+              <div
+                class="flex items-center justify-between gap-2 border-b px-4 py-2.5"
+              >
+                <div class="font-medium">{{ group.name }}</div>
+                <div class="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    @click="openCreateTag(group)"
+                  >
+                    {{ t('新增标签') }}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8"
+                        :aria-label="t('更多操作')"
+                      >
+                        <MoreHorizontal class="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" class="w-36">
+                      <DropdownMenuItem @select="openEditGroup(group)">
+                        {{ t('重命名') }}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        class="text-destructive focus:text-destructive"
+                        @select="deletingGroup = group"
+                      >
+                        {{ t('删除组') }}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2 px-4 py-3">
+                <button
+                  v-for="tag in group.tags"
+                  :key="tag.id"
+                  type="button"
+                  class="group flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm hover:bg-muted"
+                  @click="openEditTag(tag)"
                 >
-                  {{ t('新增标签') }}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger as-child>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8"
-                      :aria-label="t('更多操作')"
-                    >
-                      <MoreHorizontal class="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" class="w-36">
-                    <DropdownMenuItem @select="openEditGroup(group)">
-                      {{ t('重命名') }}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      class="text-destructive focus:text-destructive"
-                      @select="deletingGroup = group"
-                    >
-                      {{ t('删除组') }}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full"
+                    :style="{ backgroundColor: tag.color ?? '#94a3b8' }"
+                  />
+                  {{ tag.name }}
+                  <Lock
+                    v-if="tag.is_locked"
+                    class="h-3 w-3 text-muted-foreground"
+                  />
+                  <span class="text-xs text-muted-foreground">
+                    {{
+                      isConversationScope
+                        ? tag.conversation_usage_count
+                        : tag.contact_usage_count
+                    }}
+                  </span>
+                </button>
+                <span
+                  v-if="group.tags.length === 0"
+                  class="py-1 text-sm text-muted-foreground"
+                >
+                  {{ t('该组暂无标签') }}
+                </span>
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-2 px-4 py-3">
-              <button
-                v-for="tag in group.tags"
-                :key="tag.id"
-                type="button"
-                class="group flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm hover:bg-muted"
-                @click="openEditTag(tag)"
-              >
-                <span
-                  class="h-2 w-2 shrink-0 rounded-full"
-                  :style="{ backgroundColor: tag.color ?? '#94a3b8' }"
-                />
-                {{ tag.name }}
-                <Lock
-                  v-if="tag.is_locked"
-                  class="h-3 w-3 text-muted-foreground"
-                />
-                <span class="text-xs text-muted-foreground">
-                  {{
-                    isConversationScope
-                      ? tag.conversation_usage_count
-                      : tag.contact_usage_count
-                  }}
-                </span>
-              </button>
-              <span
-                v-if="group.tags.length === 0"
-                class="py-1 text-sm text-muted-foreground"
-              >
-                {{ t('该组暂无标签') }}
-              </span>
+            <div
+              v-if="groupsForScope.length === 0"
+              class="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground"
+            >
+              {{ t('暂无标签组') }}
             </div>
           </div>
-
-          <div
-            v-if="groupsForScope.length === 0"
-            class="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground"
-          >
-            {{ t('暂无标签组') }}
-          </div>
         </div>
-      </div>
-    </WorkspaceSettingsLayout>
+      </section>
+    </SystemSettingsLayout>
 
     <!-- 新建标签组 -->
     <Dialog v-model:open="createGroupOpen">

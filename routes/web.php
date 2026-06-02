@@ -64,8 +64,6 @@ use App\Actions\CustomAttribute\ShowAttributeDefinitionListAction;
 use App\Actions\CustomAttribute\ShowAttributeDefinitionTrashAction;
 use App\Actions\CustomAttribute\UpdateAttributeDefinitionAction;
 use App\Actions\CustomAttribute\UpdateContactAttributeValuesAction;
-use App\Actions\Dashboard\RedirectCurrentWorkspaceDashboardAction;
-use App\Actions\Dashboard\RedirectLastDashboardAction;
 use App\Actions\Dashboard\ShowDashboardPageAction;
 use App\Actions\Home\ShowHomePageAction;
 use App\Actions\Inbox\ClaimInboxConversationAction;
@@ -78,7 +76,6 @@ use App\Actions\Inbox\QueueInboxContactAiSummaryTranslationAction;
 use App\Actions\Inbox\QueueInboxConversationMessageTranslationsAction;
 use App\Actions\Inbox\QueueInboxConversationSummaryTranslationsAction;
 use App\Actions\Inbox\RecallInboxConversationMessageAction;
-use App\Actions\Inbox\RedirectLastInboxAction;
 use App\Actions\Inbox\ReleaseInboxConversationToAiAction;
 use App\Actions\Inbox\ReopenInboxConversationAction;
 use App\Actions\Inbox\ReplyInboxConversationAction;
@@ -108,11 +105,6 @@ use App\Actions\KnowledgeBase\ShowCreateKnowledgeBasePageAction;
 use App\Actions\KnowledgeBase\ShowEditKnowledgeBasePageAction;
 use App\Actions\KnowledgeBase\UpdateKnowledgeBaseAction;
 use App\Actions\KnowledgeBase\UpdateWorkspaceKnowledgeSettingsAction;
-use App\Actions\Manage\CreateWorkspaceAction;
-use App\Actions\Manage\DeleteCurrentWorkspaceAction;
-use App\Actions\Manage\GetCurrentWorkspaceAction;
-use App\Actions\Manage\ShowCreateWorkspacePageAction;
-use App\Actions\Manage\UpdateWorkspaceAction;
 use App\Actions\Mcp\CheckMcpServerAction;
 use App\Actions\Mcp\CreateMcpServerAction;
 use App\Actions\Mcp\DeleteMcpServerAction;
@@ -145,12 +137,6 @@ use App\Actions\SystemSetting\SendMailSettingsTestEmailAction;
 use App\Actions\SystemSetting\ShowMailSettingsPageAction;
 use App\Actions\SystemSetting\UpdateGeneralSettingAction;
 use App\Actions\SystemSetting\UpdateMailSettingsAction;
-use App\Actions\SystemSetting\User\CreateUserAction;
-use App\Actions\SystemSetting\User\ResetUserTwoFactorAuthenticationAction;
-use App\Actions\SystemSetting\User\ShowCreateUserPageAction;
-use App\Actions\SystemSetting\User\ShowEditUserPageAction;
-use App\Actions\SystemSetting\User\ShowUserListAction;
-use App\Actions\SystemSetting\User\UpdateUserAction;
 use App\Actions\Tag\AttachContactTagAction;
 use App\Actions\Tag\CreateTagAction;
 use App\Actions\Tag\CreateTagGroupAction;
@@ -164,13 +150,6 @@ use App\Actions\Tag\ShowTagListAction;
 use App\Actions\Tag\ShowTagTrashAction;
 use App\Actions\Tag\UpdateTagAction;
 use App\Actions\Tag\UpdateTagGroupAction;
-use App\Actions\Teammate\CreateTeammateAction;
-use App\Actions\Teammate\RemoveTeammateAction;
-use App\Actions\Teammate\ShowCreateTeammatePageAction;
-use App\Actions\Teammate\ShowEditTeammatePageAction;
-use App\Actions\Teammate\ShowTeammateListAction;
-use App\Actions\Teammate\UpdateTeammateAction;
-use App\Actions\Teammate\UpdateTeammateOnlineStatusAction;
 use App\Actions\Translation\CheckTranslationProviderAction;
 use App\Actions\Translation\ClearTranslationProviderCredentialsAction;
 use App\Actions\Translation\CreateTranslationProviderAction;
@@ -189,35 +168,21 @@ use App\Actions\User\UpdateMyOnlineStatusAction;
 use App\Actions\User\UpdateNotificationSettingsAction;
 use App\Actions\User\UpdatePasswordAction;
 use App\Actions\User\UpdateProfileAction;
-use App\Actions\Workspace\AddWorkspaceMemberAction;
-use App\Actions\Workspace\CreateSystemWorkspaceAction;
-use App\Actions\Workspace\DeleteWorkspaceAction;
-use App\Actions\Workspace\DeleteWorkspaceMemberAction;
-use App\Actions\Workspace\GetWorkspaceListAction;
-use App\Actions\Workspace\GetWorkspaceTrashListAction;
-use App\Actions\Workspace\LoginAsWorkspaceOwnerAction;
-use App\Actions\Workspace\RestoreWorkspaceAction;
-use App\Actions\Workspace\ShowCreateSystemWorkspacePageAction;
-use App\Actions\Workspace\ShowEditSystemWorkspacePageAction;
-use App\Actions\Workspace\ShowWorkspaceDetailAction;
-use App\Actions\Workspace\UpdateSystemWorkspaceAction;
-use App\Http\Middleware\AuthenticateSettings;
 use App\Http\Middleware\CheckSuperAdmin;
 use App\Http\Middleware\ConfirmPasswordWhenTwoFactorRequiresIt;
 use App\Http\Middleware\EnsureEmailIsVerifiedWhenMailEnabled;
 use App\Http\Middleware\IdentifyWorkspace;
-use App\Http\Middleware\TrackLastWorkspace;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', ShowHomePageAction::class)->name('home');
-Route::get('/dashboard', RedirectLastDashboardAction::class)->middleware(['auth:web', EnsureEmailIsVerifiedWhenMailEnabled::class])->name('dashboard');
-Route::get('/inbox', RedirectLastInboxAction::class)->middleware(['auth:web', EnsureEmailIsVerifiedWhenMailEnabled::class])->name('inbox');
+Route::redirect('/dashboard', '/admin/dashboard')->middleware(['auth:admin,web'])->name('dashboard');
+Route::redirect('/inbox', '/admin/inbox')->middleware(['auth:admin,web'])->name('inbox');
 
 // 网站渠道详情页右侧实时预览所嵌入的 iframe 文档（哑壳，渠道草稿由父页面 postMessage 注入）
-Route::get('/channels/web/preview', ShowWebChannelPreviewFrameAction::class)->middleware(['auth:web'])->name('channels.web.preview');
+Route::get('/channels/web/preview', ShowWebChannelPreviewFrameAction::class)->middleware(['auth:admin,web'])->name('channels.web.preview');
 
-// 个人设置（全局，不绑定工作区）
-Route::middleware([AuthenticateSettings::class, IdentifyWorkspace::class, TrackLastWorkspace::class])->prefix('settings')->group(function () {
+// 个人设置
+Route::middleware(['auth:admin,web', CheckSuperAdmin::class, IdentifyWorkspace::class])->prefix('settings')->group(function () {
     Route::redirect('/', '/settings/profile');
 
     // 个人资料
@@ -247,26 +212,12 @@ Route::middleware([AuthenticateSettings::class, IdentifyWorkspace::class, TrackL
 });
 
 // 系统设置（仅超级管理员）
-Route::prefix('admin')->middleware(['auth:admin', CheckSuperAdmin::class])->group(function () {
-    Route::redirect('/', '/admin/general')->name('admin.home');
+Route::prefix('admin')->middleware(['auth:admin,web', CheckSuperAdmin::class, IdentifyWorkspace::class])->group(function () {
+    Route::redirect('/', '/admin/dashboard')->name('admin.home');
 
     // 基础设置
     Route::get('general', GetGeneralSettingAction::class)->name('admin.general.show');
     Route::put('general', UpdateGeneralSettingAction::class)->name('admin.general.update');
-
-    // 工作区管理
-    Route::get('workspaces', GetWorkspaceListAction::class)->name('admin.workspaces.index');
-    Route::get('workspaces/trash', GetWorkspaceTrashListAction::class)->name('admin.workspaces.trash');
-    Route::get('workspaces/create', ShowCreateSystemWorkspacePageAction::class)->name('admin.workspaces.create');
-    Route::post('workspaces', CreateSystemWorkspaceAction::class)->name('admin.workspaces.store');
-    Route::get('workspaces/{id}', ShowWorkspaceDetailAction::class)->name('admin.workspaces.show');
-    Route::get('workspaces/{id}/edit', ShowEditSystemWorkspacePageAction::class)->name('admin.workspaces.edit');
-    Route::put('workspaces/{id}', UpdateSystemWorkspaceAction::class)->name('admin.workspaces.update');
-    Route::delete('workspaces/{id}', DeleteWorkspaceAction::class)->name('admin.workspaces.destroy');
-    Route::put('workspaces/{id}/restore', RestoreWorkspaceAction::class)->name('admin.workspaces.restore');
-    Route::get('workspaces/{id}/login-as-owner', LoginAsWorkspaceOwnerAction::class)->name('admin.workspaces.login-as-owner');
-    Route::post('workspaces/{id}/members', AddWorkspaceMemberAction::class)->name('admin.workspaces.members.store');
-    Route::delete('workspaces/{id}/members/{userId}', DeleteWorkspaceMemberAction::class)->name('admin.workspaces.members.destroy');
 
     // 存储设置
     Route::get('storage', GetStorageSettingAction::class)->name('admin.storage.show');
@@ -279,26 +230,18 @@ Route::prefix('admin')->middleware(['auth:admin', CheckSuperAdmin::class])->grou
     Route::put('storage/profiles/{profile}/check', CheckStorageProfileAction::class)->name('admin.storage.profiles.check');
     Route::delete('storage/profiles/{profile}', DeleteStorageProfileAction::class)->name('admin.storage.profiles.destroy');
 
-    // 用户管理
-    Route::get('users', ShowUserListAction::class)->name('admin.users.index');
-    Route::get('users/create', ShowCreateUserPageAction::class)->name('admin.users.create');
-    Route::post('users', CreateUserAction::class)->name('admin.users.store');
-    Route::get('users/{id}/edit', ShowEditUserPageAction::class)->name('admin.users.edit');
-    Route::put('users/{id}', UpdateUserAction::class)->name('admin.users.update');
-    Route::put('users/{id}/two-factor/reset', ResetUserTwoFactorAuthenticationAction::class)->name('admin.users.two-factor.reset');
-
     // 邮箱服务器
     Route::get('mail', ShowMailSettingsPageAction::class)->name('admin.mail.show');
     Route::put('mail', UpdateMailSettingsAction::class)->name('admin.mail.update');
     Route::post('mail/test', SendMailSettingsTestEmailAction::class)->name('admin.mail.test');
 });
 
-// 分 guard 登出（保证同一浏览器同时操作 admin + workspace 时互不影响）
+// 分 guard 登出
 Route::post('/logout/admin', LogoutAdminAction::class)->middleware(['auth:admin'])->name('logout.admin');
 Route::post('/logout/web', LogoutWebAction::class)->middleware(['auth:web'])->name('logout.web');
 
-Route::middleware(['auth:web', EnsureEmailIsVerifiedWhenMailEnabled::class, IdentifyWorkspace::class, TrackLastWorkspace::class])->prefix('w/{slug}')->group(function () {
-    Route::get('/', RedirectCurrentWorkspaceDashboardAction::class)->name('workspace.home');
+Route::prefix('admin')->middleware(['auth:admin,web', CheckSuperAdmin::class, EnsureEmailIsVerifiedWhenMailEnabled::class, IdentifyWorkspace::class])->group(function () {
+    Route::redirect('/home', '/admin/dashboard')->name('workspace.home');
     Route::get('/dashboard', ShowDashboardPageAction::class)->name('workspace.dashboard');
     Route::get('/inbox', ShowInboxAction::class)->name('workspace.inbox.show');
     Route::put('/online-status', UpdateMyOnlineStatusAction::class)->name('workspace.online-status.update');
@@ -337,7 +280,7 @@ Route::middleware(['auth:web', EnsureEmailIsVerifiedWhenMailEnabled::class, Iden
         ->middleware('throttle:ai-chat-stop')
         ->name('workspace.ai-chat.stop');
 
-    // 快捷回复：CRUD 全员可访问（普通成员管理自己的个人模版，管理员维护工作区共享）。
+    // 快捷回复：CRUD 全员可访问，管理员维护系统共享模板。
     // search/use-and-render 走 XHR，给收件箱 composer 用。
     Route::prefix('canned-replies')->group(function () {
         Route::get('/', ShowCannedReplyListAction::class)->name('workspace.canned-replies.index');
@@ -350,22 +293,6 @@ Route::middleware(['auth:web', EnsureEmailIsVerifiedWhenMailEnabled::class, Iden
 
     // 管理中心
     Route::prefix('manage')->group(function () {
-        // 工作区
-        Route::get('workspaces/current', GetCurrentWorkspaceAction::class)->name('workspace.manage.workspaces.current.show');
-        Route::get('workspaces/create', ShowCreateWorkspacePageAction::class)->name('workspace.manage.workspaces.create');
-        Route::put('workspaces/current', UpdateWorkspaceAction::class)->name('workspace.manage.workspaces.current.update');
-        Route::post('workspaces', CreateWorkspaceAction::class)->name('workspace.manage.workspaces.store');
-        Route::delete('workspaces/current', DeleteCurrentWorkspaceAction::class)->name('workspace.manage.workspaces.current.destroy');
-
-        // 多客服
-        Route::get('teammates', ShowTeammateListAction::class)->name('workspace.manage.teammates.index');
-        Route::get('teammates/create', ShowCreateTeammatePageAction::class)->name('workspace.manage.teammates.create');
-        Route::get('teammates/{id}/edit', ShowEditTeammatePageAction::class)->name('workspace.manage.teammates.edit');
-        Route::post('teammates', CreateTeammateAction::class)->name('workspace.manage.teammates.store');
-        Route::put('teammates/{id}', UpdateTeammateAction::class)->name('workspace.manage.teammates.update');
-        Route::put('teammates/{id}/online-status', UpdateTeammateOnlineStatusAction::class)->name('workspace.manage.teammates.online-status.update');
-        Route::delete('teammates/{id}', RemoveTeammateAction::class)->name('workspace.manage.teammates.destroy');
-
         // 知识库
         Route::prefix('knowledge-bases')->group(function () {
             Route::get('/', ListKnowledgeBasesAction::class)->name('workspace.manage.knowledge-bases.index');

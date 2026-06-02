@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
  *  - 把每条原始 query 经过 KnowledgeTokenizer 切成 token 列表；
  *  - 用 FTS5 MATCH 表达式做 OR 召回：`token1 OR token2 OR ...`；
  *  - 通过 -bm25() 把 bm25 排序得分转成"越大越相关"，再 LIMIT topK；
- *  - 用 workspace / knowledge_base_id 双重 UNINDEXED 列过滤，避免跨库泄漏。
+ *  - 用 knowledge_base_id UNINDEXED 列过滤，避免无关知识库混入。
  *
  * 中文友好性来自两处：
  *  - 写入时 search_content 已被预分词成空格分隔 token；
@@ -37,7 +37,6 @@ class FullTextRetriever
      * @return list<KnowledgeSearchHit>
      */
     public function retrieve(
-        string $workspaceId,
         array $knowledgeBaseIds,
         array $queries,
         int $topK,
@@ -56,7 +55,7 @@ class FullTextRetriever
             if ($expression === null) {
                 continue;
             }
-            $rows = $this->runMatch($expression, $workspaceId, $knowledgeBaseIds, $topK);
+            $rows = $this->runMatch($expression, $knowledgeBaseIds, $topK);
             if ($rows === []) {
                 continue;
             }
@@ -90,7 +89,6 @@ class FullTextRetriever
                     rank: $rank,
                     knowledgeNodeId: $node->id,
                     knowledgeBaseId: $node->knowledge_base_id,
-                    workspaceId: $node->workspace_id,
                     documentId: $node->document_id,
                     qaEntryId: $node->qa_entry_id,
                     qaQuestionId: $node->qa_question_id,
@@ -144,7 +142,7 @@ class FullTextRetriever
      * @param  list<string>  $knowledgeBaseIds
      * @return list<object>
      */
-    private function runMatch(string $expression, string $workspaceId, array $knowledgeBaseIds, int $topK): array
+    private function runMatch(string $expression, array $knowledgeBaseIds, int $topK): array
     {
         $placeholders = implode(',', array_fill(0, count($knowledgeBaseIds), '?'));
         $sql = <<<SQL
@@ -152,7 +150,6 @@ class FullTextRetriever
                    document_id,
                    qa_entry_id,
                    knowledge_base_id,
-                   workspace_id,
                    byte_start,
                    byte_end,
                    heading_path,
@@ -160,13 +157,12 @@ class FullTextRetriever
                    -bm25(knowledge_fts) AS bm25_score
             FROM knowledge_fts
             WHERE knowledge_fts MATCH ?
-              AND workspace_id = ?
               AND knowledge_base_id IN ({$placeholders})
             ORDER BY bm25_score DESC
             LIMIT ?
         SQL;
 
-        $bindings = array_merge([$expression, $workspaceId], $knowledgeBaseIds, [$topK]);
+        $bindings = array_merge([$expression], $knowledgeBaseIds, [$topK]);
 
         return DB::connection('sqlite_rag')->select($sql, $bindings);
     }

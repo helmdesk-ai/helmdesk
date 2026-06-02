@@ -125,7 +125,6 @@ class CaptureWebConversationContextAction
         }
 
         $conversation->pageViews()->create([
-            'workspace_id' => $conversation->workspace_id,
             'contact_id' => $conversation->contact_id,
             'url' => $currentUrl,
             'referrer' => $referrer,

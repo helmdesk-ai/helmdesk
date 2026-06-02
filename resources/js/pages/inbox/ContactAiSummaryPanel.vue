@@ -16,7 +16,6 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   contactProfile: InboxContactProfileData | null;
-  workspaceSlug: string;
   currentUserLocale: string;
   canTranslate: boolean;
   autoTranslateEnabled: boolean;
@@ -129,7 +128,6 @@ async function queueTranslation(): Promise<void> {
   try {
     await axios.post(
       inboxActions.contacts.aiSummary.queueTranslation.url({
-        slug: props.workspaceSlug,
         contactId: props.contactProfile.id,
       }),
       { target_locale: props.currentUserLocale },

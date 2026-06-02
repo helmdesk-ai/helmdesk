@@ -28,7 +28,6 @@ class CloseInboxConversationAction
     public function handle(Workspace $workspace, User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -42,7 +41,7 @@ class CloseInboxConversationAction
         return $this->closeConversationAction->handle($conversation, $user);
     }
 
-    public function asController(Request $request, string $slug, string $conversationId): RedirectResponse
+    public function asController(Request $request, string $conversationId): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $conversation = $this->handle(
@@ -52,7 +51,6 @@ class CloseInboxConversationAction
         );
 
         return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
             'view' => InboxView::Closed,
             'conversation_id' => $conversation->id,
         ]);

@@ -30,7 +30,6 @@ class WebChannelResolutionService
     public function findWorkspaceChannel(Workspace $workspace, string $channelId): Channel
     {
         return Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->findOrFail($channelId);
     }

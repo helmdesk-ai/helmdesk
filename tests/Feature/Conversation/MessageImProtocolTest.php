@@ -49,7 +49,6 @@ function imProtocolCreateChannel(): Channel
 {
     $workspace = Workspace::factory()->create();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'im-provider-'.Str::lower(Str::random(6)),
         'name' => 'IM Provider',
@@ -68,7 +67,7 @@ function imProtocolCreateChannel(): Channel
         'is_builtin' => false,
         'sort_order' => 0,
     ]);
-    $plan = ReceptionPlan::factory()->for($workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => 'IM Plan-'.Str::lower(Str::random(6)),
     ]);
     $version = ReceptionPlanVersion::factory()
@@ -78,7 +77,6 @@ function imProtocolCreateChannel(): Channel
         ->create();
 
     return Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
     ]);
@@ -178,9 +176,8 @@ test('未带 client_msg_id 的访客消息允许同内容多次发送', function
 test('客服回复也支持 client_msg_id 幂等', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create();
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
 
     /** @var Conversation $conversation */
     $conversation = Conversation::query()->firstOrFail();
@@ -307,9 +304,8 @@ test('访客状态会下发引用消息快照', function () {
 test('客服时间线会下发引用消息快照', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create(['name' => 'Reply Agent']);
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor original');
     $target = ConversationMessage::query()->where('role', MessageRole::Visitor)->firstOrFail();
@@ -402,9 +398,8 @@ test('客服可以撤回自己发出的消息但不能撤回访客消息', funct
     [$channel, $sessionToken] = imProtocolStartSession();
 
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create();
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor msg');
     $visitorMessage = ConversationMessage::query()->where('role', MessageRole::Visitor)->firstOrFail();
@@ -441,9 +436,8 @@ test('客服可以撤回自己发出的消息但不能撤回访客消息', funct
 test('客服可以撤回当前接管会话内的 AI 消息', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create();
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
 
     app(AppendAiMessageAction::class)->handle(Conversation::query()->firstOrFail(), 'ai answer');
     $aiMessage = ConversationMessage::query()->where('role', MessageRole::Ai)->firstOrFail();
@@ -491,9 +485,8 @@ test('访客端只看到自己撤回消息的原文用于重新编辑', function
 
     // 客服接管并撤回 AI 消息
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create();
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
     /** @var Conversation $conversation */
     $conversation = Conversation::query()->firstOrFail();
     $conversation->forceFill([
@@ -524,11 +517,9 @@ test('访客端只看到自己撤回消息的原文用于重新编辑', function
 test('客服端时间线只对操作者本人下发 recalled_content', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammateA = User::factory()->create();
     $teammateB = User::factory()->create();
-    $workspace->users()->attach($teammateA->id, ['role' => 'admin']);
-    $workspace->users()->attach($teammateB->id, ['role' => 'admin']);
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor secret');
     $visitorMessage = ConversationMessage::query()->where('role', MessageRole::Visitor)->firstOrFail();
@@ -613,9 +604,8 @@ test('未传 viewer 时时间线不下发任何 recalled_content', function () {
 test('对工具消息禁止撤回', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
     /** @var Workspace $workspace */
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create();
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
 
     /** @var Conversation $conversation */
     $conversation = Conversation::query()->firstOrFail();
@@ -642,9 +632,8 @@ test('对工具消息禁止撤回', function () {
 test('B端引用访客消息时直接使用落库发送者名称', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
 
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create(['name' => 'Agent One']);
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor original');
     $target = ConversationMessage::query()->where('role', MessageRole::Visitor)->firstOrFail();
@@ -697,9 +686,8 @@ test('B端引用 AI 消息时 sender_name 由后端填充，前端无需 fallbac
     app(AppendAiMessageAction::class)->handle($conversation, 'AI said something');
     $target = ConversationMessage::query()->where('role', MessageRole::Ai)->firstOrFail();
 
-    $workspace = Workspace::query()->findOrFail($channel->workspace_id);
+    $workspace = Workspace::current();
     $teammate = User::factory()->create(['name' => 'Agent Two']);
-    $workspace->users()->attach($teammate->id, ['role' => 'admin']);
     $conversation->forceFill([
         'assigned_user_id' => $teammate->id,
         'inbox_status' => ConversationInboxStatus::TeammateHandling,

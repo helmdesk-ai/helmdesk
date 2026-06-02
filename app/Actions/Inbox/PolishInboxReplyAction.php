@@ -14,7 +14,6 @@ use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Conversation\ConversationReplyPermission;
 use App\Services\Conversation\GoInboxReplyPolishBridge;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -46,7 +45,6 @@ class PolishInboxReplyAction
     public function handle(Workspace $workspace, User $user, string $conversationId, FormPolishInboxReplyData $data): InboxReplyPolishResultData
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -72,7 +70,6 @@ class PolishInboxReplyAction
             );
         } catch (RuntimeException $exception) {
             Log::warning('收件箱 AI 回复助手失败', [
-                'workspace_id' => $workspace->id,
                 'conversation_id' => $conversation->id,
                 'model_id' => $model->id,
                 'error' => $this->sanitizeUpstreamError($exception->getMessage()),
@@ -92,7 +89,7 @@ class PolishInboxReplyAction
     /**
      * 接收收件箱 AI 回复助手请求并返回 JSON。
      */
-    public function asController(Request $request, string $slug, string $conversationId): JsonResponse
+    public function asController(Request $request, string $conversationId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
@@ -119,7 +116,7 @@ class PolishInboxReplyAction
 
         $model = AiModel::query()
             ->with('provider')
-            ->whereHas('provider', fn (Builder $q) => $q->where('workspace_id', $workspace->id))
+            ->whereHas('provider')
             ->find($modelId);
 
         if ($model === null || $model->provider === null) {

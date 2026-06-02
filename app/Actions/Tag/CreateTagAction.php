@@ -26,7 +26,6 @@ class CreateTagAction
     public function handle(Workspace $workspace, FormCreateTagData $data, ?User $actor = null): Tag
     {
         $group = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->find($data->tag_group_id);
 
         if ($group === null) {
@@ -39,7 +38,6 @@ class CreateTagAction
         $normalizedName = mb_strtolower($name);
 
         $exists = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->where('tag_group_id', $group->id)
             ->where('normalized_name', $normalizedName)
             ->whereNull('deleted_at')
@@ -52,7 +50,6 @@ class CreateTagAction
         }
 
         return Tag::query()->create([
-            'workspace_id' => $workspace->id,
             'tag_group_id' => $group->id,
             'name' => $name,
             'color' => $data->color,

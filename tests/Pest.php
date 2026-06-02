@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\WorkspaceRole;
 use App\Models\User;
 use App\Models\Workspace;
 use Tests\TestCase;
@@ -32,12 +31,13 @@ pest()->extend(TestCase::class)
  */
 function createWorkspaceWithOwner(array $userAttributes = [], array $workspaceAttributes = []): array
 {
-    $user = User::factory()->create($userAttributes);
+    $user = User::factory()->create(array_merge([
+        'is_super_admin' => true,
+    ], $userAttributes));
+
     $workspace = Workspace::factory()->create(array_merge([
         'owner_id' => $user->id,
     ], $workspaceAttributes));
-
-    $user->workspaces()->attach($workspace, ['role' => WorkspaceRole::Owner->value]);
 
     return [$workspace, $user];
 }

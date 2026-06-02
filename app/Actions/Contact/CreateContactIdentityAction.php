@@ -33,7 +33,6 @@ class CreateContactIdentityAction
         ?User $actor = null,
     ): ContactIdentity {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $type = IdentityType::from($data->type);
@@ -60,7 +59,6 @@ class CreateContactIdentityAction
         }
 
         $existing = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', $type)
             ->where('namespace', $namespace)
             ->where('value', $value)
@@ -85,7 +83,6 @@ class CreateContactIdentityAction
             $wasVisitor = $contact->type === ContactType::Visitor;
 
             $identity = ContactIdentity::query()->create([
-                'workspace_id' => $contact->workspace_id,
                 'contact_id' => $contact->id,
                 'type' => $type,
                 'namespace' => $namespace,
@@ -115,7 +112,7 @@ class CreateContactIdentityAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $contactId): Response
+    public function asController(Request $request, string $contactId): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

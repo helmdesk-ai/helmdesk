@@ -42,12 +42,12 @@ class CreateKnowledgeGroupAction
     /**
      * 处理「新建分组」表单提交。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
-        $kb = KnowledgeBase::query()->where('workspace_id', $workspace->id)->findOrFail($knowledgeBase);
+        $kb = KnowledgeBase::query()->findOrFail($knowledgeBase);
 
         $this->handle($kb, FormCreateKnowledgeGroupData::from($request));
 

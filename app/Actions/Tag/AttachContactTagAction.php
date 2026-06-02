@@ -25,11 +25,9 @@ class AttachContactTagAction
     public function handle(Workspace $workspace, string $contactId, FormAttachContactTagData $data, ?User $actor = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($data->tag_id);
 
         $alreadyAttached = DB::table('contact_tag_assignments')
@@ -61,7 +59,7 @@ class AttachContactTagAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): JsonResponse
+    public function asController(Request $request, string $id): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormAttachContactTagData::from($request);

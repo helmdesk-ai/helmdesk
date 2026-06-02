@@ -103,13 +103,12 @@ class RunKnowledgeRecallTestAction
     /**
      * 鉴权后把请求转换为锁定到当前知识库的检索 Data，并以 JSON 形式返回召回结果。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): JsonResponse
+    public function asController(Request $request, string $knowledgeBase): JsonResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $data = FormKnowledgeSearchData::validateAndCreate([

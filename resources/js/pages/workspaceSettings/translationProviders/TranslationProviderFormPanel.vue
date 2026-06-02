@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   EnumOptionData,
   TranslationProviderData,
@@ -76,7 +75,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { toast } = useToast();
-const workspace = useRequiredWorkspace();
 
 const isEditMode = computed(() => props.mode === 'edit');
 
@@ -273,7 +271,6 @@ function submit(): void {
       }))
       .put(
         Translation.UpdateTranslationProviderCredentialsAction.url({
-          slug: workspace.value.slug,
           provider: props.provider.slug,
         }),
         {
@@ -293,7 +290,7 @@ function submit(): void {
       configuration: data.configuration,
     }))
     .post(
-      Translation.CreateTranslationProviderAction.url(workspace.value.slug),
+      Translation.CreateTranslationProviderAction.url(),
       {
         preserveScroll: true,
         onSuccess: () => emit('saved'),
@@ -337,9 +334,8 @@ function checkConnection(): void {
   if (isEditMode.value && props.provider) {
     checkHttp.post(
       Translation.CheckTranslationProviderAction[
-        '/w/{slug}/manage/translation/providers/{provider}/check'
+        '/admin/manage/translation/providers/{provider}/check'
       ].url({
-        slug: workspace.value.slug,
         provider: props.provider.slug,
       }),
       errorHandlers,
@@ -350,8 +346,8 @@ function checkConnection(): void {
   checkHttp.protocol = form.protocol;
   checkHttp.post(
     Translation.CheckTranslationProviderAction[
-      '/w/{slug}/manage/translation/providers/check'
-    ].url(workspace.value.slug),
+      '/admin/manage/translation/providers/check'
+    ].url(),
     errorHandlers,
   );
 }

@@ -37,7 +37,7 @@ class UpdateAttributeDefinitionAction
         return $definition;
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         $data = FormUpdateAttributeDefinitionData::from($request);

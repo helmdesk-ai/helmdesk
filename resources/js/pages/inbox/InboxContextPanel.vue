@@ -19,7 +19,6 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { EMAIL_MAX_LENGTH, isLikelyValidEmail } from '@/lib/email';
 import {
   buildPhoneNumber,
@@ -66,12 +65,10 @@ const props = defineProps<{
   currentUserLocale: string;
   canTranslate: boolean;
   autoTranslateEnabled: boolean;
-  workspaceSlug: string;
 }>();
 
 const { locale, t } = useI18n();
 const { formatDateTime } = useDateTime();
-const currentWorkspace = useRequiredWorkspace();
 const defaultPhonePrefix = computed(() => getDefaultPhonePrefix(locale.value));
 
 type TabKey = 'profile' | 'ai_summary';
@@ -336,7 +333,6 @@ function saveVisitorLocale(nextValue: string): void {
   visitorLocaleError.value = null;
   router.put(
     Inbox.UpdateConversationVisitorLocaleAction({
-      slug: currentWorkspace.value.slug,
       conversation: props.conversationId,
     }).url,
     { visitor_locale: nextValue },
@@ -587,7 +583,6 @@ function saveProfile(showProgress = true): void {
 
   profileForm.put(
     workspace.contacts.update.url({
-      slug: currentWorkspace.value.slug,
       id: profile.id,
     }),
     {
@@ -622,7 +617,6 @@ function saveNote(showProgress = true): void {
 
   noteForm.put(
     workspace.contacts.update.url({
-      slug: currentWorkspace.value.slug,
       id: profile.id,
     }),
     {
@@ -665,7 +659,6 @@ function saveIdentity(kind: 'email' | 'phone', showProgress = true): void {
     form.clearErrors('value');
     form.delete(
       workspace.contacts.identities.destroy.url({
-        slug: currentWorkspace.value.slug,
         contactId: profile.id,
         identityId,
       }),
@@ -707,7 +700,6 @@ function saveIdentity(kind: 'email' | 'phone', showProgress = true): void {
   if (identityId) {
     form.put(
       workspace.contacts.identities.replace.url({
-        slug: currentWorkspace.value.slug,
         contactId: profile.id,
         identityId,
       }),
@@ -718,7 +710,6 @@ function saveIdentity(kind: 'email' | 'phone', showProgress = true): void {
 
   form.post(
     workspace.contacts.identities.store.url({
-      slug: currentWorkspace.value.slug,
       contactId: profile.id,
     }),
     options,
@@ -756,7 +747,6 @@ function saveContactType(nextType: string): void {
   typeForm.type = nextType;
   typeForm.put(
     workspace.contacts.update.url({
-      slug: currentWorkspace.value.slug,
       id: profile.id,
     }),
     {
@@ -784,7 +774,6 @@ async function handleAttachTag(tagId: string): Promise<void> {
   try {
     await axios.post(
       workspace.contacts.tags.attach.url({
-        slug: currentWorkspace.value.slug,
         id: profile.id,
       }),
       { tag_id: tagId },
@@ -803,7 +792,6 @@ async function handleDetachTag(tagId: string): Promise<void> {
   try {
     await axios.delete(
       workspace.contacts.tags.detach.url({
-        slug: currentWorkspace.value.slug,
         id: profile.id,
         tagId,
       }),
@@ -832,7 +820,6 @@ function saveCustomAttributes(showProgress = true): void {
 
   attrForm.put(
     workspace.contacts.attributes.update.url({
-      slug: currentWorkspace.value.slug,
       id: profile.id,
     }),
     {
@@ -1294,7 +1281,6 @@ onUnmounted(() => {
       <template v-else-if="activeTab === 'ai_summary'">
         <ContactAiSummaryPanel
           :contact-profile="contactProfile"
-          :workspace-slug="workspaceSlug"
           :current-user-locale="currentUserLocale"
           :can-translate="canTranslate"
           :auto-translate-enabled="autoTranslateEnabled"

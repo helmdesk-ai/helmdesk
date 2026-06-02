@@ -37,7 +37,6 @@ class GenerateContactAiSummaryAction
      */
     public function handle(Contact $contact): ?array
     {
-        $contact->loadMissing('workspace');
         $digests = $this->conversationDigests($contact);
         if ($digests === []) {
             return null;
@@ -71,7 +70,6 @@ class GenerateContactAiSummaryAction
     private function conversationDigests(Contact $contact): array
     {
         return Conversation::query()
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->where(function (Builder $query): void {
                 $query
@@ -162,7 +160,6 @@ class GenerateContactAiSummaryAction
     {
         $latest = Conversation::query()
             ->with('receptionPlanVersion')
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->whereNotNull('reception_plan_version_id')
             ->orderByDesc('created_at')
@@ -193,9 +190,8 @@ class GenerateContactAiSummaryAction
             ->whereIn('id', array_keys($modelIds))
             ->where('type', AiModelType::Llm->value)
             ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query) use ($contact): void {
+            ->whereHas('provider', function (Builder $query): void {
                 $query
-                    ->where('workspace_id', $contact->workspace_id)
                     ->where('is_active', true);
             })
             ->get()
@@ -217,9 +213,8 @@ class GenerateContactAiSummaryAction
             ->with('provider')
             ->where('type', AiModelType::Llm->value)
             ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query) use ($contact): void {
+            ->whereHas('provider', function (Builder $query): void {
                 $query
-                    ->where('workspace_id', $contact->workspace_id)
                     ->where('is_active', true);
             })
             ->orderBy('sort_order')
@@ -273,7 +268,6 @@ class GenerateContactAiSummaryAction
     private function latestConversation(Contact $contact): ?Conversation
     {
         return Conversation::query()
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->orderByDesc('created_at')
             ->first();

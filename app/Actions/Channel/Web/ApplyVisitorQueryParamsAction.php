@@ -53,10 +53,7 @@ class ApplyVisitorQueryParamsAction
     private const TAG_VALUE_PATTERN = '/^[a-zA-Z0-9_-]{1,40}$/';
 
     /**
-     * AttributeDefinition 按工作区缓存的 TTL（秒）。
-     *
-     * 属性定义变更频率极低，在访客发起会话的高频路径上缓存 5 分钟
-     * 可以显著减少 DB 查询，且属性变更后最多 5 分钟内对新会话生效。
+     * AttributeDefinition 缓存的 TTL（秒）。
      */
     private const DEFINITIONS_CACHE_TTL = 300;
 
@@ -80,10 +77,9 @@ class ApplyVisitorQueryParamsAction
         }
 
         $definitions = Cache::remember(
-            "workspace:{$channel->workspace_id}:attribute_definitions:writable",
+            'attribute_definitions:writable',
             self::DEFINITIONS_CACHE_TTL,
             fn (): Collection => AttributeDefinition::query()
-                ->where('workspace_id', $channel->workspace_id)
                 ->whereNull('deleted_at')
                 ->get()
                 ->keyBy('key'),
@@ -229,7 +225,7 @@ class ApplyVisitorQueryParamsAction
      * 通用 ContactIdentity 写入：
      *  - OnlyIfEmpty + 联系人已有同 type identity → 不写入
      *  - Overwrite   + 联系人已有同 type identity（不同 value）→ 软删原有身份后写入新值
-     *  - 工作区内同 type/value 已被其他联系人占用 → 不写入
+     *  - 同 type/value 已被其他联系人占用 → 不写入
      */
     private function writeContactIdentity(
         Channel $channel,
@@ -240,7 +236,6 @@ class ApplyVisitorQueryParamsAction
         string $value,
     ): void {
         $existingOnContact = ContactIdentity::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('contact_id', $contact->id)
             ->where('type', $type)
             ->where('namespace', $namespace)
@@ -255,7 +250,6 @@ class ApplyVisitorQueryParamsAction
         }
 
         $takenElsewhere = ContactIdentity::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('type', $type)
             ->where('namespace', $namespace)
             ->where('value', $value)
@@ -266,7 +260,7 @@ class ApplyVisitorQueryParamsAction
         }
 
         try {
-            DB::transaction(function () use ($contact, $existingOnContact, $type, $namespace, $value, $channel, $mapping): void {
+            DB::transaction(function () use ($contact, $existingOnContact, $type, $namespace, $value, $mapping): void {
                 if ($mapping->write_mode === WebChannelParamWriteMode::Overwrite) {
                     foreach ($existingOnContact as $identity) {
                         $identity->delete();
@@ -274,7 +268,6 @@ class ApplyVisitorQueryParamsAction
                 }
 
                 ContactIdentity::query()->create([
-                    'workspace_id' => $channel->workspace_id,
                     'contact_id' => $contact->id,
                     'type' => $type,
                     'namespace' => $namespace,
@@ -286,7 +279,6 @@ class ApplyVisitorQueryParamsAction
             });
         } catch (UniqueConstraintViolationException) {
             Log::debug('访客传参联系人身份写入遇到并发唯一约束。', [
-                'workspace_id' => (string) $channel->workspace_id,
                 'contact_id' => (string) $contact->id,
                 'type' => $type->value,
                 'namespace' => $namespace,
@@ -325,7 +317,6 @@ class ApplyVisitorQueryParamsAction
         }
 
         $existing = ContactAttributeValue::query()
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->where('definition_id', $definition->id)
             ->first();
@@ -344,7 +335,6 @@ class ApplyVisitorQueryParamsAction
         } else {
             try {
                 ContactAttributeValue::query()->create([
-                    'workspace_id' => $contact->workspace_id,
                     'contact_id' => $contact->id,
                     'definition_id' => $definition->id,
                     'value_json' => $payload,
@@ -352,7 +342,6 @@ class ApplyVisitorQueryParamsAction
                 ]);
             } catch (UniqueConstraintViolationException) {
                 Log::debug('访客传参联系人属性写入遇到并发唯一约束。', [
-                    'workspace_id' => (string) $contact->workspace_id,
                     'contact_id' => (string) $contact->id,
                     'definition_id' => (string) $definition->id,
                 ]);
@@ -379,7 +368,6 @@ class ApplyVisitorQueryParamsAction
                 $group = $this->resolveChannelTagGroup($channel);
 
                 $tag = Tag::query()
-                    ->where('workspace_id', $channel->workspace_id)
                     ->where('tag_group_id', $group->id)
                     ->where('normalized_name', $normalized)
                     ->whereNull('deleted_at')
@@ -387,7 +375,6 @@ class ApplyVisitorQueryParamsAction
 
                 if ($tag === null) {
                     $tag = Tag::query()->create([
-                        'workspace_id' => $channel->workspace_id,
                         'tag_group_id' => $group->id,
                         'name' => $resolved,
                         'source' => TagSource::Channel,
@@ -415,7 +402,6 @@ class ApplyVisitorQueryParamsAction
             });
         } catch (UniqueConstraintViolationException) {
             Log::debug('访客传参联系人标签写入遇到并发唯一约束。', [
-                'workspace_id' => (string) $channel->workspace_id,
                 'contact_id' => (string) $contact->id,
                 'tag_name' => $resolved,
             ]);
@@ -431,7 +417,6 @@ class ApplyVisitorQueryParamsAction
 
         return TagGroup::query()->firstOrCreate(
             [
-                'workspace_id' => $channel->workspace_id,
                 'normalized_name' => mb_strtolower($name),
             ],
             [

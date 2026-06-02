@@ -17,7 +17,6 @@ return new class extends Migration
                 qa_entry_id UNINDEXED,
                 qa_question_id UNINDEXED,
                 knowledge_base_id UNINDEXED,
-                workspace_id UNINDEXED,
                 group_id UNINDEXED,
                 byte_start UNINDEXED,
                 byte_end UNINDEXED,

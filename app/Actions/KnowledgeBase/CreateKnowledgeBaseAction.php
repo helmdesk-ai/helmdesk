@@ -41,20 +41,18 @@ class CreateKnowledgeBaseAction
             attachable: new KnowledgeBase,
             attachmentId: $data->avatar_id,
             currentAttachmentId: null,
-            workspaceId: (string) $workspace->id,
             allowedPurposes: [AttachmentPurpose::Avatar],
             messageKey: 'knowledge_base.messages.invalid_attachment',
         );
 
-        return DB::transaction(function () use ($workspace, $data, $name): KnowledgeBase {
+        return DB::transaction(function () use ($data, $name): KnowledgeBase {
             $knowledgeBase = KnowledgeBase::query()->create([
-                'workspace_id' => $workspace->id,
                 'name' => $name,
                 'avatar_id' => filled($data->avatar_id) ? $data->avatar_id : null,
                 'description' => filled($data->description) ? $data->description : null,
                 'category' => $data->category,
             ]);
-            $this->attachments->syncAttachment($knowledgeBase, 'avatar_id', null, (string) $workspace->id);
+            $this->attachments->syncAttachment($knowledgeBase, 'avatar_id', null);
 
             KnowledgeGroup::query()->create([
                 'knowledge_base_id' => $knowledgeBase->id,
@@ -79,7 +77,6 @@ class CreateKnowledgeBaseAction
         $knowledgeBase = $this->handle($workspace, FormCreateKnowledgeBaseData::from($request));
 
         return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
             'kb' => $knowledgeBase->id,
         ]);
     }
@@ -90,7 +87,6 @@ class CreateKnowledgeBaseAction
     private function ensureNameIsAvailable(Workspace $workspace, string $name): void
     {
         $exists = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->where('name', $name)
             ->exists();
 

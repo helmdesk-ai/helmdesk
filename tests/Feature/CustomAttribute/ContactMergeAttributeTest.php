@@ -13,12 +13,11 @@ uses(RefreshDatabase::class);
 test('合并填充缺失单选值来自来源', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'Acme'],
@@ -39,19 +38,17 @@ test('合并填充缺失单选值来自来源', function () {
 test('合并保留目标值当双方都有值', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $target->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'Target Corp'],
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'Merged Corp'],
@@ -76,19 +73,17 @@ test('合并保留目标值当双方都有值', function () {
 test('合并保留布尔false在目标', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->boolean()->create(['key' => 'is_vip']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->boolean()->create(['key' => 'is_vip']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $target->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => false],
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => true],
@@ -107,23 +102,21 @@ test('合并保留布尔false在目标', function () {
 test('合并生成并集用于multi_select', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->multiSelect([
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->multiSelect([
         ['code' => 'a', 'label' => 'A'],
         ['code' => 'b', 'label' => 'B'],
         ['code' => 'c', 'label' => 'C'],
     ])->create(['key' => 'interests']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $target->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => ['a', 'b']],
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => ['b', 'c']],
@@ -142,12 +135,11 @@ test('合并生成并集用于multi_select', function () {
 test('合并设置来源到合并', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'note']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'note']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'from merged'],
@@ -166,12 +158,11 @@ test('合并设置来源到合并', function () {
 test('合并活动日志包含merged_custom_attributes', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'Acme'],
@@ -192,12 +183,11 @@ test('合并活动日志包含merged_custom_attributes', function () {
 test('合并处理已删除定义', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->deleted()->create(['key' => 'legacy']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->deleted()->create(['key' => 'legacy']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'old data'],
@@ -217,12 +207,11 @@ test('合并处理已删除定义', function () {
 test('合并移除来源联系人自定义属性行之后复制值', function () {
     [$workspace, $user] = createWorkspaceWithOwner();
 
-    $target = Contact::factory()->for($workspace)->create();
-    $merged = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
+    $target = Contact::factory()->create();
+    $merged = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $merged->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'Acme'],

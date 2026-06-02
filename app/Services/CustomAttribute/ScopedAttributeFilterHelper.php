@@ -91,11 +91,10 @@ class ScopedAttributeFilterHelper
                 continue;
             }
 
-            $query->whereExists(function ($subQuery) use ($workspace, $definition, $filterValue, $ownerTable, $valueTable, $ownerKeyColumn) {
+            $query->whereExists(function ($subQuery) use ($definition, $filterValue, $ownerTable, $valueTable, $ownerKeyColumn) {
                 $subQuery->selectRaw('1')
                     ->from($valueTable.' as attribute_filter_values')
                     ->whereColumn('attribute_filter_values.'.$ownerKeyColumn, "{$ownerTable}.id")
-                    ->where('attribute_filter_values.workspace_id', $workspace->id)
                     ->where('attribute_filter_values.definition_id', $definition->id);
 
                 match ($definition->type) {

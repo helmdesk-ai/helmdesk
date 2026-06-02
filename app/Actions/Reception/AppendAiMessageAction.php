@@ -70,7 +70,6 @@ class AppendAiMessageAction
 
         DB::transaction(function () use ($conversation, $content, $resolvedQuotedMessageId, $aiSenderName) {
             ConversationMessage::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'role' => MessageRole::Ai,
                 'kind' => MessageKind::Text,

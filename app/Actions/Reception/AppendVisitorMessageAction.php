@@ -121,7 +121,6 @@ class AppendVisitorMessageAction
 
                 if ($content !== '') {
                     $messages->push(ConversationMessage::query()->create([
-                        'workspace_id' => $conversation->workspace_id,
                         'conversation_id' => $conversation->id,
                         'role' => MessageRole::Visitor,
                         'sender_name' => $visitorSenderName,
@@ -141,7 +140,6 @@ class AppendVisitorMessageAction
                         : MessageKind::File;
 
                     $attachmentMessage = ConversationMessage::query()->create([
-                        'workspace_id' => $conversation->workspace_id,
                         'conversation_id' => $conversation->id,
                         'role' => MessageRole::Visitor,
                         'sender_name' => $visitorSenderName,
@@ -157,7 +155,6 @@ class AppendVisitorMessageAction
                     $attached = $this->attachUploadedAttachmentsAction->handle(
                         attachable: $attachmentMessage,
                         attachmentId: (string) $attachment->id,
-                        workspaceId: (string) $conversation->workspace_id,
                         sessionToken: $context['session_token'],
                         allowedPurposes: [AttachmentPurpose::ConversationImage, AttachmentPurpose::ConversationFile],
                     );

@@ -46,7 +46,6 @@ beforeEach(function (): void {
     $this->user = $this->createUserWithWorkspace();
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-bench-openrouter-'.Str::lower((string) Str::ulid()),
         'name' => 'Knowledge Recall OpenRouter',
@@ -95,7 +94,6 @@ beforeEach(function (): void {
     ]);
 
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'name' => '中文召回 Live 评测',
         'description' => 'tests/Fixtures/Knowledge/zh_recall_corpus.json',
     ]);

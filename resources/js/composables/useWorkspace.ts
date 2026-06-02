@@ -1,20 +1,16 @@
 /**
- * 文件说明：前端组合式逻辑，封装页面间复用的状态和浏览器侧行为。
+ * 文件说明：封装单租户后台运行时上下文读取。
  */
-import type { WorkspaceData } from '@/types/generated';
+import type { WorkspaceUserContextData } from '@/types/generated';
 import { usePage } from '@inertiajs/vue3';
 import { computed, type ComputedRef } from 'vue';
 
-const readWorkspaces = (value: unknown): WorkspaceData[] => {
-  if (!Array.isArray(value)) {
-    const { url, component } = getContextForError();
-    throw new Error(
-      `工作区列表缺失：IdentifyWorkspace 中间件应提供 workspaces。component=${component} url=${url}`,
-    );
-  }
-
-  return value as WorkspaceData[];
-};
+export interface CurrentWorkspaceContext {
+  id: string;
+  slug: string;
+  name: string;
+  logo_url: string;
+}
 
 function getContextForError() {
   const page = usePage();
@@ -25,45 +21,46 @@ function getContextForError() {
   return { url, component };
 }
 
-export function useCurrentWorkspace(): ComputedRef<WorkspaceData | null> {
+const readContext = (): WorkspaceUserContextData | null => {
   const page = usePage();
-  return computed(() => {
-    const slug = (page.props as any)?.workspaceUserContext?.workspace_slug as
-      | string
-      | null
-      | undefined;
-    if (!slug) {
-      return null;
-    }
+  const context = (page.props as any)?.workspaceUserContext;
 
-    const workspaces = readWorkspaces((page.props as any)?.workspaces);
-    return workspaces.find((w) => w.slug === slug) ?? null;
+  return context && typeof context === 'object'
+    ? (context as WorkspaceUserContextData)
+    : null;
+};
+
+const mapContext = (
+  context: WorkspaceUserContextData,
+): CurrentWorkspaceContext => ({
+  id: context.workspace_slug,
+  slug: context.workspace_slug,
+  name: context.workspace_name,
+  logo_url: context.workspace_logo_url,
+});
+
+export function useCurrentWorkspace(): ComputedRef<CurrentWorkspaceContext | null> {
+  return computed(() => {
+    const context = readContext();
+
+    return context ? mapContext(context) : null;
   });
 }
 
 /**
- * 工作区页面使用：从 `workspaceUserContext.workspace_slug` + `workspaces` 推导当前工作区。
- * 如果缺失会立刻抛错，帮助尽早发现“在错误上下文使用工作区组件”的问题。
+ * 后台页面使用：从 `workspaceUserContext` 读取单租户上下文。
  */
-export function useRequiredWorkspace(): ComputedRef<WorkspaceData> {
-  const page = usePage();
-
+export function useRequiredWorkspace(): ComputedRef<CurrentWorkspaceContext> {
   return computed(() => {
-    const slug = (page.props as any)?.workspaceUserContext?.workspace_slug as
-      | string
-      | null
-      | undefined;
-    const workspaces = readWorkspaces((page.props as any)?.workspaces);
+    const context = readContext();
 
-    const ws = slug ? (workspaces.find((w) => w.slug === slug) ?? null) : null;
-
-    if (!ws) {
+    if (!context) {
       const { url, component } = getContextForError();
       throw new Error(
-        `当前工作区缺失：该页面/组件需要工作区上下文（IdentifyWorkspace 中间件应提供 workspaceUserContext + workspaces）。component=${component} url=${url}`,
+        `单租户上下文缺失：IdentifyWorkspace 中间件应提供 workspaceUserContext。component=${component} url=${url}`,
       );
     }
 
-    return ws;
+    return mapContext(context);
   });
 }

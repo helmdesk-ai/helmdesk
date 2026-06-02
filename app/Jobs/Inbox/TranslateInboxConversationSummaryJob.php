@@ -44,7 +44,7 @@ class TranslateInboxConversationSummaryJob implements ShouldBeUnique, ShouldQueu
         ReceptionRealtimeNotifier $realtimeNotifier,
     ): void {
         $conversation = Conversation::query()
-            ->with(['workspace', 'channel'])
+            ->with(['channel'])
             ->findOrFail($this->conversationId);
 
         $outcome = $translateAction->handle($conversation, $this->targetLocale);

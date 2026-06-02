@@ -16,7 +16,6 @@ use App\Models\AiProvider;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -27,7 +26,6 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function (): void {
     $this->user = $this->createUserWithWorkspace();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-search-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Search Provider',
@@ -51,7 +49,6 @@ beforeEach(function (): void {
         'knowledge_raptor_index_enabled' => false,
     ]);
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '测试知识库',
         'description' => '存放助手测试用的内容',
     ]);
@@ -130,7 +127,6 @@ test('SearchKnowledgeBaseAction grep 模式返回带 line 与 byte_offset 的字
 
 test('SearchKnowledgeBaseAction 在未传知识库 ID 时检索当前工作区全部知识库', function (): void {
     $otherKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '补充资料库',
     ]);
 
@@ -198,20 +194,21 @@ test('SearchKnowledgeBaseAction hybrid 模式同时返回语义与 grep 结果',
         ->and($result->grep_matches)->not->toBeEmpty();
 });
 
-test('SearchKnowledgeBaseAction 拒绝当前工作区之外的知识库 ID', function (): void {
-    $otherWorkspace = Workspace::factory()->create();
+test('SearchKnowledgeBaseAction 单租户下允许检索任意知识库 ID', function (): void {
     $otherKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $otherWorkspace->id,
     ]);
 
     /** @var SearchKnowledgeBaseAction $action */
     $action = app(SearchKnowledgeBaseAction::class);
 
-    expect(fn () => $action->handle($this->workspace, FormKnowledgeSearchData::from([
+    $result = $action->handle($this->workspace, FormKnowledgeSearchData::from([
         'mode' => KnowledgeSearchMode::Grep->value,
         'knowledge_base_ids' => [(string) $otherKb->id],
         'query' => 'whatever',
-    ])))->toThrow(BusinessException::class);
+    ]));
+
+    expect($result->mode)->toBe('grep')
+        ->and($result->debug['knowledge_base_ids'])->toBe([(string) $otherKb->id]);
 });
 
 test('SearchKnowledgeBaseAction 对空 query 抛业务异常', function (): void {
@@ -258,22 +255,19 @@ test('KnowledgeSearchBridgeAction 把 Go 透传的 4 个参数转发到业务 Ac
     /** @var KnowledgeSearchBridgeAction $bridge */
     $bridge = app(KnowledgeSearchBridgeAction::class);
     $result = $bridge->handle(
-        workspaceId: (string) $this->workspace->id,
-        mode: 'grep',
-        knowledgeBaseIds: [(string) $this->kb->id],
-        queries: ['Helmdesk'],
+        (string) $this->workspace->id,
+        'grep',
+        [(string) $this->kb->id],
+        ['Helmdesk'],
     );
 
     expect($result->mode)->toBe('grep')
         ->and(count($result->grep_matches))->toBeGreaterThan(0);
 });
 
-test('KnowledgeSearchBridgeAction 拒绝未知 workspace 与未知 mode', function (): void {
+test('KnowledgeSearchBridgeAction 拒绝未知 mode', function (): void {
     /** @var KnowledgeSearchBridgeAction $bridge */
     $bridge = app(KnowledgeSearchBridgeAction::class);
-
-    expect(fn () => $bridge->handle('00000000000000000000000000', 'grep', [(string) $this->kb->id], 'foo'))
-        ->toThrow(BusinessException::class);
 
     expect(fn () => $bridge->handle((string) $this->workspace->id, 'unsupported', [(string) $this->kb->id], 'foo'))
         ->toThrow(BusinessException::class);
@@ -296,7 +290,6 @@ function seedQaEntry(KnowledgeBase $qaKb, string $question, array $similar, arra
 
 test('SearchKnowledgeBaseAction 在 QA 知识库上：主问题、相似问、答案都能被 FTS 召回', function (): void {
     $qaKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'category' => KnowledgeBaseCategory::Qa->value,
         'name' => '产品问答库',
     ]);
@@ -350,7 +343,6 @@ test('SearchKnowledgeBaseAction 在 QA 知识库上：主问题、相似问、�
 
 test('SearchKnowledgeBaseAction 命中 QA 节点时 metadata.context.qa 带回完整问答结构', function (): void {
     $qaKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'category' => KnowledgeBaseCategory::Qa->value,
     ]);
     $entry = seedQaEntry(
@@ -391,7 +383,6 @@ test('SearchKnowledgeBaseAction 在 rerank 桥失败时 debug.rerank_applied=fal
 
     // 配置 rerank 模型，让 SearchKnowledgeBaseAction 进入 rerank 分支。
     $rerankProvider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'rerank-'.Str::lower((string) Str::ulid()),
         'name' => 'Rerank Provider',
@@ -436,7 +427,6 @@ test('SearchKnowledgeBaseAction 在 rerank 桥成功时 debug.rerank_applied=tru
     );
 
     $rerankProvider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'rerank-ok-'.Str::lower((string) Str::ulid()),
         'name' => 'Rerank Provider',
@@ -498,7 +488,6 @@ test('SearchKnowledgeBaseAction 在 rerank 桥成功时 debug.rerank_applied=tru
 
 test('SearchKnowledgeBaseAction grep 模式可以从 QA 主问题 / 相似问 / 答案三处分别命中', function (): void {
     $qaKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'category' => KnowledgeBaseCategory::Qa->value,
     ]);
     $entry = seedQaEntry(

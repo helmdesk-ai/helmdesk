@@ -33,11 +33,9 @@ class ReplaceContactIdentityAction
         ?User $actor = null,
     ): ContactIdentity {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $identity = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->findOrFail($identityId);
 
@@ -75,7 +73,6 @@ class ReplaceContactIdentityAction
         }
 
         $existing = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', $identity->type)
             ->where('namespace', $identity->namespace)
             ->where('value', $normalizedValue)
@@ -96,7 +93,6 @@ class ReplaceContactIdentityAction
 
         return DB::transaction(function () use ($contact, $identity, $normalizedValue, $actor) {
             $replacement = ContactIdentity::query()->create([
-                'workspace_id' => $contact->workspace_id,
                 'contact_id' => $contact->id,
                 'type' => $identity->type,
                 'namespace' => $identity->namespace,
@@ -125,7 +121,6 @@ class ReplaceContactIdentityAction
 
     public function asController(
         Request $request,
-        string $slug,
         string $contactId,
         string $identityId,
     ): Response {

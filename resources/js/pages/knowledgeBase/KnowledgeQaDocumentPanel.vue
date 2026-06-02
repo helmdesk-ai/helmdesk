@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { ListKnowledgeQaEntryItemData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Plus, Trash2 } from 'lucide-vue-next';
@@ -40,7 +39,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const form = useForm<{
   question: string;
@@ -161,7 +159,6 @@ function submit(): void {
   if (props.mode === 'create') {
     form.transform(payload).post(
       KnowledgeBase.Qa.CreateKnowledgeQaEntryAction.url({
-        slug: currentWorkspace.value.slug,
         knowledgeBase: props.knowledgeBaseId,
       }),
       {
@@ -181,7 +178,6 @@ function submit(): void {
 
   form.transform(payload).put(
     KnowledgeBase.Qa.UpdateKnowledgeQaEntryAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: props.knowledgeBaseId,
       entry: target.id,
     }),

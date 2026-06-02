@@ -29,7 +29,6 @@ uses(RefreshDatabase::class, WithWorkspace::class);
 beforeEach(function (): void {
     $this->user = $this->createUserWithWorkspace();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-recall-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Recall Provider',
@@ -55,7 +54,6 @@ beforeEach(function (): void {
     ]);
 
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '中文召回评测知识库',
         'description' => '加载自 tests/Fixtures/Knowledge/zh_recall_corpus.json',
     ]);
@@ -88,7 +86,6 @@ test('FullTextRetriever 在中文评测集上 Recall@5 与 MRR@10 达到合格�
 
     foreach ($corpus['queries'] as $query) {
         $hits = $retriever->retrieve(
-            workspaceId: (string) $this->workspace->id,
             knowledgeBaseIds: [(string) $this->kb->id],
             queries: [$query['text']],
             topK: 10,

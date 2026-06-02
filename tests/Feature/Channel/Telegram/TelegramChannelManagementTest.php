@@ -40,19 +40,17 @@ test('所有者可以创建 Telegram 渠道并注册 webhook', function () {
     $version = createTelegramDeployablePlanVersion($this->workspace);
 
     $response = $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.telegram.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.telegram.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.channels.telegram.create'))
+        ->post(route('workspace.manage.channels.telegram.store'), [
             'name' => '客服机器人',
             'bot_token' => '777000111:AAHk9_test_token_value_abcdefghijklmno',
             'description' => '官方 Telegram 客服',
             'reception_plan_id' => $version->reception_plan_id,
         ]);
 
-    $channel = Channel::query()->where('workspace_id', $this->workspace->id)->firstOrFail();
+    $channel = Channel::query()->firstOrFail();
 
-    $response->assertRedirect(route('workspace.manage.channels.telegram.show', [
-        'slug' => $this->workspaceSlug(),
-        'channel' => $channel->id,
+    $response->assertRedirect(route('workspace.manage.channels.telegram.show', ['channel' => $channel->id,
     ]));
 
     $settings = $channel->settings;
@@ -88,18 +86,16 @@ test('Telegram 注册 webhook 使用后台保存的最新主机地址', function
     $version = createTelegramDeployablePlanVersion($this->workspace);
 
     $response = $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.telegram.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.telegram.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.channels.telegram.create'))
+        ->post(route('workspace.manage.channels.telegram.store'), [
             'name' => '客服机器人',
             'bot_token' => '777000111:AAHk9_test_token_value_abcdefghijklmno',
             'reception_plan_id' => $version->reception_plan_id,
         ]);
 
-    $channel = Channel::query()->where('workspace_id', $this->workspace->id)->firstOrFail();
+    $channel = Channel::query()->firstOrFail();
 
-    $response->assertRedirect(route('workspace.manage.channels.telegram.show', [
-        'slug' => $this->workspaceSlug(),
-        'channel' => $channel->id,
+    $response->assertRedirect(route('workspace.manage.channels.telegram.show', ['channel' => $channel->id,
     ]));
 
     Http::assertSent(function ($request) use ($channel) {
@@ -112,8 +108,8 @@ test('Telegram 渠道创建需要 Token 和方案版本', function () {
     createTelegramDeployablePlanVersion($this->workspace);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.telegram.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.telegram.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.channels.telegram.create'))
+        ->post(route('workspace.manage.channels.telegram.store'), [
             'name' => '客服机器人',
         ])
         ->assertSessionHasErrors(['bot_token', 'reception_plan_id']);
@@ -126,14 +122,14 @@ test('Telegram 拒绝非法 Token 时创建失败且不落库', function () {
     $version = createTelegramDeployablePlanVersion($this->workspace);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.telegram.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.telegram.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.channels.telegram.create'))
+        ->post(route('workspace.manage.channels.telegram.store'), [
             'name' => '客服机器人',
             'bot_token' => '111:AAHk9_invalid_token_value_abcdefghijkl',
             'reception_plan_id' => $version->reception_plan_id,
         ]);
 
-    expect(Channel::query()->where('workspace_id', $this->workspace->id)->count())->toBe(0);
+    expect(Channel::query()->count())->toBe(0);
 });
 
 test('webhook 注册失败时回滚已创建的渠道', function () {
@@ -144,27 +140,26 @@ test('webhook 注册失败时回滚已创建的渠道', function () {
     $version = createTelegramDeployablePlanVersion($this->workspace);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.telegram.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.telegram.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.channels.telegram.create'))
+        ->post(route('workspace.manage.channels.telegram.store'), [
             'name' => '客服机器人',
             'bot_token' => '111:AAHk9_valid_format_token_abcdefghijklmn',
             'reception_plan_id' => $version->reception_plan_id,
         ]);
 
-    expect(Channel::query()->where('workspace_id', $this->workspace->id)->count())->toBe(0);
+    expect(Channel::query()->count())->toBe(0);
 });
 
 test('列表页与详情页正常渲染', function () {
     fakeTelegramApiOk();
     $version = createTelegramDeployablePlanVersion($this->workspace);
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'name' => '官方客服 Bot',
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.telegram.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.channels.telegram.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/telegram/List')
@@ -174,9 +169,7 @@ test('列表页与详情页正常渲染', function () {
         );
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.telegram.show', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->get(route('workspace.manage.channels.telegram.show', ['channel' => $channel->id,
         ]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -191,7 +184,7 @@ test('创建页正常渲染', function () {
     createTelegramDeployablePlanVersion($this->workspace);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.telegram.create', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.channels.telegram.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/telegram/Create')
@@ -203,16 +196,13 @@ test('所有者可以软删除 Telegram 渠道并撤销 webhook', function () {
     fakeTelegramApiOk();
     $version = createTelegramDeployablePlanVersion($this->workspace);
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.channels.telegram.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->delete(route('workspace.manage.channels.telegram.destroy', ['channel' => $channel->id,
         ]))
-        ->assertRedirect(route('workspace.manage.channels.telegram.index', ['slug' => $this->workspaceSlug()]));
+        ->assertRedirect(route('workspace.manage.channels.telegram.index'));
 
     expect($channel->fresh()->trashed())->toBeTrue();
     Http::assertSent(fn ($request) => str_contains($request->url(), '/deleteWebhook'));
@@ -224,16 +214,13 @@ test('Telegram 撤销 webhook 失败仍可删除渠道', function () {
     ]);
     $version = createTelegramDeployablePlanVersion($this->workspace);
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.channels.telegram.destroy', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->delete(route('workspace.manage.channels.telegram.destroy', ['channel' => $channel->id,
         ]))
-        ->assertRedirect(route('workspace.manage.channels.telegram.index', ['slug' => $this->workspaceSlug()]));
+        ->assertRedirect(route('workspace.manage.channels.telegram.index'));
 
     expect($channel->fresh()->trashed())->toBeTrue();
 });
@@ -242,14 +229,13 @@ test('回收站列出已删除的 Telegram 渠道', function () {
     fakeTelegramApiOk();
     $version = createTelegramDeployablePlanVersion($this->workspace);
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'name' => '待恢复 Bot',
     ]);
     $channel->delete();
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.telegram.trash', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.channels.telegram.trash'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/telegram/Trash')
@@ -263,17 +249,14 @@ test('从回收站恢复 Telegram 渠道并重注册 webhook', function () {
     fakeTelegramApiOk();
     $version = createTelegramDeployablePlanVersion($this->workspace);
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
     $channel->delete();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.telegram.restore', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->put(route('workspace.manage.channels.telegram.restore', ['channel' => $channel->id,
         ]))
-        ->assertRedirect(route('workspace.manage.channels.telegram.index', ['slug' => $this->workspaceSlug()]));
+        ->assertRedirect(route('workspace.manage.channels.telegram.index'));
 
     expect($channel->fresh()->trashed())->toBeFalse();
     Http::assertSent(fn ($request) => str_contains($request->url(), '/setWebhook'));

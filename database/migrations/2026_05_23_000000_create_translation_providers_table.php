@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('workspace_id');
             $table->string('slug');
             $table->string('name');
             $table->string('protocol');
@@ -26,7 +25,7 @@ return new class extends Migration
             $table->boolean('is_builtin')->default(true);
             $table->integer('sort_order')->default(0);
 
-            $table->unique(['workspace_id', 'slug']);
+            $table->unique('slug');
         });
     }
 

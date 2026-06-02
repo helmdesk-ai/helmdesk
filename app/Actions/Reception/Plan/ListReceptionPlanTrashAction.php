@@ -41,7 +41,6 @@ class ListReceptionPlanTrashAction
 
         $paginator = ReceptionPlan::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->latest('deleted_at')
             ->latest('updated_at')
             ->paginate(self::PER_PAGE, ['*'], 'page', $page);

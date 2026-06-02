@@ -16,8 +16,8 @@ use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlanVersion;
+use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * 组装访客接待窗口的当前状态。
@@ -44,7 +44,6 @@ class ReceptionStateBuilder
         $conversationIds = self::historyConversationIds($channel, $conversation);
 
         $messages = ConversationMessage::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->whereIn('conversation_id', $conversationIds)
             ->with(['senderUser', 'attachments', 'quotedMessage.attachments'])
             ->whereIn('kind', [MessageKind::Text, MessageKind::Image, MessageKind::File])
@@ -245,7 +244,7 @@ class ReceptionStateBuilder
     }
 
     /**
-     * 查询消息发送者在当前工作区内的昵称。
+     * 查询消息发送者在系统内的昵称。
      *
      * @param  Collection<int, ConversationMessage>  $messages
      * @return array<string, string>
@@ -265,11 +264,10 @@ class ReceptionStateBuilder
             return [];
         }
 
-        return DB::table('user_workspace')
-            ->where('workspace_id', $conversation->workspace_id)
-            ->whereIn('user_id', $userIds)
+        return User::query()
+            ->whereIn('id', $userIds)
             ->whereNotNull('nickname')
-            ->pluck('nickname', 'user_id')
+            ->pluck('nickname', 'id')
             ->mapWithKeys(fn ($nickname, $userId): array => [(string) $userId => (string) $nickname])
             ->all();
     }
@@ -286,7 +284,6 @@ class ReceptionStateBuilder
         }
 
         return Conversation::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('contact_id', $conversation->contact_id)
             ->where('channel_id', $channel->id)
             ->orderBy('created_at')

@@ -8,7 +8,6 @@ use App\Models\KnowledgeBase;
 use App\Models\McpServer;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\WithWorkspace;
@@ -23,7 +22,6 @@ beforeEach(function () {
 function createCapabilityTestProvider(array $attributes = []): AiProvider
 {
     return AiProvider::query()->create(array_merge([
-        'workspace_id' => test()->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'capability-test-provider',
         'name' => 'Capability Test Provider',
@@ -54,7 +52,6 @@ function createCapabilityTestPlan(array $attributes = []): ReceptionPlan
     $model = createCapabilityTestModel($provider);
 
     return ReceptionPlan::factory()->create(array_merge([
-        'workspace_id' => test()->workspace->id,
         'reception_config' => [
             'default_model' => ['ai_model_id' => $model->id],
         ],
@@ -114,9 +111,7 @@ test('所有者可以打开接待方案详情页并看到服务场景模板', fu
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.reception.plans.show', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->get(route('workspace.manage.reception.plans.show', ['plan' => $plan->id,
         ]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -134,17 +129,13 @@ test('通过更新方案草稿可写入服务场景 JSON', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [[
             'name' => '订单查询',
             'description' => '处理订单状态、订单详情、订单列表类问题。',
             'instructions' => '你是订单查询专员，按订单号回答访客。',
         ]]))
-        ->assertRedirect(route('workspace.manage.reception.plans.show', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->assertRedirect(route('workspace.manage.reception.plans.show', ['plan' => $plan->id,
         ]));
 
     $plan->refresh();
@@ -157,9 +148,7 @@ test('服务场景名称可直接使用中文', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [[
             'name' => '订单查询',
             'description' => '',
@@ -183,9 +172,7 @@ test('同一方案内重复服务场景名称会被拒绝', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [
             ['name' => '订单查询', 'description' => '', 'instructions' => '原始指令'],
             ['name' => '订单查询', 'description' => '', 'instructions' => '不同指令'],
@@ -200,9 +187,7 @@ test('带空格或大小写差异的服务场景名称也按重复处理', funct
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [
             ['name' => 'Order Lookup', 'description' => '', 'instructions' => '指令'],
             ['name' => 'order lookup ', 'description' => '', 'instructions' => '指令'],
@@ -212,26 +197,22 @@ test('带空格或大小写差异的服务场景名称也按重复处理', funct
     expect($plan->fresh()->capabilities)->toBe([]);
 });
 
-test('引用不属于工作区的知识库会被校验拒绝', function () {
+test('单租户下方案可以引用任意知识库', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
-    $otherWorkspace = Workspace::factory()->create(['name' => 'Other Workspace']);
-    $foreignKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $otherWorkspace->id,
-        'name' => '外部工作区知识库',
+    $knowledgeBase = KnowledgeBase::factory()->create([
+        'name' => '外部知识库',
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload(
             $plan,
             [['name' => '常见问题', 'description' => '', 'instructions' => '指令']],
-            [$foreignKb->id],
+            [$knowledgeBase->id],
         ))
-        ->assertSessionHasErrors(['knowledge_base_ids']);
+        ->assertRedirect();
 
-    expect($plan->fresh()->capabilities)->toBe([]);
+    expect($plan->fresh()->knowledge_base_ids)->toBe([$knowledgeBase->id]);
 });
 
 test('所有者可以更新服务场景', function () {
@@ -244,9 +225,7 @@ test('所有者可以更新服务场景', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [[
             'name' => '订单查询（新）',
             'description' => '新描述',
@@ -269,9 +248,7 @@ test('更新方案草稿时可移除单个服务场景', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [
             ['name' => '常见问题', 'description' => '', 'instructions' => '常见问题助手'],
         ]))
@@ -282,12 +259,10 @@ test('更新方案草稿时可移除单个服务场景', function () {
         ->and($plan->capabilities[0]['name'])->toBe('常见问题');
 });
 
-test('跨工作区更新其他工作区的方案返回 404', function () {
-    $foreignWorkspace = Workspace::factory()->create(['name' => 'Foreign Workspace']);
-    $foreignProvider = createCapabilityTestProvider(['workspace_id' => $foreignWorkspace->id, 'slug' => 'foreign-provider']);
+test('单租户下管理员可以更新任意方案', function () {
+    $foreignProvider = createCapabilityTestProvider(['slug' => 'foreign-provider']);
     $foreignModel = createCapabilityTestModel($foreignProvider);
     $foreignPlan = ReceptionPlan::factory()->create([
-        'workspace_id' => $foreignWorkspace->id,
         'reception_config' => [
             'default_model' => ['ai_model_id' => $foreignModel->id],
         ],
@@ -295,24 +270,20 @@ test('跨工作区更新其他工作区的方案返回 404', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $foreignPlan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $foreignPlan->id,
         ]), receptionPlanUpdatePayload($foreignPlan, []))
-        ->assertNotFound();
+        ->assertRedirect();
 });
 
 test('编译方案时服务场景写入 compiled_config，方案级 KB 作为快照存储', function () {
     $provider = createCapabilityTestProvider();
     $model = createCapabilityTestModel($provider);
     $kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '商品资料库',
         'category' => 'standard',
     ]);
 
     $plan = ReceptionPlan::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '含服务场景方案',
         'reception_config' => [
             'default_model' => ['ai_model_id' => $model->id],
@@ -347,13 +318,11 @@ test('编译方案时服务场景写入 compiled_config，方案级 KB 作为快
 
 test('保存方案时可写入方案级 MCP 工具引用', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
-    $server = McpServer::factory()->for($this->workspace)->active()->create();
+    $server = McpServer::factory()->active()->create();
     $tool = McpTool::factory()->for($server, 'server')->create(['name' => 'lookup_order']);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload(
             $plan,
             [['name' => '订单查询', 'description' => '', 'instructions' => '指令']],
@@ -366,32 +335,28 @@ test('保存方案时可写入方案级 MCP 工具引用', function () {
     expect($plan->always_on_tools)->toBe([$tool->id]);
 });
 
-test('引用不属于工作区的 MCP 工具会被校验拒绝', function () {
+test('单租户下方案可以引用任意 MCP 工具', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
-    $foreignWorkspace = Workspace::factory()->create(['name' => 'Other Workspace']);
-    $foreignServer = McpServer::factory()->for($foreignWorkspace)->active()->create();
-    $foreignTool = McpTool::factory()->for($foreignServer, 'server')->create();
+    $server = McpServer::factory()->active()->create();
+    $tool = McpTool::factory()->for($server, 'server')->create();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', [
-            'slug' => $this->workspaceSlug(),
-            'plan' => $plan->id,
+        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload(
             $plan,
             [['name' => '订单查询', 'description' => '', 'instructions' => '指令']],
             [],
-            [$foreignTool->id],
+            [$tool->id],
         ))
-        ->assertSessionHasErrors(['mcp_tool_ids']);
+        ->assertRedirect();
 
-    expect($plan->fresh()->capabilities)->toBe([]);
+    expect($plan->fresh()->always_on_tools)->toBe([$tool->id]);
 });
 
 test('编译方案时方案级 MCP 工具写入 compiled_config 快照', function () {
     $provider = createCapabilityTestProvider();
     $model = createCapabilityTestModel($provider);
     $server = McpServer::factory()
-        ->for($this->workspace)
         ->active()
         ->create(['slug' => 'orders-mcp', 'name' => '订单 MCP']);
     $tool = McpTool::factory()->for($server, 'server')->create([
@@ -400,7 +365,6 @@ test('编译方案时方案级 MCP 工具写入 compiled_config 快照', functio
     ]);
 
     $plan = ReceptionPlan::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '含工具方案',
         'reception_config' => [
             'default_model' => ['ai_model_id' => $model->id],
@@ -428,7 +392,6 @@ test('编译时方案级引用悬空 MCP 工具会抛 BusinessException', functi
     $model = createCapabilityTestModel($provider);
 
     $plan = ReceptionPlan::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_config' => [
             'default_model' => ['ai_model_id' => $model->id],
         ],
@@ -443,27 +406,26 @@ test('编译时方案级引用悬空 MCP 工具会抛 BusinessException', functi
         ->toThrow(BusinessException::class);
 });
 
-test('编译时方案级引用别的工作区 MCP 工具也会被拒', function () {
+test('编译时方案级引用任意 MCP 工具会写入快照', function () {
     $provider = createCapabilityTestProvider();
     $model = createCapabilityTestModel($provider);
-    $foreignWorkspace = Workspace::factory()->create(['name' => 'Other Workspace']);
-    $foreignServer = McpServer::factory()->for($foreignWorkspace)->active()->create();
-    $foreignTool = McpTool::factory()->for($foreignServer, 'server')->create();
+    $server = McpServer::factory()->active()->create();
+    $tool = McpTool::factory()->for($server, 'server')->create();
 
     $plan = ReceptionPlan::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_config' => [
             'default_model' => ['ai_model_id' => $model->id],
         ],
         'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
-        'always_on_tools' => [$foreignTool->id],
+        'always_on_tools' => [$tool->id],
         'capabilities' => [
             ['name' => '订单查询', 'description' => '', 'instructions' => ''],
         ],
     ]);
 
-    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan))
-        ->toThrow(BusinessException::class);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan);
+
+    expect($compiled['compiled_config']['mcp_tools'])->toHaveCount(1);
 });
 
 test('编译时方案级引用悬空知识库会抛 BusinessException', function () {
@@ -471,7 +433,6 @@ test('编译时方案级引用悬空知识库会抛 BusinessException', function
     $model = createCapabilityTestModel($provider);
 
     $plan = ReceptionPlan::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_config' => [
             'default_model' => ['ai_model_id' => $model->id],
         ],

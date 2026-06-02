@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowCreateTelegramChannelPagePropsData } from '@/types/generated';
@@ -29,7 +28,6 @@ import { computed, ref } from 'vue';
 
 const props = defineProps<ShowCreateTelegramChannelPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const usableOptions = computed(() =>
   props.reception_plan_options.filter((option) => option.is_usable),
@@ -59,9 +57,7 @@ const canSubmit = computed(
         />
 
         <Form
-          :action="
-            Telegram.CreateTelegramChannelAction.url(currentWorkspace.slug)
-          "
+          :action="Telegram.CreateTelegramChannelAction.url()"
           method="post"
           class="space-y-6"
           v-slot="{ errors, processing }"
@@ -147,13 +143,7 @@ const canSubmit = computed(
               }}
             </p>
             <Button variant="outline" size="sm" as-child>
-              <Link
-                :href="
-                  Plan.ShowReceptionPlanIndexPageAction.url(
-                    currentWorkspace.slug,
-                  )
-                "
-              >
+              <Link :href="Plan.ShowReceptionPlanIndexPageAction.url()">
                 {{ t('管理接待方案') }}
               </Link>
             </Button>
@@ -163,9 +153,7 @@ const canSubmit = computed(
             :submit-label="t('创建')"
             :processing="processing"
             :submit-disabled="!canSubmit"
-            :cancel-href="
-              Telegram.ListTelegramChannelsAction.url(currentWorkspace.slug)
-            "
+            :cancel-href="Telegram.ListTelegramChannelsAction.url()"
             :cancel-label="t('取消')"
           >
             <template #submit>

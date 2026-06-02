@@ -34,7 +34,6 @@ class QueueInboxContactAiSummaryTranslationAction
     public function handle(Workspace $workspace, string $contactId, string $targetLocale): int
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->find($contactId);
 
         if ($contact === null) {
@@ -71,7 +70,7 @@ class QueueInboxContactAiSummaryTranslationAction
     /**
      * 接收联系人 AI 摘要补翻请求并返回排队数量。
      */
-    public function asController(Request $request, string $slug, string $contactId): JsonResponse
+    public function asController(Request $request, string $contactId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormQueueInboxContactAiSummaryTranslationData::from($request);

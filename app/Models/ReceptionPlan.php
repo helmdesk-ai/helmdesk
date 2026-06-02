@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -17,7 +16,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property string $workspace_id
  * @property string $name
  * @property string|null $description
  * @property array|null $persona_config
@@ -31,9 +29,7 @@ use Illuminate\Support\Carbon;
  * @property array $auto_messages_config
  * @property array|null $translation_config
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $versions_count
- * @property-read Workspace $workspace
  * @property-read Collection|ReceptionPlanVersion[] $versions
  *
  * @method static \Database\Factories\ReceptionPlanFactory<self> factory($count = null, $state = [])
@@ -41,7 +37,7 @@ use Illuminate\Support\Carbon;
 class ReceptionPlan extends Model
 {
     /**
-     * 接待方案草稿，承载 workspace 内 AI 接待的人设、全局指令、接待智能体与任务智能体。
+     * 接待方案草稿，承载 AI 接待的人设、全局指令、接待智能体与任务智能体。
      * 发布时由 CompileReceptionPlanAction 生成不可变快照写入 ReceptionPlanVersion；
      * 草稿编辑不影响线上行为。
      */
@@ -69,14 +65,6 @@ class ReceptionPlan extends Model
             'auto_messages_config' => 'array',
             'translation_config' => 'array',
         ];
-    }
-
-    /**
-     * Plan 所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

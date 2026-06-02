@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Enums\TagScope;
 use App\Models\TagGroup;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,7 +18,6 @@ class TagGroupFactory extends Factory
         $name = fake()->unique()->words(2, true);
 
         return [
-            'workspace_id' => Workspace::factory(),
             'name' => $name,
             'normalized_name' => mb_strtolower(trim($name)),
             'scope' => TagScope::Conversation,

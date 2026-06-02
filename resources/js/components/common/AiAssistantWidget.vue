@@ -907,7 +907,7 @@ const handleSend = async () => {
 
   try {
     const response = await axios.post<{ topic: string }>(
-      SendAiAssistantMessageAction.url(workspace.value.slug),
+      SendAiAssistantMessageAction.url(),
       {
         prompt: value,
         model_id: selectedModelId.value,
@@ -956,7 +956,7 @@ const handleStop = async () => {
 
   try {
     await axios.post(
-      StopAiAssistantMessageAction.url(workspace.value.slug),
+      StopAiAssistantMessageAction.url(),
       {
         topic: currentTopic.value,
       },
@@ -1052,7 +1052,7 @@ const fireAndForgetStop = (topic: string) => {
     headers['X-XSRF-TOKEN'] = xsrf;
   }
 
-  void fetch(StopAiAssistantMessageAction.url(workspace.value.slug), {
+  void fetch(StopAiAssistantMessageAction.url(), {
     method: 'POST',
     credentials: 'same-origin',
     keepalive: true,

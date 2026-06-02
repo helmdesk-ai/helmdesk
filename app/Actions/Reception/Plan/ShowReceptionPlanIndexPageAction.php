@@ -41,7 +41,6 @@ class ShowReceptionPlanIndexPageAction
         $page = max(1, $page);
 
         $paginator = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->latest('updated_at')
             ->paginate(self::PER_PAGE, ['*'], 'page', $page);
 

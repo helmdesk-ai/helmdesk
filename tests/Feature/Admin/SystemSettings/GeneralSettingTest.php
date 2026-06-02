@@ -55,7 +55,6 @@ test('通用设置默认品牌是HelmDesk', function () {
     expect($settings->base_url)->toBe(GeneralSettings::DEFAULT_BASE_URL);
     expect($settings->name)->toBe('HelmDesk');
     expect($settings->copyright)->toBe('Copyright © 2026 HelmDesk');
-    expect($settings->allow_registration)->toBeTrue();
 });
 
 test('超级管理员第一个访问填充默认库URL来自请求主机', function () {
@@ -96,7 +95,6 @@ test('超级管理员可以更新通用设置且包含全部字段', function ()
             'logo_id' => '01kepy83b9sxs4scf7q36mxa5z',
             'copyright' => '© 2026 HelmDesk',
             'icp_record' => '京ICP备12345678号',
-            'allow_registration' => false,
         ]);
 
     $response->assertRedirect();
@@ -108,7 +106,6 @@ test('超级管理员可以更新通用设置且包含全部字段', function ()
     expect($settings->copyright)->toBe('© 2026 HelmDesk');
     expect($settings->logo_id)->toBe('01kepy83b9sxs4scf7q36mxa5z');
     expect($settings->icp_record)->toBe('京ICP备12345678号');
-    expect($settings->allow_registration)->toBeFalse();
     // 对外地址走 SystemBaseUrl 从 settings 现读，保存后即生效，无需回填 config('app.url')。
     expect(app(SystemBaseUrl::class)->value())->toBe('https://support.example.test');
 });
@@ -118,7 +115,6 @@ test('超级管理员可以更新通用设置且只有必填字段', function ()
         ->put(route('admin.general.update'), [
             'base_url' => GeneralSettings::DEFAULT_BASE_URL,
             'name' => 'HelmDesk',
-            'allow_registration' => true,
         ])
         ->assertRedirect();
 

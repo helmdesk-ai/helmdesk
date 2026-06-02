@@ -8,6 +8,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
+use App\Settings\KnowledgeSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -141,7 +142,6 @@ class KnowledgeNodeRepository
             $ids[] = $id;
             $rows[] = [
                 'id' => $id,
-                'workspace_id' => (string) $knowledgeBase->workspace_id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => (string) $document->id,
                 'qa_entry_id' => null,
@@ -198,7 +198,6 @@ class KnowledgeNodeRepository
             $ids[] = $id;
             $rows[] = [
                 'id' => $id,
-                'workspace_id' => (string) $knowledgeBase->workspace_id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => null,
                 'qa_entry_id' => (string) $entry->id,
@@ -308,7 +307,6 @@ class KnowledgeNodeRepository
         ): void {
             KnowledgeNode::query()->insert([
                 'id' => $id,
-                'workspace_id' => (string) $knowledgeBase->workspace_id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => (string) $document->id,
                 'qa_entry_id' => null,
@@ -363,14 +361,16 @@ class KnowledgeNodeRepository
     }
 
     /**
-     * 返回当前知识库所在工作区配置的嵌入模型 ID；未配置时返回 null。
+     * 返回当前知识库配置的嵌入模型 ID；未配置时返回 null。
      */
     private function embeddingModelId(KnowledgeBase $knowledgeBase): ?string
     {
-        $knowledgeBase->loadMissing('workspace');
+        /** @var KnowledgeSettings $settings */
+        $settings = app(KnowledgeSettings::class);
+        $settings->refresh();
 
-        return filled($knowledgeBase->workspace?->knowledge_embedding_model_id)
-            ? (string) $knowledgeBase->workspace->knowledge_embedding_model_id
+        return filled($settings->embedding_model_id)
+            ? (string) $settings->embedding_model_id
             : null;
     }
 

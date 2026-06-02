@@ -38,7 +38,6 @@ class QueueInboxConversationSummaryTranslationsAction
     public function handle(Workspace $workspace, User $user, string $conversationId, array $conversationIds): int
     {
         $anchor = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($anchor === null || $anchor->contact_id === null) {
@@ -64,7 +63,7 @@ class QueueInboxConversationSummaryTranslationsAction
     /**
      * 接收会话摘要补翻请求并返回排队数量。
      */
-    public function asController(Request $request, string $slug, string $conversationId): JsonResponse
+    public function asController(Request $request, string $conversationId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
@@ -89,11 +88,10 @@ class QueueInboxConversationSummaryTranslationsAction
     private function conversationsNeedingTranslation(Workspace $workspace, User $user, string $contactId, array $conversationIds): Collection
     {
         return Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contactId)
             ->whereIn('id', $conversationIds)
             ->whereNotNull('summary')
-            ->get(['id', 'workspace_id', 'contact_id', 'reception_plan_version_id', 'summary', 'summary_locale', 'summary_translations'])
+            ->get(['id', 'contact_id', 'reception_plan_version_id', 'summary', 'summary_locale', 'summary_translations'])
             ->filter(function (Conversation $conversation) use ($user): bool {
                 if (! $this->translationProviderResolver->hasUsableProvider($conversation)) {
                     return false;

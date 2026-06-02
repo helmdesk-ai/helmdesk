@@ -1,5 +1,5 @@
 <!--
-  文件说明：收件箱入口页面，承接当前工作区的会话收件箱。
+  文件说明：收件箱入口页面，承接总管理后台的会话收件箱。
 -->
 <script setup lang="ts">
 import ImagePreviewDialog from '@/components/common/ImagePreviewDialog.vue';
@@ -50,7 +50,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { COMPOSER_EMOJIS } from '@/lib/composerEmojis';
 import { formatFileSize } from '@/lib/format';
 import { getAvatarInitial } from '@/lib/initials';
-import { openMercureEventSource, receptionWorkspaceTopic } from '@/lib/mercure';
+import { openMercureEventSource, receptionInboxTopic } from '@/lib/mercure';
 import CannedReplyPicker from '@/pages/inbox/CannedReplyPicker.vue';
 import ConversationSummaryBlock from '@/pages/inbox/ConversationSummaryBlock.vue';
 import InboxContextPanel from '@/pages/inbox/InboxContextPanel.vue';
@@ -407,7 +407,6 @@ async function fetchContactTimelineWindow(
   const response = await fetch(
     inboxActions.contacts.timeline.url(
       {
-        slug: currentWorkspace.value.slug,
         contactId,
       },
       { query: { ...query, per_page: TIMELINE_PAGE_SIZE } },
@@ -574,7 +573,6 @@ async function executeMessageSearch(query: string): Promise<void> {
     const response = await fetch(
       inboxActions.contacts.messages.search.url(
         {
-          slug: currentWorkspace.value.slug,
           contactId,
         },
         { query: { search: query } },
@@ -823,9 +821,7 @@ function scheduleInboxListReload(): void {
 function subscribeInboxRealtime(): void {
   closeInboxEventSource();
 
-  const source = openMercureEventSource(
-    receptionWorkspaceTopic(currentWorkspace.value.id),
-  );
+  const source = openMercureEventSource(receptionInboxTopic());
   inboxEventSource = source;
 
   source.addEventListener('reception', (event) => {
@@ -835,17 +831,9 @@ function subscribeInboxRealtime(): void {
 
     try {
       const payload = JSON.parse((event as MessageEvent).data) as {
-        workspace_id?: string;
         conversation_id?: string;
         contact_id?: string;
       };
-
-      if (
-        payload.workspace_id &&
-        payload.workspace_id !== currentWorkspace.value.id
-      ) {
-        return;
-      }
 
       eventConversationId = payload.conversation_id ?? null;
       isCurrentConversation =
@@ -911,7 +899,7 @@ function buildInboxUrl(
       query[key] = value;
     }
   }
-  return workspaceRoutes.inbox.show.url(currentWorkspace.value.slug, { query });
+  return workspaceRoutes.inbox.show.url({ query });
 }
 
 function displayedUnreadCount(conversation: ListConversationItemData): number {
@@ -938,7 +926,6 @@ async function markConversationRead(
   try {
     await axios.post(
       inboxActions.conversations.read.url({
-        slug: currentWorkspace.value.slug,
         conversation: conversationId,
       }),
     );
@@ -989,7 +976,6 @@ const replyForm = useForm({
 });
 
 const selectionComputed = computed(() => props.selection ?? null);
-const workspaceSlugComputed = computed(() => currentWorkspace.value.slug);
 const replyContentRef = computed({
   get: () => replyForm.content,
   set: (value: string) => {
@@ -1002,7 +988,6 @@ const {
   scheduleObserverRefresh: scheduleAutoTranslateObserverRefresh,
   stopObserverAndTimers: stopAutoTranslateObserverAndTimers,
 } = useInboxAutoTranslate({
-  workspaceSlug: workspaceSlugComputed,
   selection: selectionComputed,
   currentUserId,
   currentUserLocale,
@@ -1016,7 +1001,6 @@ const {
   scheduleObserverRefresh: scheduleSummaryAutoTranslateObserverRefresh,
   stopObserverAndTimers: stopSummaryAutoTranslateObserverAndTimers,
 } = useInboxSummaryAutoTranslate({
-  workspaceSlug: workspaceSlugComputed,
   selection: selectionComputed,
   currentUserLocale,
   activeStitchedTimeline,
@@ -1025,7 +1009,6 @@ const {
 });
 
 const replyTranslation = useReplyTranslationPreview({
-  workspaceSlug: workspaceSlugComputed,
   selection: selectionComputed,
   currentUserLocale,
   replyContent: replyContentRef,
@@ -1221,7 +1204,6 @@ function submitReply(): void {
     }))
     .post(
       inboxActions.conversations.reply.url({
-        slug: currentWorkspace.value.slug,
         conversation: conversationId,
       }),
       {
@@ -1619,7 +1601,6 @@ async function requestReplyPolish(
       candidates: InboxReplyPolishCandidateData[];
     }>(
       inboxActions.conversations.reply.polish.url({
-        slug: currentWorkspace.value.slug,
         conversation: conversationId,
       }),
       {
@@ -1746,7 +1727,6 @@ async function uploadAndSendReplyAttachments(
       const pendingAttachment = pendingUpload.attachments[index];
       const attachment = await upload(file, {
         purpose,
-        context: { workspace_id: currentWorkspace.value.id },
         onProgress: (value) => {
           pendingAttachment.progress = Math.min(100, Math.max(0, value));
         },
@@ -1801,7 +1781,6 @@ function sendReplyAttachments(
       }))
       .post(
         inboxActions.conversations.reply.url({
-          slug: currentWorkspace.value.slug,
           conversation: conversationId,
         }),
         {
@@ -2225,7 +2204,6 @@ function claimConversation(): void {
   if (!conversation) return;
   router.post(
     inboxActions.conversations.claim.url({
-      slug: currentWorkspace.value.slug,
       conversation: conversation.id,
     }),
     {},
@@ -2244,7 +2222,7 @@ function switchCurrentUserOnline(): void {
 
   updatingOnlineStatus.value = true;
   router.put(
-    workspace.onlineStatus.update.url(currentWorkspace.value.slug),
+    workspace.onlineStatus.update.url(),
     { online_status: 1 },
     {
       preserveScroll: true,
@@ -2261,7 +2239,6 @@ function releaseConversationToAi(): void {
   if (!conversation) return;
   router.post(
     inboxActions.conversations.releaseToAi.url({
-      slug: currentWorkspace.value.slug,
       conversation: conversation.id,
     }),
     {},
@@ -2281,7 +2258,6 @@ async function toggleSelectionImportance(): Promise<void> {
   try {
     await axios.put(
       workspace.contacts.importance.update.url({
-        slug: currentWorkspace.value.slug,
         id: profile.id,
       }),
       { is_important: !profile.is_important },
@@ -2301,7 +2277,6 @@ function transferConversationToTeammate(targetUserId: string): void {
   transferForm.target_user_id = targetUserId;
   transferForm.post(
     inboxActions.conversations.transfer.url({
-      slug: currentWorkspace.value.slug,
       conversation: conversation.id,
     }),
     {
@@ -2317,7 +2292,6 @@ function reopenConversation(): void {
   if (!conversation) return;
   router.post(
     inboxActions.conversations.reopen.url({
-      slug: currentWorkspace.value.slug,
       conversation: conversation.id,
     }),
     {},
@@ -2336,7 +2310,6 @@ function recallMessage(conversationId: string, messageId: string): void {
 
   router.post(
     inboxActions.conversations.messages.recall.url({
-      slug: currentWorkspace.value.slug,
       conversation: conversationId,
       message: messageId,
     }),
@@ -2494,7 +2467,6 @@ function closeConversation(): void {
   if (!conversation) return;
   closeForm.post(
     inboxActions.conversations.close.url({
-      slug: currentWorkspace.value.slug,
       conversation: conversation.id,
     }),
     {
@@ -3513,7 +3485,6 @@ const currentInboxView = computed<InboxView>(
             :current-user-locale="currentUserLocale"
             :can-translate="props.selection.can_translate_messages"
             :auto-translate-enabled="autoTranslateVisibleMessages"
-            :workspace-slug="currentWorkspace.slug"
           />
         </div>
       </div>

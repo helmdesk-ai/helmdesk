@@ -22,7 +22,6 @@ beforeEach(function () {
 function translationProviderFor(TranslationProviderType $protocol, string $slug, array $credentials): TranslationProvider
 {
     return TranslationProvider::factory()->create([
-        'workspace_id' => test()->workspace->id,
         'slug' => $slug,
         'name' => $protocol->label(),
         'protocol' => $protocol,

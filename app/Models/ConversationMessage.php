@@ -24,7 +24,6 @@ use Laravel\Scout\Searchable;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $conversation_id
  * @property string|null $sender_user_id
  * @property MessageRole $role
@@ -97,7 +96,6 @@ class ConversationMessage extends Model
             RecordConversationTimelineEntryAction::run(
                 entryType: ConversationTimelineEntryType::Message,
                 entryId: (string) $message->id,
-                workspaceId: (string) $message->workspace_id,
                 conversationId: (string) $message->conversation_id,
                 occurredAt: $message->created_at,
             );
@@ -285,7 +283,6 @@ class ConversationMessage extends Model
     {
         return [
             'id' => $this->id,
-            'workspace_id' => $this->workspace_id,
             'conversation_id' => $this->conversation_id,
             'search_text' => $this->searchableText(),
         ];

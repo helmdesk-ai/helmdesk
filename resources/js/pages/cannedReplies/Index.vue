@@ -1,5 +1,5 @@
 <!--
-  文件说明：快捷回复模版列表页，按"个人/共享/全部"切换；管理员可维护工作区共享，普通成员只管理自己的私有模版。
+  文件说明：快捷回复模版列表页，按"个人/共享/全部"切换；管理员可维护系统共享，普通成员只管理自己的私有模版。
 -->
 <script setup lang="ts">
 import ConfirmDeleteDialog from '@/components/common/ConfirmDeleteDialog.vue';
@@ -29,9 +29,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import WorkspaceSettingsLayout from '@/layouts/WorkspaceSettingsLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import CannedReplyForm from '@/pages/cannedReplies/CannedReplyForm.vue';
 import workspaceRoutes from '@/routes/workspace';
 import cannedReplyRoutes from '@/routes/workspace/canned-replies';
@@ -47,7 +46,6 @@ import { computed, ref, watch } from 'vue';
 const props = defineProps<ShowCannedReplyListPagePropsData>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 const page = usePage<AppPageProps>();
 const currentUserId = computed<string | null>(() => {
   const id = page.props.auth.user?.id;
@@ -56,7 +54,7 @@ const currentUserId = computed<string | null>(() => {
 
 const ownerLabel = (reply: ListCannedReplyItemData): string => {
   if (!reply.is_personal) {
-    return t('工作区共享');
+    return t('系统共享');
   }
 
   if (reply.owner_user_id && reply.owner_user_id === currentUserId.value) {
@@ -69,7 +67,7 @@ const ownerLabel = (reply: ListCannedReplyItemData): string => {
 const visibilityOptions = [
   { value: 'all' as const, label: t('全部') },
   { value: 'personal' as const, label: t('仅自己') },
-  { value: 'workspace' as const, label: t('工作区共享') },
+  { value: 'workspace' as const, label: t('系统共享') },
 ];
 
 type Visibility = (typeof visibilityOptions)[number]['value'];
@@ -84,7 +82,7 @@ const currentVisibility = computed<Visibility>(() => {
 
 const switchVisibility = (visibility: Visibility) => {
   router.get(
-    workspaceRoutes.cannedReplies.index.url(currentWorkspace.value.slug),
+    workspaceRoutes.cannedReplies.index.url(),
     visibility === 'all' ? {} : { visibility },
     {
       preserveScroll: true,
@@ -139,7 +137,6 @@ const submitDelete = () => {
 
   deleteForm.delete(
     cannedReplyRoutes.destroy.url({
-      slug: currentWorkspace.value.slug,
       cannedReply: deletingReply.value.id,
     }),
     {
@@ -169,175 +166,181 @@ watch(editOpen, (open) => {
   <AppLayout>
     <Head :title="t('快捷回复')" />
 
-    <WorkspaceSettingsLayout>
-      <div class="space-y-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <HeadingSmall
-            :title="t('快捷回复')"
-            :description="
-              t(
-                '维护客服常用的标准回复，可在收件箱直接调用。支持个人沉淀与工作区共享。',
-              )
-            "
-          />
+    <SystemSettingsLayout>
+      <section class="mx-auto w-full max-w-none space-y-12">
+        <div class="space-y-6">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <HeadingSmall
+              :title="t('快捷回复')"
+              :description="
+                t(
+                  '维护客服常用的标准回复，可在收件箱直接调用。支持个人沉淀与系统共享。',
+                )
+              "
+            />
 
-          <div class="flex items-center gap-2">
-            <Dialog v-model:open="createOpen">
-              <DialogTrigger as-child>
-                <Button>{{ t('新增快捷回复') }}</Button>
-              </DialogTrigger>
-              <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-                <DialogHeader class="space-y-3">
-                  <DialogTitle>{{ t('新增快捷回复') }}</DialogTitle>
-                </DialogHeader>
-                <CannedReplyForm
-                  v-if="createOpen"
-                  mode="create"
-                  variant="dialog"
-                  :available-tokens="props.available_tokens"
-                  :can-manage-workspace-shared="
-                    props.can_manage_workspace_replies
-                  "
-                  :default-is-personal="true"
-                  @saved="createOpen = false"
-                  @cancel="createOpen = false"
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        <div
-          class="flex flex-wrap items-end justify-end gap-3 border-b border-border pb-2"
-        >
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <Search
-                class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input v-model="search" class="h-9 w-48 pl-9 lg:w-64" />
+            <div class="flex items-center gap-2">
+              <Dialog v-model:open="createOpen">
+                <DialogTrigger as-child>
+                  <Button>{{ t('新增快捷回复') }}</Button>
+                </DialogTrigger>
+                <DialogContent
+                  class="max-h-[85vh] overflow-y-auto sm:max-w-2xl"
+                >
+                  <DialogHeader class="space-y-3">
+                    <DialogTitle>{{ t('新增快捷回复') }}</DialogTitle>
+                  </DialogHeader>
+                  <CannedReplyForm
+                    v-if="createOpen"
+                    mode="create"
+                    variant="dialog"
+                    :available-tokens="props.available_tokens"
+                    :can-manage-workspace-shared="
+                      props.can_manage_workspace_replies
+                    "
+                    :default-is-personal="true"
+                    @saved="createOpen = false"
+                    @cancel="createOpen = false"
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
+          </div>
 
-            <FilterPopover
-              :active-count="hasActiveVisibilityFilter ? 1 : 0"
-              :title="t('筛选条件')"
-              content-class="w-72"
-              @clear="switchVisibility('all')"
-            >
-              <div class="space-y-3 p-3">
-                <div class="text-xs font-medium text-muted-foreground">
-                  {{ t('归属') }}
-                </div>
-                <Select
-                  :model-value="currentVisibility"
-                  @update:model-value="
-                    (value) => switchVisibility(value as Visibility)
-                  "
-                >
-                  <SelectTrigger class="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="option in visibilityOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+          <div
+            class="flex flex-wrap items-end justify-end gap-3 border-b border-border pb-2"
+          >
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <Search
+                  class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input v-model="search" class="h-9 w-48 pl-9 lg:w-64" />
               </div>
-            </FilterPopover>
-          </div>
-        </div>
 
-        <div class="rounded-lg border">
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="border-b bg-muted/30 text-muted-foreground">
-                <tr class="text-left">
-                  <th class="px-4 py-3">{{ t('名称') }}</th>
-                  <th class="px-4 py-3">{{ t('短码') }}</th>
-                  <th class="px-4 py-3">{{ t('归属') }}</th>
-                  <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="reply in filteredList"
-                  :key="reply.id"
-                  class="border-t bg-background"
-                >
-                  <td class="px-4 py-3 align-top">
-                    <span class="font-medium">{{ reply.name }}</span>
-                  </td>
-                  <td class="px-4 py-3 align-top">
-                    <span
-                      v-if="reply.shortcut"
-                      class="inline-flex items-center rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
-                    >
-                      /{{ reply.shortcut }}
-                    </span>
-                    <span v-else class="text-xs text-muted-foreground">-</span>
-                  </td>
-                  <td class="px-4 py-3 align-top">
-                    <Badge variant="secondary">
-                      {{ ownerLabel(reply) }}
-                    </Badge>
-                  </td>
-                  <td class="px-4 py-3 align-top">
-                    <div class="flex justify-end gap-2">
-                      <Button
-                        v-if="reply.can_edit"
-                        variant="outline"
-                        size="sm"
-                        @click="openEditDialog(reply)"
-                      >
-                        {{ t('编辑') }}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger as-child>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            class="h-8 w-8"
-                            :aria-label="t('更多操作')"
-                          >
-                            <MoreHorizontal class="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-32">
-                          <DropdownMenuItem
-                            class="text-destructive focus:text-destructive"
-                            :disabled="!reply.can_delete"
-                            @select="openDeleteDialog(reply)"
-                          >
-                            {{ t('删除') }}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-if="filteredList.length === 0">
-                  <td
-                    class="px-4 py-10 text-center text-muted-foreground"
-                    colspan="4"
+              <FilterPopover
+                :active-count="hasActiveVisibilityFilter ? 1 : 0"
+                :title="t('筛选条件')"
+                content-class="w-72"
+                @clear="switchVisibility('all')"
+              >
+                <div class="space-y-3 p-3">
+                  <div class="text-xs font-medium text-muted-foreground">
+                    {{ t('归属') }}
+                  </div>
+                  <Select
+                    :model-value="currentVisibility"
+                    @update:model-value="
+                      (value) => switchVisibility(value as Visibility)
+                    "
                   >
-                    {{
-                      props.canned_reply_list.length === 0
-                        ? t('暂无快捷回复')
-                        : t('暂无匹配的快捷回复')
-                    }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    <SelectTrigger class="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="option in visibilityOptions"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterPopover>
+            </div>
+          </div>
+
+          <div class="rounded-lg border">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b bg-muted/30 text-muted-foreground">
+                  <tr class="text-left">
+                    <th class="px-4 py-3">{{ t('名称') }}</th>
+                    <th class="px-4 py-3">{{ t('短码') }}</th>
+                    <th class="px-4 py-3">{{ t('归属') }}</th>
+                    <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="reply in filteredList"
+                    :key="reply.id"
+                    class="border-t bg-background"
+                  >
+                    <td class="px-4 py-3 align-top">
+                      <span class="font-medium">{{ reply.name }}</span>
+                    </td>
+                    <td class="px-4 py-3 align-top">
+                      <span
+                        v-if="reply.shortcut"
+                        class="inline-flex items-center rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
+                      >
+                        /{{ reply.shortcut }}
+                      </span>
+                      <span v-else class="text-xs text-muted-foreground"
+                        >-</span
+                      >
+                    </td>
+                    <td class="px-4 py-3 align-top">
+                      <Badge variant="secondary">
+                        {{ ownerLabel(reply) }}
+                      </Badge>
+                    </td>
+                    <td class="px-4 py-3 align-top">
+                      <div class="flex justify-end gap-2">
+                        <Button
+                          v-if="reply.can_edit"
+                          variant="outline"
+                          size="sm"
+                          @click="openEditDialog(reply)"
+                        >
+                          {{ t('编辑') }}
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger as-child>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              class="h-8 w-8"
+                              :aria-label="t('更多操作')"
+                            >
+                              <MoreHorizontal class="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" class="w-32">
+                            <DropdownMenuItem
+                              class="text-destructive focus:text-destructive"
+                              :disabled="!reply.can_delete"
+                              @select="openDeleteDialog(reply)"
+                            >
+                              {{ t('删除') }}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="filteredList.length === 0">
+                    <td
+                      class="px-4 py-10 text-center text-muted-foreground"
+                      colspan="4"
+                    >
+                      {{
+                        props.canned_reply_list.length === 0
+                          ? t('暂无快捷回复')
+                          : t('暂无匹配的快捷回复')
+                      }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </WorkspaceSettingsLayout>
+      </section>
+    </SystemSettingsLayout>
 
     <ConfirmDeleteDialog
       :open="deletingReply !== null"

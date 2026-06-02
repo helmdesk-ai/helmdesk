@@ -54,7 +54,6 @@ class ShowContactConversationTimelineAction
         $perPage = max(1, min($perPage, self::MAX_PER_PAGE));
 
         $conversations = Conversation::query()
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->with(['channel', 'tags'])
             ->withCount(['messages as display_message_count' => Conversation::displayMessageCountQuery()])
@@ -285,7 +284,6 @@ class ShowContactConversationTimelineAction
     private function timelineQuery(Contact $contact): Builder
     {
         return DB::table('conversation_timeline_entries')
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->where(function (Builder $query): void {
                 $query
@@ -349,7 +347,6 @@ class ShowContactConversationTimelineAction
                     conversation_messages.recalled_at
                 ")
                 ->leftJoin('users as sender_users', 'sender_users.id', '=', 'conversation_messages.sender_user_id')
-                ->where('conversation_messages.workspace_id', $contact->workspace_id)
                 ->whereIn('conversation_messages.id', $messageIds)
                 ->get()
                 ->each(fn (object $row) => $rowsByKey->put(ConversationTimelineEntryType::Message->value.':'.$row->id, $row));
@@ -376,7 +373,6 @@ class ShowContactConversationTimelineAction
                     null as quoted_message_id,
                     null as recalled_at
                 ")
-                ->where('workspace_id', $contact->workspace_id)
                 ->whereIn('id', $eventIds);
 
             ApplyConversationTimelineEventDisplayScopeAction::run($events);
@@ -390,8 +386,8 @@ class ShowContactConversationTimelineAction
             ->map(fn (object $timelineRow) => $rowsByKey->get($timelineRow->entry_type.':'.$timelineRow->entry_id))
             ->values();
 
-        $quotedMessages = BuildQuotedMessageMapAction::run($pageRows, (string) $contact->workspace_id);
-        $userNamesById = BuildConversationTimelineUserMapAction::run($pageRows, (string) $contact->workspace_id);
+        $quotedMessages = BuildQuotedMessageMapAction::run($pageRows);
+        $userNamesById = BuildConversationTimelineUserMapAction::run($pageRows);
 
         return $pageRows
             ->map(function (object $row) use ($viewer, $quotedMessages, $userNamesById): ContactTimelineEntryData {

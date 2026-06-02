@@ -40,8 +40,7 @@ class PreviewInboxReplyTranslationAction
     public function handle(Workspace $workspace, User $user, string $conversationId, string $content): array
     {
         $conversation = Conversation::query()
-            ->with(['channel', 'workspace'])
-            ->where('workspace_id', $workspace->id)
+            ->with(['channel'])
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -86,7 +85,7 @@ class PreviewInboxReplyTranslationAction
     /**
      * 接收访客内容预览请求并返回 JSON。
      */
-    public function asController(Request $request, string $slug, string $conversationId): JsonResponse
+    public function asController(Request $request, string $conversationId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);

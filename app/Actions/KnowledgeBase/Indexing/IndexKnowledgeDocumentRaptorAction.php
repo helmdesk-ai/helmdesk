@@ -11,6 +11,7 @@ use App\Models\AiModel;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
+use App\Models\Workspace;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
@@ -65,19 +66,18 @@ class IndexKnowledgeDocumentRaptorAction
         if ($kb === null) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
-        $kb->loadMissing('workspace.knowledgeSummaryModel.provider', 'workspace.knowledgeEmbeddingModel.provider');
-        $workspace = $kb->workspace;
+        $workspace = Workspace::current();
         if (! $kb->hasIndexingStrategy(KnowledgeIndexingStrategy::Raptor)) {
             $document->updateStageStatus(KnowledgeIndexingStrategy::Raptor, KnowledgeDocumentIndexingStatus::Idle, knowledgeBase: $kb);
 
             return;
         }
 
-        $summaryModel = $workspace?->knowledgeSummaryModel;
+        $summaryModel = $workspace->knowledgeSummaryModel;
         if ($summaryModel === null || $summaryModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_summary_model'));
         }
-        $embeddingModel = $workspace?->knowledgeEmbeddingModel;
+        $embeddingModel = $workspace->knowledgeEmbeddingModel;
         if ($embeddingModel === null || $embeddingModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_embedding_model'));
         }

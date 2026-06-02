@@ -21,7 +21,6 @@ class ReceptionPlanData extends Data
 {
     public function __construct(
         public string $id,
-        public string $workspace_id,
         public string $name,
         public ?string $description,
         public PersonaConfigData $persona_config,
@@ -55,20 +54,21 @@ class ReceptionPlanData extends Data
     {
         $receptionConfig = $plan->reception_config ?? [];
         $taskConfig = $plan->task_config ?? [];
+        $workspace = Workspace::current();
 
         $receptionModel = ModelInvocationData::fromArray($receptionConfig['default_model'] ?? null);
-        $receptionModelStatus = $resolver->resolveModelStatus($plan->workspace, $receptionModel?->ai_model_id);
+        $receptionModelStatus = $resolver->resolveModelStatus($workspace, $receptionModel?->ai_model_id);
         $receptionModel = $receptionModel !== null
             ? new ModelInvocationData(
                 ai_model_id: $receptionModel->ai_model_id,
                 label: $receptionModelStatus->label,
             )
             : null;
-        $receptionModelCandidates = self::resolveModelCandidates($plan->workspace, $resolver, $receptionConfig, $receptionModel);
+        $receptionModelCandidates = self::resolveModelCandidates($workspace, $resolver, $receptionConfig, $receptionModel);
 
         $taskModel = ModelInvocationData::fromArray($taskConfig['default_model'] ?? null);
         $taskModelStatus = $taskModel !== null
-            ? $resolver->resolveModelStatus($plan->workspace, $taskModel->ai_model_id)
+            ? $resolver->resolveModelStatus($workspace, $taskModel->ai_model_id)
             : null;
         $taskModel = $taskModel !== null
             ? new ModelInvocationData(
@@ -76,11 +76,10 @@ class ReceptionPlanData extends Data
                 label: $taskModelStatus?->label,
             )
             : null;
-        $taskModelCandidates = self::resolveModelCandidates($plan->workspace, $resolver, $taskConfig, $taskModel);
+        $taskModelCandidates = self::resolveModelCandidates($workspace, $resolver, $taskConfig, $taskModel);
 
         return new self(
             id: (string) $plan->id,
-            workspace_id: (string) $plan->workspace_id,
             name: $plan->name,
             description: filled($plan->description) ? $plan->description : null,
             persona_config: PersonaConfigData::fromArray($plan->persona_config),

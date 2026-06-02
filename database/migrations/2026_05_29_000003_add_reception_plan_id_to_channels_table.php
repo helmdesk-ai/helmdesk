@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::table('channels', function (Blueprint $table) {
             $table->ulid('reception_plan_id')->nullable()->after('code');
-            $table->index(['workspace_id', 'reception_plan_id'], 'idx_channels_workspace_plan');
+            $table->index('reception_plan_id', 'idx_channels_plan');
         });
 
         // 把渠道从「绑定具体版本」回填为「绑定方案」：由当前 reception_plan_version_id
@@ -35,7 +35,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('channels', function (Blueprint $table) {
-            $table->dropIndex('idx_channels_workspace_plan');
+            $table->dropIndex('idx_channels_plan');
             $table->dropColumn('reception_plan_id');
         });
     }

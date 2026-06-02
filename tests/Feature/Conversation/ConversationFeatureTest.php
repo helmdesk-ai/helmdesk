@@ -11,7 +11,6 @@ use App\Enums\ConversationStatus;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Enums\Reception\HumanServiceUnavailableReason;
-use App\Enums\WorkspaceRole;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -34,11 +33,10 @@ beforeEach(function () {
 
 test('已认证用户可以查看会话列表页面', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Alice Example',
         'primary_email' => 'alice@example.com',
     ]);
-    $plan = ReceptionPlan::factory()->for($this->workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => 'Triage Plan-'.Str::lower(Str::random(6)),
     ]);
     $version = ReceptionPlanVersion::factory()->for($plan, 'plan')->create();
@@ -47,7 +45,6 @@ test('已认证用户可以查看会话列表页面', function () {
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $version->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -76,22 +73,18 @@ test('已认证用户可以查看会话列表页面', function () {
 
 test('会话列表支持已分配用户筛选', function () {
     $otherUser = User::factory()->create();
-    $otherUser->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Admin->value]);
 
     $mine = Conversation::factory()->assignedTo($this->user)->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => 'Mine',
         'last_message_at' => now()->subMinute(),
     ]);
 
     Conversation::factory()->assignedTo($otherUser)->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => 'Other',
         'last_message_at' => now()->subMinutes(2),
     ]);
 
     $unassigned = Conversation::factory()->unassigned()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => 'Unassigned',
         'last_message_at' => now()->subMinutes(3),
     ]);
@@ -122,7 +115,6 @@ test('已关闭会话列表项展示关闭状态并保留收件箱状态', funct
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'subject' => 'Closed conversation',
             'last_message_at' => now(),
@@ -142,14 +134,13 @@ test('已关闭会话列表项展示关闭状态并保留收件箱状态', funct
 
 test('会话列表项按当前用户语言展示访客消息译文摘要', function () {
     $this->user->update(['locale' => 'zh-CN']);
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'last_message_preview' => 'Hello, I need help',
             'last_message_at' => now(),
         ]);
@@ -178,10 +169,9 @@ test('会话详情返回已合并时间线在升序顺序', function () {
     ])->save();
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Alice Example',
     ]);
-    $plan = ReceptionPlan::factory()->for($this->workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => 'Support Plan-'.Str::lower(Str::random(6)),
     ]);
     $version = ReceptionPlanVersion::factory()->for($plan, 'plan')->create();
@@ -190,7 +180,6 @@ test('会话详情返回已合并时间线在升序顺序', function () {
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $version->id,
             'subject' => 'Timeline test',
         ]);
@@ -235,7 +224,7 @@ test('会话详情返回已合并时间线在升序顺序', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('workspace.conversations.show', ['slug' => $this->workspaceSlug(), 'id' => $conversation->id]));
+        ->getJson(route('workspace.conversations.show', ['id' => $conversation->id]));
 
     $response->assertOk()
         ->assertJsonPath('conversation.id', $conversation->id)
@@ -271,7 +260,6 @@ test('会话详情返回已合并时间线在升序顺序', function () {
 
 test('会话详情游标分页时间线块正确', function () {
     $conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $firstAt = CarbonImmutable::parse('2026-04-18 10:00:00');
@@ -324,7 +312,6 @@ test('会话详情展示接待 agent 的客服可读事件', function () {
     app()->setLocale('zh_CN');
 
     $conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $baseAt = CarbonImmutable::parse('2026-04-18 12:00:00');
@@ -401,7 +388,6 @@ test('会话详情展示自动回复翻译失败事件', function () {
     app()->setLocale('zh_CN');
 
     $conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     ConversationEvent::factory()->forConversation($conversation)->create([
@@ -429,13 +415,10 @@ test('会话详情事件展示用摘要承载客服需要的信息', function ()
     app()->setLocale('zh_CN');
 
     $previousUser = User::factory()->create(['name' => '李四']);
-    $previousUser->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Admin->value]);
 
     $targetUser = User::factory()->create(['name' => '王五']);
-    $targetUser->workspaces()->attach($this->workspace, ['role' => WorkspaceRole::Admin->value]);
 
     $conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $baseAt = CarbonImmutable::parse('2026-04-18 13:00:00');
@@ -549,7 +532,6 @@ test('会话详情事件展示用摘要承载客服需要的信息', function ()
 
 test('会话详情遇到未知事件来源时显性失败', function () {
     $conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     ConversationEvent::factory()->forConversation($conversation)->create([
@@ -564,7 +546,6 @@ test('会话详情遇到未知事件来源时显性失败', function () {
 
 test('会话消息拒绝无效角色类型组合', function () {
     $conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     expect(function () use ($conversation): void {

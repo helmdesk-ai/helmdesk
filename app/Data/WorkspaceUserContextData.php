@@ -4,25 +4,24 @@ namespace App\Data;
 
 use App\Enums\UserOnlineStatus;
 use App\Enums\WorkspaceRole;
+use App\Models\Attachment;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Settings\GeneralSettings;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use RuntimeException;
 use Spatie\LaravelData\Data;
 
 /**
- * 当前请求里的工作区上下文。
- * 由 IdentifyWorkspace 中间件共享给 Inertia，前端布局和权限按钮都从这里读取当前工作区信息。
+ * 当前请求里的单租户用户上下文。
+ * 由 IdentifyWorkspace 中间件共享给 Inertia，前端布局和权限按钮从这里读取当前后台用户信息。
  */
 class WorkspaceUserContextData extends Data
 {
-    private ?Workspace $workspaceModel = null;
-
     public function __construct(
-        public string $workspace_id,
         public string $workspace_slug,
         public string $workspace_name,
+        public string $workspace_logo_url,
         public string $user_id,
         public string $user_name,
         public string $user_email,
@@ -34,34 +33,41 @@ class WorkspaceUserContextData extends Data
         public ?string $user_avatar = null,
     ) {}
 
-    public static function fromModels(Workspace $workspace, User $user): self
+    /**
+     * 从当前登录用户构造后台上下文。
+     */
+    public static function fromUser(User $user): self
     {
-        $roleValue = $user->pivot?->role ?? $workspace->users()->whereKey($user->id)->value('user_workspace.role');
-        $role = WorkspaceRole::from((string) $roleValue);
+        /** @var GeneralSettings $generalSettings */
+        $generalSettings = app(GeneralSettings::class);
+        $generalSettings->refresh();
 
-        $pivotNickname = $user->pivot?->nickname ?? $workspace->users()->whereKey($user->id)->value('user_workspace.nickname');
-        $pivotOnlineStatus = $user->pivot?->online_status ?? $workspace->users()->whereKey($user->id)->value('user_workspace.online_status');
-        $pivotLastActiveAt = $user->pivot?->last_active_at ?? $workspace->users()->whereKey($user->id)->value('user_workspace.last_active_at');
-        if ($pivotOnlineStatus === null) {
-            throw new RuntimeException('Workspace user online status is not set.');
-        }
-
-        $onlineStatusEnum = UserOnlineStatus::from((int) $pivotOnlineStatus);
-        $lastActiveAt = filled($pivotLastActiveAt) ? Carbon::parse($pivotLastActiveAt)->toIso8601String() : null;
+        $role = $user->is_super_admin ? WorkspaceRole::Owner : $user->role;
+        $onlineStatus = $user->online_status instanceof UserOnlineStatus
+            ? $user->online_status
+            : UserOnlineStatus::from((int) $user->online_status);
 
         return new self(
-            workspace_id: (string) $workspace->id,
-            workspace_slug: $workspace->slug,
-            workspace_name: $workspace->name,
+            workspace_slug: 'admin',
+            workspace_name: $generalSettings->name ?? config('app.name', 'HelmDesk'),
+            workspace_logo_url: Attachment::query()->find($generalSettings->logo_id)?->full_url ?? asset('images/logo.png'),
             user_id: (string) $user->id,
             user_name: $user->name,
             user_email: $user->email,
             user_avatar: filled($user->avatar) ? $user->avatar : null,
-            user_online_status: EnumOptionData::fromEnum($onlineStatusEnum),
-            user_nickname: filled($pivotNickname) ? (string) $pivotNickname : null,
-            user_last_active_at: $lastActiveAt,
+            user_online_status: EnumOptionData::fromEnum($onlineStatus),
+            user_nickname: filled($user->nickname) ? (string) $user->nickname : null,
+            user_last_active_at: $user->last_active_at?->toIso8601String(),
             role: EnumOptionData::fromEnum($role),
         );
+    }
+
+    /**
+     * 兼容旧调用签名，单租户下工作区参数不再参与上下文解析。
+     */
+    public static function fromModels(Workspace $workspace, User $user): self
+    {
+        return self::fromUser($user);
     }
 
     public static function fromRequest(Request $request): self
@@ -84,18 +90,7 @@ class WorkspaceUserContextData extends Data
 
     public function workspace(): Workspace
     {
-        if ($this->workspaceModel instanceof Workspace) {
-            return $this->workspaceModel;
-        }
-
-        $this->workspaceModel = Workspace::query()->findOrFail($this->workspace_id);
-
-        return $this->workspaceModel;
-    }
-
-    public function workspaceId(): string
-    {
-        return $this->workspace_id;
+        return Workspace::current();
     }
 
     public function workspaceSlug(): string

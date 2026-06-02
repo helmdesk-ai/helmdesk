@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { EnumOptionData, McpServerData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -50,7 +49,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { toast } = useToast();
-const workspace = useRequiredWorkspace();
 
 const isEditMode = computed(() => props.mode === 'edit');
 
@@ -202,7 +200,6 @@ function submit(): void {
       }))
       .put(
         Mcp.UpdateMcpServerAction.url({
-          slug: workspace.value.slug,
           server: props.server.slug,
         }),
         {
@@ -229,7 +226,7 @@ function submit(): void {
       headers: data.headers,
       timeout_seconds: data.timeout_seconds,
     }))
-    .post(Mcp.CreateMcpServerAction.url(workspace.value.slug), {
+    .post(Mcp.CreateMcpServerAction.url(), {
       preserveScroll: true,
       onSuccess: () => {
         emit('saved');
@@ -259,17 +256,14 @@ async function checkConnection(): Promise<void> {
       isEditMode.value && props.server
         ? await axios.post(
             Mcp.CheckMcpServerAction[
-              '/w/{slug}/manage/mcp-servers/{server}/check'
+              '/admin/manage/mcp-servers/{server}/check'
             ].url({
-              slug: workspace.value.slug,
               server: props.server.slug,
             }),
             payload,
           )
         : await axios.post(
-            Mcp.CheckMcpServerAction['/w/{slug}/manage/mcp-servers/check'].url(
-              workspace.value.slug,
-            ),
+            Mcp.CheckMcpServerAction['/admin/manage/mcp-servers/check'].url(),
             payload,
           );
 

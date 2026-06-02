@@ -1,5 +1,5 @@
 <!--
-  文件说明：仪表板页面，作为当前工作区首页承接后续工作区概览内容。
+  文件说明：仪表板页面，作为总管理后台首页承接系统概览内容。
 -->
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n';

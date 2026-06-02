@@ -25,7 +25,6 @@ class ShowContactDetailAction
     {
         $contactQuery = Contact::query()
             ->when($includeTrashed, fn ($query) => $query->withTrashed())
-            ->where('workspace_id', $workspace->id)
             ->with([
                 'identities' => fn ($query) => $includeTrashed ? $query->withTrashed() : $query,
             ]);
@@ -33,7 +32,6 @@ class ShowContactDetailAction
         $contact = $contactQuery->findOrFail($contactId);
 
         $activityLogs = ContactActivityLog::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contactId)
             ->with([
                 'actor',
@@ -59,7 +57,6 @@ class ShowContactDetailAction
             ->get();
 
         $contactValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->with('definition')
             ->get()
@@ -96,7 +93,7 @@ class ShowContactDetailAction
         return $fields;
     }
 
-    public function asController(Request $request, string $slug, string $id): JsonResponse
+    public function asController(Request $request, string $id): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

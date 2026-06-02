@@ -9,23 +9,21 @@ import ImageUploadField from '@/components/common/ImageUploadField.vue';
 import InputError from '@/components/common/InputError.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type { GeneralSettingsData } from '@/types/generated';
 import { Form, Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
 
 const { t } = useI18n();
 const props = defineProps<{ generalSettings: GeneralSettingsData }>();
-const allowRegistration = ref(props.generalSettings.allow_registration);
 </script>
 
 <template>
   <SystemAppLayout>
     <Head :title="t('基础设置')" />
 
-    <div class="px-4 py-6 sm:px-6">
+    <SystemSettingsLayout>
       <div class="mx-auto w-full max-w-none space-y-12">
         <div class="space-y-6">
           <HeadingSmall
@@ -97,28 +95,6 @@ const allowRegistration = ref(props.generalSettings.allow_registration);
               <InputError class="mt-2" :message="errors.icp_record" />
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-              <input
-                type="hidden"
-                name="allow_registration"
-                :value="allowRegistration ? '1' : '0'"
-              />
-              <div class="space-y-1">
-                <Label>{{ t('允许用户自主注册') }}</Label>
-                <p class="text-sm text-muted-foreground">
-                  {{ t('关闭后登录页不再展示注册入口。') }}
-                </p>
-                <InputError class="mt-2" :message="errors.allow_registration" />
-              </div>
-              <Switch
-                :model-value="allowRegistration"
-                :aria-label="t('允许用户自主注册')"
-                @update:model-value="
-                  (checked) => (allowRegistration = Boolean(checked))
-                "
-              />
-            </div>
-
             <div class="grid gap-2">
               <Label>{{ t('版本号') }}</Label>
               <div class="py-2 text-sm text-muted-foreground">
@@ -134,6 +110,6 @@ const allowRegistration = ref(props.generalSettings.allow_registration);
           </Form>
         </div>
       </div>
-    </div>
+    </SystemSettingsLayout>
   </SystemAppLayout>
 </template>

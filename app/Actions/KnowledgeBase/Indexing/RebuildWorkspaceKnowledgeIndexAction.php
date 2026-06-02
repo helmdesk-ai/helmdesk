@@ -15,11 +15,10 @@ use App\Models\KnowledgeQaEntry;
 use App\Models\Workspace;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use App\Services\KnowledgeBase\KnowledgeVectorTableManager;
-use Illuminate\Support\Facades\Log;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 重建工作区知识库文档和问答索引。
+ * 重建知识库文档和问答索引。
  */
 class RebuildWorkspaceKnowledgeIndexAction
 {
@@ -34,30 +33,21 @@ class RebuildWorkspaceKnowledgeIndexAction
     ) {}
 
     /**
-     * 执行工作区下文档和 QA 的索引重建流程。
+     * 执行文档和 QA 的索引重建流程。
      *
      * @param  list<string>  $documentStrategyValues
      */
     public function handle(
-        string $workspaceId,
         array $documentStrategyValues,
         bool $rebuildQaVectorIndex,
         bool $resetVectorTables = false,
     ): void {
-        $workspace = Workspace::query()->find($workspaceId);
-        if ($workspace === null) {
-            Log::info('RebuildWorkspaceKnowledgeIndexAction: workspace missing, skipped.', [
-                'workspace_id' => $workspaceId,
-            ]);
-
-            return;
-        }
-
+        $workspace = Workspace::current();
         $strategies = $this->resolveStrategies($documentStrategyValues);
 
         if ($resetVectorTables) {
             $this->vectorTables->resetAllTables();
-            $this->bulkPurgeWorkspaceNodes($workspace, $strategies);
+            $this->bulkPurgeWorkspaceNodes($strategies);
         }
 
         foreach ($strategies as $strategy) {
@@ -89,18 +79,18 @@ class RebuildWorkspaceKnowledgeIndexAction
     }
 
     /**
-     * 维度变更时一次性清掉工作区内需要重建的策略节点。
+     * 维度变更时一次性清掉需要重建的策略节点。
      *
      * @param  list<KnowledgeIndexingStrategy>  $strategies
      */
-    private function bulkPurgeWorkspaceNodes(Workspace $workspace, array $strategies): void
+    private function bulkPurgeWorkspaceNodes(array $strategies): void
     {
         $strategyValues = array_values(array_map(
             static fn (KnowledgeIndexingStrategy $strategy): string => $strategy->value,
             $strategies,
         ));
 
-        $query = KnowledgeNode::query()->where('workspace_id', (string) $workspace->id);
+        $query = KnowledgeNode::query();
         if ($strategyValues !== []) {
             $query->whereIn('strategy', $strategyValues);
         }
@@ -108,7 +98,6 @@ class RebuildWorkspaceKnowledgeIndexAction
 
         // canonical text 节点仍保留，但旧维度向量已随 vec0 表消失，需清掉向量元信息。
         KnowledgeNode::query()
-            ->where('workspace_id', (string) $workspace->id)
             ->where('strategy', KnowledgeIndexingStrategy::Text)
             ->where('embedding_dim', '>', 0)
             ->update([
@@ -123,7 +112,6 @@ class RebuildWorkspaceKnowledgeIndexAction
     private function rebuildDocumentStrategy(Workspace $workspace, KnowledgeIndexingStrategy $strategy, bool $resetVectorTables): void
     {
         KnowledgeDocument::query()
-            ->where('workspace_id', $workspace->id)
             ->with('knowledgeBase')
             ->each(function (KnowledgeDocument $document) use ($workspace, $strategy, $resetVectorTables): void {
                 $knowledgeBase = $document->knowledgeBase;
@@ -160,7 +148,6 @@ class RebuildWorkspaceKnowledgeIndexAction
         $enabled = $workspace->hasKnowledgeIndexingStrategy(KnowledgeIndexingStrategy::Vector);
 
         KnowledgeQaEntry::query()
-            ->where('workspace_id', $workspace->id)
             ->with('knowledgeBase')
             ->each(function (KnowledgeQaEntry $entry) use ($workspace, $enabled, $resetVectorTables): void {
                 $knowledgeBase = $entry->knowledgeBase;

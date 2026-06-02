@@ -1,6 +1,6 @@
 <!--
   文件说明：快捷回复模版的创建/编辑通用表单。
-  - 顶部：归属切换（个人 vs 工作区共享，只有管理员可切换到共享范围）
+  - 顶部：归属切换（个人 vs 系统共享，只有管理员可切换到共享范围）
   - 左侧：名称、短码、正文（textarea + 插入变量按钮）
   - 右侧：实时预览（用模拟值填充 token）
   - AI 留口：未来在右侧"AI 润色"占位按钮接通真实接口；目前 disabled。
@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import workspaceRoutes from '@/routes/workspace';
 import cannedReplyRoutes from '@/routes/workspace/canned-replies';
 import type {
@@ -61,7 +60,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const initialIsPersonal =
   props.mode === 'edit'
@@ -156,7 +154,7 @@ const previewSamples: Record<string, string> = {
   '{{conversation.id}}': '01HXYZ',
   '{{conversation.subject}}': t('示例会话主题'),
   '{{teammate.name}}': t('客服小美'),
-  '{{workspace.name}}': t('我的工作区'),
+  '{{workspace.name}}': t('系统名称'),
 };
 
 const previewContent = computed(() => {
@@ -180,9 +178,7 @@ const submitLabel = computed(() =>
   props.mode === 'create' ? t('保存') : t('保存修改'),
 );
 
-const cancelHref = computed(() =>
-  workspaceRoutes.cannedReplies.index.url(currentWorkspace.value.slug),
-);
+const cancelHref = computed(() => workspaceRoutes.cannedReplies.index.url());
 
 const submit = (event: Event) => {
   event.preventDefault();
@@ -194,10 +190,7 @@ const submit = (event: Event) => {
 
   if (props.mode === 'create') {
     createForm.is_personal = ownerScope.value === 'personal';
-    createForm.post(
-      cannedReplyRoutes.store.url(currentWorkspace.value.slug),
-      visitOptions,
-    );
+    createForm.post(cannedReplyRoutes.store.url(), visitOptions);
     return;
   }
 
@@ -208,7 +201,6 @@ const submit = (event: Event) => {
   editForm.is_personal = ownerScope.value === 'personal';
   editForm.put(
     cannedReplyRoutes.update.url({
-      slug: currentWorkspace.value.slug,
       cannedReply: props.cannedReply.id,
     }),
     visitOptions,
@@ -244,7 +236,7 @@ const setShortcut = (value: string) => {
             {{ t('仅自己可见') }}
           </SelectItem>
           <SelectItem value="workspace">
-            {{ t('工作区共享') }}
+            {{ t('系统共享') }}
           </SelectItem>
         </SelectContent>
       </Select>

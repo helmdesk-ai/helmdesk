@@ -31,7 +31,6 @@ class CollectActiveMcpServersAction
     public function handle(Workspace $workspace): array
     {
         $servers = McpServer::query()
-            ->where('workspace_id', $workspace->id)
             ->where('is_active', true)
             ->whereNotNull('endpoint_url')
             ->where('endpoint_url', '!=', '')

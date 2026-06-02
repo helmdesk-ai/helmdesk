@@ -19,7 +19,6 @@ const AUTO_TRANSLATE_PENDING_TIMEOUT_MS = 30_000;
 const AUTO_TRANSLATE_BATCH_SIZE = 20;
 
 export interface UseInboxSummaryAutoTranslateOptions {
-  workspaceSlug: ComputedRef<string>;
   selection: ComputedRef<InboxSelectionData | null>;
   currentUserLocale: ComputedRef<string>;
   activeStitchedTimeline: ComputedRef<ContactStitchedTimelineData | null>;
@@ -38,7 +37,6 @@ export function useInboxSummaryAutoTranslate(
   options: UseInboxSummaryAutoTranslateOptions,
 ): UseInboxSummaryAutoTranslateReturn {
   const {
-    workspaceSlug,
     selection,
     currentUserLocale,
     activeStitchedTimeline,
@@ -245,7 +243,6 @@ export function useInboxSummaryAutoTranslate(
     try {
       await axios.post(
         inboxActions.conversations.summaries.queueTranslations.url({
-          slug: workspaceSlug.value,
           conversation: conversation.id,
         }),
         { conversation_ids: conversationIds },

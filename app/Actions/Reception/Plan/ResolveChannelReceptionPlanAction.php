@@ -32,7 +32,6 @@ class ResolveChannelReceptionPlanAction
     public function handle(Workspace $workspace, string $planId, bool $requireUsable = true): string
     {
         $plan = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->find($planId);
 
         if ($plan === null) {

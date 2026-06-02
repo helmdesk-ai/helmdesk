@@ -90,7 +90,6 @@ class AppendTelegramVisitorMediaAction
                 $fileContents, $fileName, $mimeType, $caption, $telegramPayload
             ): array {
                 $mediaMessage = ConversationMessage::query()->create([
-                    'workspace_id' => $conversation->workspace_id,
                     'conversation_id' => $conversation->id,
                     'role' => MessageRole::Visitor,
                     'sender_name' => $visitorSenderName,
@@ -113,7 +112,6 @@ class AppendTelegramVisitorMediaAction
                 $captionMessage = null;
                 if ($caption !== '') {
                     $captionMessage = ConversationMessage::query()->create([
-                        'workspace_id' => $conversation->workspace_id,
                         'conversation_id' => $conversation->id,
                         'role' => MessageRole::Visitor,
                         'sender_name' => $visitorSenderName,
@@ -175,7 +173,6 @@ class AppendTelegramVisitorMediaAction
         $objectKey = $this->pathGenerator->generate(
             attachmentId: $attachmentId,
             purpose: $purpose,
-            workspaceId: (string) $conversation->workspace_id,
             originalName: $fileName,
             mimeType: $mimeType,
         );
@@ -197,7 +194,6 @@ class AppendTelegramVisitorMediaAction
 
         return Attachment::query()->create([
             'id' => $attachmentId,
-            'workspace_id' => $conversation->workspace_id,
             'uploaded_by_user_id' => null,
             'storage_profile_id' => $profile->id,
             'disk' => $profile->driver,

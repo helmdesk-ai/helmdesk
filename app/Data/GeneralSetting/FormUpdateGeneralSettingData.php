@@ -16,7 +16,6 @@ class FormUpdateGeneralSettingData extends Data
         public ?string $logo_id = null,
         public ?string $copyright = null,
         public ?string $icp_record = null,
-        public bool $allow_registration = true,
     ) {}
 
     /**
@@ -32,7 +31,6 @@ class FormUpdateGeneralSettingData extends Data
             'logo_id' => 'nullable|string|max:500',
             'copyright' => 'nullable|string|max:255',
             'icp_record' => 'nullable|string|max:255',
-            'allow_registration' => 'required|boolean',
         ];
     }
 }

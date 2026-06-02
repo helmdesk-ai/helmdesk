@@ -24,11 +24,9 @@ class DetachContactTagAction
     public function handle(Workspace $workspace, string $contactId, string $tagId, ?User $actor = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->withTrashed()
             ->findOrFail($tagId);
 
@@ -53,7 +51,7 @@ class DetachContactTagAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id, string $tagId): JsonResponse
+    public function asController(Request $request, string $id, string $tagId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $this->handle($ctx->workspace(), $id, $tagId, $request->user());

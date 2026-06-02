@@ -14,7 +14,6 @@ beforeEach(function () {
     $this->user = $this->createUserWithWorkspace();
     // 标签必属于一个组，管理页用例统一在该组下创建/更新标签。
     $this->group = TagGroup::factory()->contact()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '客户价值',
     ]);
 });
@@ -27,7 +26,7 @@ test('已认证用户可以查看标签列表页面', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.tags.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('tags/Index')
@@ -42,18 +41,16 @@ test('已认证用户可以查看标签列表页面', function () {
 
 test('已认证用户可以查看标签回收站页面', function () {
     $deletedTag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Deleted Tag',
     ]);
     $deletedTag->delete();
 
     Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Active Tag',
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.tags.trash', ['slug' => $this->workspaceSlug()]))
+        ->get(route('workspace.manage.tags.trash'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('tags/Trash')
@@ -67,16 +64,16 @@ test('已认证用户可以查看标签回收站页面', function () {
 
 test('可以创建标签', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.tags.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.tags.index'))
+        ->post(route('workspace.manage.tags.store'), [
             'tag_group_id' => $this->group->id,
             'name' => '  新标签  ',
             'color' => '#00ff00',
             'description' => '用于测试',
         ])
-        ->assertRedirect(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]));
+        ->assertRedirect(route('workspace.manage.tags.index'));
 
-    $tag = Tag::query()->where('workspace_id', $this->workspace->id)->where('name', '新标签')->first();
+    $tag = Tag::query()->where('name', '新标签')->first();
     expect($tag)->not()->toBeNull();
     expect($tag->name)->toBe('新标签');
     expect($tag->normalized_name)->toBe('新标签');
@@ -88,7 +85,6 @@ test('可以创建标签', function () {
 
 test('normalized_name自动生成在创建和更新', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '  VIP Tag  ',
     ]);
 
@@ -106,7 +102,7 @@ test('不能创建重复标签名称不区分大小写', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.tags.store'), [
             'tag_group_id' => $this->group->id,
             'name' => 'vip',
         ])
@@ -115,7 +111,6 @@ test('不能创建重复标签名称不区分大小写', function () {
 
 test('不同标签组允许创建相同标签名称', function () {
     $otherGroup = TagGroup::factory()->contact()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '客户阶段',
     ]);
 
@@ -124,14 +119,13 @@ test('不同标签组允许创建相同标签名称', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.tags.store'), [
             'tag_group_id' => $otherGroup->id,
             'name' => 'vip',
         ])
         ->assertRedirect();
 
     expect(Tag::query()
-        ->where('workspace_id', $this->workspace->id)
         ->where('normalized_name', 'vip')
         ->count()
     )->toBe(2);
@@ -144,14 +138,13 @@ test('可以创建标签且名称与软删除标签相同', function () {
     $tag->delete();
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.store', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.tags.store'), [
             'tag_group_id' => $this->group->id,
             'name' => 'Deleted',
         ])
         ->assertRedirect();
 
     expect(Tag::query()
-        ->where('workspace_id', $this->workspace->id)
         ->where('name', 'Deleted')
         ->whereNull('deleted_at')
         ->count()
@@ -165,14 +158,14 @@ test('可以更新标签', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
-        ->put(route('workspace.manage.tags.update', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]), [
+        ->from(route('workspace.manage.tags.index'))
+        ->put(route('workspace.manage.tags.update', ['id' => $tag->id]), [
             'tag_group_id' => $this->group->id,
             'name' => '  新名称  ',
             'color' => '#222222',
             'description' => '更新描述',
         ])
-        ->assertRedirect(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]));
+        ->assertRedirect(route('workspace.manage.tags.index'));
 
     $tag->refresh();
     expect($tag->name)->toBe('新名称');
@@ -183,11 +176,10 @@ test('可以更新标签', function () {
 
 test('不能删除锁定标签', function () {
     $tag = Tag::factory()->locked()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.tags.destroy', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]))
+        ->delete(route('workspace.manage.tags.destroy', ['id' => $tag->id]))
         ->assertUnprocessable();
 
     expect(Tag::query()->find($tag->id))->not()->toBeNull();
@@ -195,26 +187,24 @@ test('不能删除锁定标签', function () {
 
 test('可以删除标签', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
-        ->delete(route('workspace.manage.tags.destroy', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]))
-        ->assertRedirect(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]));
+        ->from(route('workspace.manage.tags.index'))
+        ->delete(route('workspace.manage.tags.destroy', ['id' => $tag->id]))
+        ->assertRedirect(route('workspace.manage.tags.index'));
 
     $this->assertSoftDeleted('tags', ['id' => $tag->id]);
 });
 
 test('可以恢复已删除标签', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Restored',
     ]);
     $tag->delete();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.restore', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]))
+        ->put(route('workspace.manage.tags.restore', ['id' => $tag->id]))
         ->assertRedirect();
 
     expect(Tag::query()->find($tag->id)->deleted_at)->toBeNull();
@@ -235,9 +225,9 @@ test('不能恢复标签如果名称冲突并带活跃标签', function () {
         ->update(['normalized_name' => 'conflict']);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.trash', ['slug' => $this->workspaceSlug()]))
-        ->put(route('workspace.manage.tags.restore', ['slug' => $this->workspaceSlug(), 'id' => $trashed->id]))
-        ->assertRedirect(route('workspace.manage.tags.trash', ['slug' => $this->workspaceSlug()]))
+        ->from(route('workspace.manage.tags.trash'))
+        ->put(route('workspace.manage.tags.restore', ['id' => $trashed->id]))
+        ->assertRedirect(route('workspace.manage.tags.trash'))
         ->assertSessionHasErrors(['tag']);
 
     expect(Tag::withTrashed()->find($trashed->id)->deleted_at)->not()->toBeNull();
@@ -245,16 +235,13 @@ test('不能恢复标签如果名称冲突并带活跃标签', function () {
 
 test('可以合并标签', function () {
     $target = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Target',
     ]);
     $merged = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'ToMerge',
     ]);
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     DB::table('contact_tag_assignments')->insert([
@@ -265,7 +252,7 @@ test('可以合并标签', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.merge', ['slug' => $this->workspaceSlug()]), [
+        ->post(route('workspace.manage.tags.merge'), [
             'target_tag_id' => $target->id,
             'merged_tag_id' => $merged->id,
         ])
@@ -278,21 +265,19 @@ test('可以合并标签', function () {
 
 test('不能合并锁定标签为另一个标签', function () {
     $target = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Target',
     ]);
     $locked = Tag::factory()->locked()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Locked',
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.tags.merge', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.tags.index'))
+        ->post(route('workspace.manage.tags.merge'), [
             'target_tag_id' => $target->id,
             'merged_tag_id' => $locked->id,
         ])
-        ->assertRedirect(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.tags.index'))
         ->assertSessionHasErrors(['merged_tag_id']);
 
     expect(Tag::query()->find($locked->id))->not()->toBeNull();
@@ -300,12 +285,10 @@ test('不能合并锁定标签为另一个标签', function () {
 
 test('不能合并标签为自身', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Self',
     ]);
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     DB::table('contact_tag_assignments')->insert([
@@ -316,12 +299,12 @@ test('不能合并标签为自身', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.tags.merge', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('workspace.manage.tags.index'))
+        ->post(route('workspace.manage.tags.merge'), [
             'target_tag_id' => $tag->id,
             'merged_tag_id' => $tag->id,
         ])
-        ->assertRedirect(route('workspace.manage.tags.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('workspace.manage.tags.index'))
         ->assertSessionHasErrors(['merged_tag_id']);
 
     expect(Tag::query()->find($tag->id))->not()->toBeNull()
@@ -333,11 +316,9 @@ test('不能合并标签为自身', function () {
 
 test('可以查看标签使用情况', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     DB::table('contact_tag_assignments')->insert([
@@ -348,7 +329,7 @@ test('可以查看标签使用情况', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->getJson(route('workspace.manage.tags.usage', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]))
+        ->getJson(route('workspace.manage.tags.usage', ['id' => $tag->id]))
         ->assertOk()
         ->assertJson([
             'contact_usage_count' => 1,
@@ -358,11 +339,9 @@ test('可以查看标签使用情况', function () {
 
 test('标签使用情况忽略已删除联系人', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     DB::table('contact_tag_assignments')->insert([
@@ -375,7 +354,7 @@ test('标签使用情况忽略已删除联系人', function () {
     $contact->delete();
 
     $this->actingAs($this->user)
-        ->getJson(route('workspace.manage.tags.usage', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]))
+        ->getJson(route('workspace.manage.tags.usage', ['id' => $tag->id]))
         ->assertOk()
         ->assertJson([
             'contact_usage_count' => 0,
@@ -385,12 +364,10 @@ test('标签使用情况忽略已删除联系人', function () {
 
 test('重命名标签刷新关联联系人搜索索引', function () {
     $tag = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'VIP',
     ]);
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     DB::table('contact_tag_assignments')->insert([
@@ -403,7 +380,7 @@ test('重命名标签刷新关联联系人搜索索引', function () {
     $contact->searchable();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.update', ['slug' => $this->workspaceSlug(), 'id' => $tag->id]), [
+        ->put(route('workspace.manage.tags.update', ['id' => $tag->id]), [
             'tag_group_id' => $tag->tag_group_id,
             'name' => 'Priority',
             'color' => $tag->color,
@@ -413,20 +390,19 @@ test('重命名标签刷新关联联系人搜索索引', function () {
 
     $searchResults = collect(
         Contact::search('Priority')
-            ->where('workspace_id', $this->workspace->id)
             ->keys()
     );
 
     expect($searchResults)->toContain($contact->id);
 });
 
-test('不能更新标签外部当前工作区', function () {
+test('不能把标签移动到不匹配适用维度的标签组', function () {
     $other = Tag::factory()->create();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.update', ['slug' => $this->workspaceSlug(), 'id' => $other->id]), [
+        ->put(route('workspace.manage.tags.update', ['id' => $other->id]), [
             'tag_group_id' => $this->group->id,
             'name' => '非法更新',
         ])
-        ->assertNotFound();
+        ->assertSessionHasErrors('tag_group_id');
 });

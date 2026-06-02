@@ -56,9 +56,8 @@ class ResolveContactIdentityAction
 
         $shouldPromote = ContactIdentityNormalizer::promotesContactType($type);
 
-        return DB::transaction(function () use ($workspace, $type, $value, $namespace, $source, $name, $shouldPromote) {
+        return DB::transaction(function () use ($type, $value, $namespace, $source, $name, $shouldPromote) {
             $existing = ContactIdentity::query()
-                ->where('workspace_id', $workspace->id)
                 ->where('type', $type)
                 ->where('namespace', $namespace)
                 ->where('value', $value)
@@ -91,7 +90,6 @@ class ResolveContactIdentityAction
             }
 
             $contact = Contact::query()->create([
-                'workspace_id' => $workspace->id,
                 'type' => $shouldPromote ? ContactType::Contact : ContactType::Visitor,
                 'source' => $source,
                 'name' => $name,
@@ -99,7 +97,6 @@ class ResolveContactIdentityAction
             ]);
 
             ContactIdentity::query()->create([
-                'workspace_id' => $workspace->id,
                 'contact_id' => $contact->id,
                 'type' => $type,
                 'namespace' => $namespace,

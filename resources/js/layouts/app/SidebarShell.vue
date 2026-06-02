@@ -34,7 +34,7 @@ interface Props {
   headerHref: string;
   headerSubtitle: string;
   mainNavItems: SidebarShellNavItem[];
-  footerNavItems: NavItem[];
+  footerNavItems: SidebarShellNavItem[];
   profileHref: string;
   profileLabel: string;
   logoutHref: string;
@@ -56,11 +56,15 @@ const isExternalLink = (href: NavItem['href']) => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-const isMainNavItemActive = (item: SidebarShellNavItem) => {
+const isSidebarNavItemActive = (item: SidebarShellNavItem) => {
   if (item.activeUrls && item.activeUrls.length > 0) {
     return item.activeUrls.some((u) =>
       urlIsActive(u, page.url, { mode: 'prefix' }),
     );
+  }
+
+  if (isExternalLink(item.href)) {
+    return false;
   }
 
   return urlIsActive(item.href, page.url);
@@ -149,7 +153,7 @@ const isMainNavItemActive = (item: SidebarShellNavItem) => {
               >
                 <SidebarMenuButton
                   as-child
-                  :is-active="isMainNavItemActive(item)"
+                  :is-active="isSidebarNavItemActive(item)"
                   :tooltip="item.title"
                 >
                   <Link :href="toUrl(item.href)">
@@ -173,6 +177,7 @@ const isMainNavItemActive = (item: SidebarShellNavItem) => {
                   <SidebarMenuButton
                     class="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100"
                     as-child
+                    :is-active="isSidebarNavItemActive(item)"
                   >
                     <a
                       v-if="isExternalLink(item.href)"

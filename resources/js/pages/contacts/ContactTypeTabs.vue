@@ -3,7 +3,6 @@
 -->
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import workspace from '@/routes/workspace';
 import type { ContactListType, EnumOptionData } from '@/types/generated';
 import { Link } from '@inertiajs/vue3';
@@ -17,7 +16,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 interface ContactTab {
   value: ContactTabValue;
@@ -33,7 +31,6 @@ const tabs = computed<ContactTab[]>(() => [
       value,
       label: option.label,
       href: workspace.contacts.index.url({
-        slug: currentWorkspace.value.slug,
         type: value,
       }),
     };
@@ -41,7 +38,7 @@ const tabs = computed<ContactTab[]>(() => [
   {
     value: 'trash',
     label: t('回收站'),
-    href: workspace.contacts.trash.url(currentWorkspace.value.slug),
+    href: workspace.contacts.trash.url(),
   },
 ]);
 </script>

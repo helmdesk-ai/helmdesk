@@ -1,21 +1,25 @@
 <?php
 
-namespace App\Data\Teammate;
+namespace App\Data\User;
 
 use App\Enums\UserOnlineStatus;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 
 /**
- * 更新客服成员Online状态表单数据。
- * 来自 resources/js/pages/teammate/List.vue、Create.vue、Edit.vue 的编辑表单提交，后端用它校验并保存客服成员配置。
+ * 当前管理员更新在线状态的表单数据。
  */
-class FormUpdateTeammateOnlineStatusData extends Data
+class FormUpdateMyOnlineStatusData extends Data
 {
     public function __construct(
         public UserOnlineStatus $online_status,
     ) {}
 
+    /**
+     * 校验在线状态提交值。
+     *
+     * @return array<string, list<mixed>>
+     */
     public static function rules(): array
     {
         return [

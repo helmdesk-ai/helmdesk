@@ -59,7 +59,6 @@ class KnowledgeReranker
             $response = $this->bridge->rerank($model->provider, $model, $credentials, $query, $documents, $topK);
         } catch (Throwable $exception) {
             Log::info('Knowledge rerank unavailable, falling back to fused ordering.', [
-                'workspace_id' => $workspace->id,
                 'message' => $exception->getMessage(),
             ]);
 

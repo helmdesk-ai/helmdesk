@@ -35,7 +35,7 @@ class DeleteAiProviderAction
         $provider->delete();
     }
 
-    public function asController(Request $request, string $slug, string $provider)
+    public function asController(Request $request, string $provider)
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

@@ -19,7 +19,6 @@ class RestoreAttributeDefinitionAction
     public function handle(Workspace $workspace, string $definitionId): AttributeDefinition
     {
         $definition = AttributeDefinition::query()
-            ->where('workspace_id', $workspace->id)
             ->onlyTrashed()
             ->findOrFail($definitionId);
 
@@ -34,7 +33,7 @@ class RestoreAttributeDefinitionAction
         return $definition;
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
 

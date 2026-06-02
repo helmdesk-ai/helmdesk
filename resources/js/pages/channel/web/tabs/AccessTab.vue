@@ -23,7 +23,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
 import { useUrlTab } from '@/composables/useUrlTab';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { WebChannelData } from '@/types/generated';
 import { Form } from '@inertiajs/vue3';
 import { Check, CircleHelp, Copy } from 'lucide-vue-next';
@@ -35,7 +34,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 type AccessSubTab = 'embed' | 'standalone';
 // 子 Tab 状态同步到 URL（access_tab 查询参数），刷新或复制链接后仍停留在同一子 Tab。
@@ -154,7 +152,6 @@ const copyWidgetCode = async () => {
   <Form
     :action="
       Web.UpdateWebChannelAccessAction.url({
-        slug: currentWorkspace.slug,
         channel: props.channel.id,
       })
     "

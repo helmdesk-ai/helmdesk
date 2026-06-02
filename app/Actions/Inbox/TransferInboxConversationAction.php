@@ -39,7 +39,6 @@ class TransferInboxConversationAction
         FormTransferInboxConversationData $data,
     ): Conversation {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -62,7 +61,7 @@ class TransferInboxConversationAction
     /**
      * 接收转接请求并切到同事视图。
      */
-    public function asController(Request $request, string $slug, string $conversationId): RedirectResponse
+    public function asController(Request $request, string $conversationId): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormTransferInboxConversationData::from($request);
@@ -74,7 +73,6 @@ class TransferInboxConversationAction
         );
 
         return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
             'view' => InboxView::Teammates,
             'conversation_id' => $conversation->id,
         ]);

@@ -31,7 +31,6 @@ class ReleaseInboxConversationToAiAction
     public function handle(Workspace $workspace, User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -44,7 +43,7 @@ class ReleaseInboxConversationToAiAction
     /**
      * 从收件箱入口释放当前会话给 AI 或待接待队列。
      */
-    public function asController(Request $request, string $slug, string $conversationId): RedirectResponse
+    public function asController(Request $request, string $conversationId): RedirectResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $conversation = $this->handle(
@@ -54,7 +53,6 @@ class ReleaseInboxConversationToAiAction
         );
 
         return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
             'view' => $conversation->inbox_status === ConversationInboxStatus::TeammatePending
                 ? InboxView::Pending
                 : InboxView::Ai,

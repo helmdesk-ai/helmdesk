@@ -1,5 +1,5 @@
 <!--
-  工作区 MCP 服务页面：左侧服务列表，右侧承接详情、创建和编辑表单。
+  系统 MCP 服务页面：左侧服务列表，右侧承接详情、创建和编辑表单。
 -->
 <script setup lang="ts">
 import Mcp from '@/actions/App/Actions/Mcp';
@@ -12,9 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import WorkspaceSettingsLayout from '@/layouts/WorkspaceSettingsLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type {
   McpServerData,
   ShowWorkspaceMcpServersPagePropsData,
@@ -34,7 +33,6 @@ const props = defineProps<ShowWorkspaceMcpServersPagePropsData>();
 const { t } = useI18n();
 const { toast } = useToast();
 const { formatDateTime } = useDateTime();
-const workspace = useRequiredWorkspace();
 
 const selectedServerQueryParam = 'server';
 const panelQueryParam = 'panel';
@@ -279,7 +277,6 @@ function handleServerFormSaved(): void {
 function toggleServer(server: McpServerData): void {
   router.put(
     Mcp.ToggleMcpServerAction.url({
-      slug: workspace.value.slug,
       server: server.slug,
     }),
     {},
@@ -300,10 +297,7 @@ async function checkSavedServerConnection(): Promise<void> {
 
   try {
     const { data } = await axios.post(
-      Mcp.CheckMcpServerAction[
-        '/w/{slug}/manage/mcp-servers/{server}/check'
-      ].url({
-        slug: workspace.value.slug,
+      Mcp.CheckMcpServerAction['/admin/manage/mcp-servers/{server}/check'].url({
         server: selectedServer.value.slug,
       }),
     );
@@ -335,7 +329,6 @@ async function syncTools(): Promise<void> {
   try {
     const { data } = await axios.post(
       Mcp.SyncMcpServerToolsAction.url({
-        slug: workspace.value.slug,
         server: selectedSlug.value,
       }),
     );
@@ -382,7 +375,6 @@ function confirmDelete(): void {
 
   router.delete(
     Mcp.DeleteMcpServerAction.url({
-      slug: workspace.value.slug,
       server: deleteTarget.value.slug,
     }),
     {
@@ -408,265 +400,277 @@ function confirmDelete(): void {
   <AppLayout>
     <Head :title="t('MCP 服务')" />
 
-    <WorkspaceSettingsLayout>
-      <div
-        class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
-      >
-        <HeadingSmall
-          :title="t('MCP 服务')"
-          :description="t('用 MCP 协议接入外部能力，供不同业务场景调用')"
-        />
+    <SystemSettingsLayout>
+      <section class="mx-auto w-full max-w-none space-y-12">
+        <div
+          class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
+        >
+          <HeadingSmall
+            :title="t('MCP 服务')"
+            :description="t('用 MCP 协议接入外部能力，供不同业务场景调用')"
+          />
 
-        <div class="flex min-h-0 flex-1 rounded-xl border">
-          <div class="flex w-64 shrink-0 flex-col border-r">
-            <div class="flex items-center justify-between p-4">
-              <h3 class="text-sm font-semibold">
-                {{ t('MCP 服务') }}
-              </h3>
-              <Button
-                type="button"
-                :variant="
-                  activeRightPage === 'server_form' &&
-                  serverFormMode === 'create'
-                    ? 'secondary'
-                    : 'ghost'
-                "
-                size="icon"
-                class="h-7 w-7"
-                :aria-label="t('添加 MCP 服务')"
-                @click="openCreateForm"
-              >
-                <Plus class="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto px-2 pb-4">
-              <div
-                v-if="props.servers.length === 0"
-                class="px-4 py-8 text-center text-sm text-muted-foreground"
-              >
-                {{ t('暂无 MCP 服务') }}
-              </div>
-
-              <div v-else class="space-y-0.5">
-                <div
-                  v-for="server in props.servers"
-                  :key="server.slug"
-                  class="flex items-center gap-2 rounded-md text-sm transition-colors"
-                  :class="
-                    isServerRowActive(server)
-                      ? 'bg-accent text-accent-foreground'
-                      : 'hover:bg-muted'
+          <div class="flex min-h-0 flex-1 rounded-xl border">
+            <div class="flex w-64 shrink-0 flex-col border-r">
+              <div class="flex items-center justify-between p-4">
+                <h3 class="text-sm font-semibold">
+                  {{ t('MCP 服务') }}
+                </h3>
+                <Button
+                  type="button"
+                  :variant="
+                    activeRightPage === 'server_form' &&
+                    serverFormMode === 'create'
+                      ? 'secondary'
+                      : 'ghost'
                   "
+                  size="icon"
+                  class="h-7 w-7"
+                  :aria-label="t('添加 MCP 服务')"
+                  @click="openCreateForm"
                 >
-                  <button
-                    type="button"
-                    class="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
-                    @click="selectServer(server)"
+                  <Plus class="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div class="flex-1 overflow-y-auto px-2 pb-4">
+                <div
+                  v-if="props.servers.length === 0"
+                  class="px-4 py-8 text-center text-sm text-muted-foreground"
+                >
+                  {{ t('暂无 MCP 服务') }}
+                </div>
+
+                <div v-else class="space-y-0.5">
+                  <div
+                    v-for="server in props.servers"
+                    :key="server.slug"
+                    class="flex items-center gap-2 rounded-md text-sm transition-colors"
+                    :class="
+                      isServerRowActive(server)
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-muted'
+                    "
                   >
-                    <Server class="h-5 w-5 shrink-0 text-muted-foreground" />
-                    <div class="min-w-0 flex-1 space-y-0.5">
-                      <span class="block truncate font-medium">
-                        {{ server.name }}
-                      </span>
-                      <span
-                        class="block truncate text-[11px] text-muted-foreground"
-                      >
-                        {{ server.tools_count }}
-                        {{ t('工具数') }}
-                      </span>
-                    </div>
-                  </button>
-                  <Switch
-                    class="mr-3"
-                    :model-value="server.is_active"
-                    :title="server.is_active ? t('停用') : t('启用')"
-                    @update:model-value="() => toggleServer(server)"
-                  />
+                    <button
+                      type="button"
+                      class="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
+                      @click="selectServer(server)"
+                    >
+                      <Server class="h-5 w-5 shrink-0 text-muted-foreground" />
+                      <div class="min-w-0 flex-1 space-y-0.5">
+                        <span class="block truncate font-medium">
+                          {{ server.name }}
+                        </span>
+                        <span
+                          class="block truncate text-[11px] text-muted-foreground"
+                        >
+                          {{ server.tools_count }}
+                          {{ t('工具数') }}
+                        </span>
+                      </div>
+                    </button>
+                    <Switch
+                      class="mr-3"
+                      :model-value="server.is_active"
+                      :title="server.is_active ? t('停用') : t('启用')"
+                      @update:model-value="() => toggleServer(server)"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="flex-1 overflow-y-auto">
-            <div v-if="activeRightPage === 'server_form'" class="space-y-6 p-6">
-              <McpServerFormPanel
-                :mode="serverFormMode"
-                :server="serverFormMode === 'edit' ? editingServer : null"
-                :transport-options="props.transport_options"
-                @cancel="closeServerForm"
-                @saved="handleServerFormSaved"
-              />
-            </div>
+            <div class="flex-1 overflow-y-auto">
+              <div
+                v-if="activeRightPage === 'server_form'"
+                class="space-y-6 p-6"
+              >
+                <McpServerFormPanel
+                  :mode="serverFormMode"
+                  :server="serverFormMode === 'edit' ? editingServer : null"
+                  :transport-options="props.transport_options"
+                  @cancel="closeServerForm"
+                  @saved="handleServerFormSaved"
+                />
+              </div>
 
-            <template v-else-if="selectedServer">
-              <div class="space-y-6 p-6">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 space-y-2">
-                    <div class="flex min-w-0 flex-wrap items-center gap-2">
-                      <h3 class="truncate text-sm font-semibold">
-                        {{ selectedServer.name }}
-                      </h3>
-                      <Badge variant="outline">
-                        {{ selectedServer.transport_label }}
-                      </Badge>
+              <template v-else-if="selectedServer">
+                <div class="space-y-6 p-6">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 space-y-2">
+                      <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 class="truncate text-sm font-semibold">
+                          {{ selectedServer.name }}
+                        </h3>
+                        <Badge variant="outline">
+                          {{ selectedServer.transport_label }}
+                        </Badge>
+                      </div>
+                      <p class="text-sm break-all text-muted-foreground">
+                        {{ selectedServer.endpoint_url }}
+                      </p>
                     </div>
-                    <p class="text-sm break-all text-muted-foreground">
-                      {{ selectedServer.endpoint_url }}
-                    </p>
-                  </div>
 
-                  <div class="flex shrink-0 items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      :disabled="isCheckingSavedServer"
-                      @click="checkSavedServerConnection"
-                    >
-                      <LoaderCircle
-                        v-if="isCheckingSavedServer"
-                        class="mr-2 h-4 w-4 animate-spin"
-                      />
-                      {{ t('测试') }}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      @click="openEditForm(selectedServer)"
-                    >
-                      {{ t('编辑') }}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      class="text-destructive hover:text-destructive"
-                      :title="t('删除')"
-                      :aria-label="t('删除')"
-                      @click="openDeleteDialog(selectedServer)"
-                    >
-                      <Trash2 class="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div class="space-y-3">
-                  <h3 class="text-sm font-semibold">
-                    {{ t('连接配置') }}
-                  </h3>
-                  <div class="space-y-3 text-sm">
-                    <div class="flex items-start gap-3">
-                      <div class="w-24 shrink-0 text-xs text-muted-foreground">
-                        {{ t('认证方式') }}
-                      </div>
-                      <div class="min-w-0 flex-1 break-words">
-                        {{
-                          selectedServer.has_auth_credentials
-                            ? (selectedServer.auth_header_name ?? t('已配置'))
-                            : t('不认证')
-                        }}
-                      </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                      <div class="w-24 shrink-0 text-xs text-muted-foreground">
-                        {{ t('超时（秒）') }}
-                      </div>
-                      <div class="min-w-0 flex-1 break-words">
-                        {{ selectedServer.timeout_seconds }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div class="space-y-3">
-                  <div class="space-y-1">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <h3 class="text-sm font-semibold">
-                        {{ t('工具数') }}
-                        ({{ selectedServer.tools_count }})
-                      </h3>
+                    <div class="flex shrink-0 items-center gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        :disabled="isSyncing"
-                        @click="syncTools"
+                        :disabled="isCheckingSavedServer"
+                        @click="checkSavedServerConnection"
                       >
                         <LoaderCircle
-                          v-if="isSyncing"
+                          v-if="isCheckingSavedServer"
                           class="mr-2 h-4 w-4 animate-spin"
                         />
-                        {{ t('同步') }}
+                        {{ t('测试') }}
                       </Button>
-                      <Badge
-                        v-if="selectedServer.last_sync_status === 'failed'"
-                        variant="destructive"
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        @click="openEditForm(selectedServer)"
                       >
-                        {{ selectedServer.last_sync_status_label }}
-                      </Badge>
-                      <span
-                        v-if="formattedLastSync"
-                        class="text-xs text-muted-foreground"
+                        {{ t('编辑') }}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="text-destructive hover:text-destructive"
+                        :title="t('删除')"
+                        :aria-label="t('删除')"
+                        @click="openDeleteDialog(selectedServer)"
                       >
-                        {{ t('最后同步时间') }}:
-                        {{ formattedLastSync }}
-                      </span>
+                        <Trash2 class="h-4 w-4" />
+                      </Button>
                     </div>
-                    <p
-                      v-if="
-                        selectedServer.last_sync_status === 'failed' &&
-                        selectedServer.last_sync_error
-                      "
-                      class="text-xs text-destructive"
-                    >
-                      {{ selectedServer.last_sync_error }}
-                    </p>
                   </div>
 
-                  <div v-if="selectedServer.tools.length > 0" class="space-y-2">
-                    <McpToolListItem
-                      v-for="tool in selectedServer.tools"
-                      :key="tool.id"
-                      :tool="tool"
-                    />
+                  <Separator />
+
+                  <div class="space-y-3">
+                    <h3 class="text-sm font-semibold">
+                      {{ t('连接配置') }}
+                    </h3>
+                    <div class="space-y-3 text-sm">
+                      <div class="flex items-start gap-3">
+                        <div
+                          class="w-24 shrink-0 text-xs text-muted-foreground"
+                        >
+                          {{ t('认证方式') }}
+                        </div>
+                        <div class="min-w-0 flex-1 break-words">
+                          {{
+                            selectedServer.has_auth_credentials
+                              ? (selectedServer.auth_header_name ?? t('已配置'))
+                              : t('不认证')
+                          }}
+                        </div>
+                      </div>
+                      <div class="flex items-start gap-3">
+                        <div
+                          class="w-24 shrink-0 text-xs text-muted-foreground"
+                        >
+                          {{ t('超时（秒）') }}
+                        </div>
+                        <div class="min-w-0 flex-1 break-words">
+                          {{ selectedServer.timeout_seconds }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div v-else class="text-sm text-muted-foreground">
-                    {{ t('该 MCP 服务暂无工具') }}
+
+                  <Separator />
+
+                  <div class="space-y-3">
+                    <div class="space-y-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-sm font-semibold">
+                          {{ t('工具数') }}
+                          ({{ selectedServer.tools_count }})
+                        </h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          :disabled="isSyncing"
+                          @click="syncTools"
+                        >
+                          <LoaderCircle
+                            v-if="isSyncing"
+                            class="mr-2 h-4 w-4 animate-spin"
+                          />
+                          {{ t('同步') }}
+                        </Button>
+                        <Badge
+                          v-if="selectedServer.last_sync_status === 'failed'"
+                          variant="destructive"
+                        >
+                          {{ selectedServer.last_sync_status_label }}
+                        </Badge>
+                        <span
+                          v-if="formattedLastSync"
+                          class="text-xs text-muted-foreground"
+                        >
+                          {{ t('最后同步时间') }}:
+                          {{ formattedLastSync }}
+                        </span>
+                      </div>
+                      <p
+                        v-if="
+                          selectedServer.last_sync_status === 'failed' &&
+                          selectedServer.last_sync_error
+                        "
+                        class="text-xs text-destructive"
+                      >
+                        {{ selectedServer.last_sync_error }}
+                      </p>
+                    </div>
+
+                    <div
+                      v-if="selectedServer.tools.length > 0"
+                      class="space-y-2"
+                    >
+                      <McpToolListItem
+                        v-for="tool in selectedServer.tools"
+                        :key="tool.id"
+                        :tool="tool"
+                      />
+                    </div>
+                    <div v-else class="text-sm text-muted-foreground">
+                      {{ t('该 MCP 服务暂无工具') }}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
 
-            <div
-              v-else
-              class="flex h-full items-center justify-center text-sm text-muted-foreground"
-            >
-              {{ t('暂无 MCP 服务') }}
+              <div
+                v-else
+                class="flex h-full items-center justify-center text-sm text-muted-foreground"
+              >
+                {{ t('暂无 MCP 服务') }}
+              </div>
             </div>
           </div>
-        </div>
 
-        <ConfirmDeleteDialog
-          :open="deleteTarget !== null"
-          :title="
-            t('删除 MCP 服务 “{name}”？', { name: deleteTarget?.name ?? '' })
-          "
-          :detail-description="
-            t('删除后将同时移除已缓存的 {count} 个工具记录。', {
-              count: deleteTarget?.tools_count ?? 0,
-            })
-          "
-          :processing="isDeleting"
-          @update:open="closeDeleteDialog"
-          @confirm="confirmDelete"
-        />
-      </div>
-    </WorkspaceSettingsLayout>
+          <ConfirmDeleteDialog
+            :open="deleteTarget !== null"
+            :title="
+              t('删除 MCP 服务 “{name}”？', { name: deleteTarget?.name ?? '' })
+            "
+            :detail-description="
+              t('删除后将同时移除已缓存的 {count} 个工具记录。', {
+                count: deleteTarget?.tools_count ?? 0,
+              })
+            "
+            :processing="isDeleting"
+            @update:open="closeDeleteDialog"
+            @confirm="confirmDelete"
+          />
+        </div>
+      </section>
+    </SystemSettingsLayout>
   </AppLayout>
 </template>

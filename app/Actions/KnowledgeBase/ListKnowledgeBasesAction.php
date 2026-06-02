@@ -24,6 +24,7 @@ use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaEntry;
 use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
+use App\Settings\KnowledgeSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -31,7 +32,7 @@ use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 返回知识库列表页面，包含知识库列表、工作区检索配置、分组树及当前选中状态。
+ * 返回知识库列表页面，包含知识库列表、检索配置、分组树及当前选中状态。
  * 对应 resources/js/pages/knowledgeBase/List.vue。
  */
 class ListKnowledgeBasesAction
@@ -39,10 +40,11 @@ class ListKnowledgeBasesAction
     use AsAction;
 
     /**
-     * 注入用于解析工作区可用知识库模型选项的服务。
+     * 注入用于解析可用知识库模型选项的服务。
      */
     public function __construct(
         private readonly AiModelResolver $resolver,
+        private readonly KnowledgeSettings $settings,
     ) {}
 
     /**
@@ -51,7 +53,7 @@ class ListKnowledgeBasesAction
     private const DOCUMENT_LIST_PER_PAGE = 10;
 
     /**
-     * 查询工作区下所有知识库及其分组树，组装页面 props。
+     * 查询所有知识库及其分组树，组装页面 props。
      *
      * $status 参数同时承载 KnowledgeDocumentStatus 与 KnowledgeQaEntryStatus 两种枚举的筛选值；
      * 枚举解析根据当前选中知识库的类别在 loadDocumentList / loadQaEntryList 中延迟执行，
@@ -69,16 +71,11 @@ class ListKnowledgeBasesAction
                 'documentGroups.children',
                 'documentGroups.children.children',
             ])
-            ->where('workspace_id', $workspace->id)
             ->oldest('created_at')
             ->oldest('id')
             ->get();
         $allKnowledgeBases->each->setRelation('workspace', $workspace);
-        $workspace->loadMissing([
-            'knowledgeEmbeddingModel.provider',
-            'knowledgeRerankModel.provider',
-            'knowledgeSummaryModel.provider',
-        ]);
+        $this->settings->refresh();
 
         $knowledgeBaseListData = $allKnowledgeBases
             ->map(fn (KnowledgeBase $kb) => KnowledgeBaseData::fromModel($kb))
@@ -115,7 +112,7 @@ class ListKnowledgeBasesAction
             document_list_pagination: $documentPagination,
             qa_entry_list: $qaEntryList,
             qa_entry_list_pagination: $qaEntryPagination,
-            workspace_knowledge_settings: WorkspaceKnowledgeSettingsData::fromWorkspace($workspace),
+            workspace_knowledge_settings: WorkspaceKnowledgeSettingsData::fromSettings($this->settings),
             embedding_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Embedding),
             rerank_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Rerank),
             summary_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Llm),

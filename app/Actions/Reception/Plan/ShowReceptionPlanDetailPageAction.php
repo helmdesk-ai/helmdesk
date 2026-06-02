@@ -63,13 +63,12 @@ class ShowReceptionPlanDetailPageAction
     /**
      * Controller 入口：鉴权 + 限定本工作区后渲染详情页。
      */
-    public function asController(Request $request, string $slug, string $plan): Response
+    public function asController(Request $request, string $plan): Response
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $planModel = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
         return Inertia::render('reception/plans/Detail', $this->handle($workspace, $planModel)->toArray());
@@ -83,7 +82,6 @@ class ShowReceptionPlanDetailPageAction
     private function buildKnowledgeBaseOptions(Workspace $workspace): array
     {
         return KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->orderBy('name')
             ->get()
             ->map(fn (KnowledgeBase $kb): PlanKnowledgeBaseOptionData => PlanKnowledgeBaseOptionData::fromModel($kb))
@@ -100,7 +98,6 @@ class ShowReceptionPlanDetailPageAction
         return McpTool::query()
             ->with('server')
             ->whereHas('server', fn ($q) => $q
-                ->where('workspace_id', $workspace->id)
                 ->where('is_active', true)
             )
             ->where('is_enabled', true)

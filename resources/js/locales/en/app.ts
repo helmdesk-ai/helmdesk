@@ -8,6 +8,7 @@ export default {
   收件箱: 'Inbox',
   客服: 'Teammates',
   渠道: 'Channels',
+  渠道管理: 'Channel management',
   状态: 'Status',
   来源与设备: 'Source & device',
   'Telegram 信息': 'Telegram info',

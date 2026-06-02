@@ -6,7 +6,6 @@ use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Enums\ChannelType;
 use App\Models\Channel;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -23,7 +22,6 @@ class ChannelFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'type' => ChannelType::Web,
             'name' => fake()->company().' 官网',
             'settings' => ChannelWebSettingsData::defaults(),

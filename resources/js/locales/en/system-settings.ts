@@ -5,6 +5,10 @@
 export default {
   // 系统设置页面
   管理系统的配置和设置: 'Manage system configurations and settings',
+  '管理系统基础配置、存储、邮件与 AI 能力':
+    'Manage system basics, storage, mail, and AI capabilities',
+  '管理系统基础配置、数据字段、消息模板、存储、邮件与 AI 能力':
+    'Manage system basics, data fields, message templates, storage, mail, and AI capabilities',
   基础设置: 'General Settings',
   用户管理: 'Users',
   '管理系统中所有可登录的账号；将其加入工作区后即可作为客服参与会话。':
@@ -59,9 +63,6 @@ export default {
   '上传中...': 'Uploading...',
   版权信息: 'Copyright',
   备案信息: 'ICP Record',
-  允许用户自主注册: 'Allow self-service registration',
-  '关闭后登录页不再展示注册入口。':
-    'When disabled, the login page will no longer show registration.',
   版本号: 'Version',
   未设置: 'Not set',
 

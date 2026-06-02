@@ -53,12 +53,12 @@ class DeleteKnowledgeGroupAction
     /**
      * 处理「删除分组」请求，校验权限并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $group): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $group): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
-        $kb = KnowledgeBase::query()->where('workspace_id', $workspace->id)->findOrFail($knowledgeBase);
+        $kb = KnowledgeBase::query()->findOrFail($knowledgeBase);
         $groupModel = KnowledgeGroup::query()->where('knowledge_base_id', $kb->id)->findOrFail($group);
 
         $this->handle($groupModel);

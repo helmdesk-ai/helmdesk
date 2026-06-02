@@ -1,5 +1,5 @@
 <!--
-  文件说明：欢迎页，承接未进入工作区前的默认前端页面。
+  文件说明：欢迎页，承接未登录时的默认前端页面。
 -->
 <script setup lang="ts">
 import { dashboard, login, register } from '@/routes';
@@ -10,7 +10,7 @@ withDefaults(
     canRegister: boolean;
   }>(),
   {
-    canRegister: true,
+    canRegister: false,
   },
 );
 </script>

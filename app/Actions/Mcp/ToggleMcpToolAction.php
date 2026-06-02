@@ -43,7 +43,7 @@ class ToggleMcpToolAction
     /**
      * 路由入口：仅 manageAi 角色可调用。
      */
-    public function asController(Request $request, string $slug, string $server, string $tool): RedirectResponse
+    public function asController(Request $request, string $server, string $tool): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);

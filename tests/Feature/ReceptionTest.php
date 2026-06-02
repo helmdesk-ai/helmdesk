@@ -26,7 +26,6 @@ use App\Enums\MessageRole;
 use App\Enums\Reception\ReceptionRoutingMode;
 use App\Enums\ReceptionLanguage;
 use App\Enums\UserOnlineStatus;
-use App\Enums\WorkspaceRole;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
 use App\Models\AiProvider;
@@ -69,7 +68,6 @@ beforeEach(function () {
 function createReceptionModel(Workspace $workspace, array $providerAttributes = [], array $modelAttributes = []): AiModel
 {
     $provider = AiProvider::query()->create(array_merge([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'reception-provider-'.Str::lower(Str::random(6)),
         'name' => 'Reception Provider',
@@ -102,12 +100,16 @@ function createReceptionChannel(
     array $versionAttributes = [],
 ): Channel {
     $workspace = Workspace::factory()->create();
+    User::factory()->create([
+        'is_super_admin' => true,
+        'online_status' => UserOnlineStatus::Online->value,
+    ]);
     $model ??= createReceptionModel($workspace);
-    $plan = ReceptionPlan::factory()->for($workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
     // 翻译供应商由接待方案版本快照引用：默认给每个接待渠道挂一个可用供应商。
-    $translationProvider = TranslationProvider::factory()->for($workspace)->create();
+    $translationProvider = TranslationProvider::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $baseSnapshot['auto_messages_config'] = receptionTestDisabledAutoMessagesConfig();
     $baseSnapshot['translation_config'] = receptionMessageTranslationConfig(['enabled' => false]);
@@ -142,15 +144,9 @@ function createReceptionChannel(
         ->create($versionAttributes);
 
     $channel = Channel::factory()->create(array_merge([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $plan->id,
         'reception_plan_version_id' => $version->id,
     ], $channelAttributes));
-
-    $workspace->users()->attach(User::factory()->create()->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'online_status' => UserOnlineStatus::Online->value,
-    ]);
 
     return $channel;
 }
@@ -474,17 +470,12 @@ test('自动回复会在客服接入和多次转接时按事件写入欢迎语',
     $secondAgent = User::factory()->create(['name' => '二号客服']);
     $thirdAgent = User::factory()->create(['name' => '三号客服']);
     foreach ([$firstAgent, $secondAgent, $thirdAgent] as $agent) {
-        $channel->workspace->users()->attach($agent->id, [
-            'role' => WorkspaceRole::Operator->value,
-            'online_status' => UserOnlineStatus::Online->value,
-        ]);
     }
 
-    $contact = Contact::factory()->create(['workspace_id' => $channel->workspace_id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $channel->workspace_id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $channel->reception_plan_version_id,
             'status' => ConversationStatus::Open,
@@ -520,16 +511,11 @@ test('自动回复在 AI 转人工时使用转接欢迎语', function () {
         ],
     ]);
     $agent = User::factory()->create(['name' => '人工客服']);
-    $channel->workspace->users()->attach($agent->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'online_status' => UserOnlineStatus::Online->value,
-    ]);
 
-    $contact = Contact::factory()->create(['workspace_id' => $channel->workspace_id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $channel->workspace_id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $channel->reception_plan_version_id,
             'status' => ConversationStatus::Open,
@@ -733,7 +719,6 @@ test('原生访客消息入库时不触发客服侧翻译', function () {
     );
 
     $teammate = User::factory()->create(['locale' => 'zh-CN']);
-    $channel->workspace->users()->attach($teammate->id, ['role' => WorkspaceRole::Operator->value]);
     Conversation::query()->firstOrFail()->forceFill([
         'assigned_user_id' => $teammate->id,
         'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -758,14 +743,12 @@ test('原生访客消息入库时不触发客服侧翻译', function () {
 test('访客端只展示消息正文', function () {
     $channel = createReceptionChannel();
     $contact = Contact::factory()->create([
-        'workspace_id' => $channel->workspace_id,
         'locale' => 'en',
     ]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->create([
-            'workspace_id' => $channel->workspace_id,
             'visitor_locale' => 'en',
         ]);
     ConversationMessage::factory()->forConversation($conversation)->create([
@@ -914,11 +897,10 @@ test('访客可以发送附件只图片消息和下载保持在会话范围内',
         null,
         ConversationEntryMode::Standalone,
     );
-    $thumbnailKey = 'workspaces/'.$channel->workspace_id.'/conversation_image/photo_thumb.webp';
+    $thumbnailKey = 'attachments/conversation_image/photo_thumb.webp';
 
     $attachment = Attachment::factory()->create([
-        'workspace_id' => $channel->workspace_id,
-        'object_key' => 'workspaces/'.$channel->workspace_id.'/conversation_image/photo.png',
+        'object_key' => 'attachments/conversation_image/photo.png',
         'original_name' => 'photo.png',
         'mime_type' => 'image/png',
         'extension' => 'png',
@@ -931,7 +913,6 @@ test('访客可以发送附件只图片消息和下载保持在会话范围内',
     Storage::disk('local')->put($attachment->object_key, 'fake-image');
     Storage::disk('local')->put($thumbnailKey, 'fake-thumbnail');
     AttachmentUpload::factory()->create([
-        'workspace_id' => $channel->workspace_id,
         'attachment_id' => $attachment->id,
         'storage_profile_id' => $attachment->storage_profile_id,
         'object_key' => $attachment->object_key,
@@ -1011,8 +992,7 @@ test('访客附件上传保持在会话范围内当浏览器已认证时', funct
 
     expect($upload->created_by_user_id)->toBeNull()
         ->and($upload->session_token_hash)->toBe(hash('sha256', $started->session_token))
-        ->and($attachment->uploaded_by_user_id)->toBeNull()
-        ->and((string) $attachment->workspace_id)->toBe((string) $channel->workspace_id);
+        ->and($attachment->uploaded_by_user_id)->toBeNull();
 
     $state = app(AppendVisitorMessageAction::class)->handle(
         $channel->code,
@@ -1040,12 +1020,11 @@ test('访客可以一次发送多附件并按 B 端规则拆成独立消息', fu
     );
 
     $attachmentIds = collect(range(1, 3))
-        ->map(function (int $index) use ($channel, $started): string {
-            $key = 'workspaces/'.$channel->workspace_id.'/conversation_image/photo'.$index.'.png';
-            $thumbKey = 'workspaces/'.$channel->workspace_id.'/conversation_image/photo'.$index.'_thumb.webp';
+        ->map(function (int $index) use ($started): string {
+            $key = 'attachments/conversation_image/photo'.$index.'.png';
+            $thumbKey = 'attachments/conversation_image/photo'.$index.'_thumb.webp';
 
             $attachment = Attachment::factory()->create([
-                'workspace_id' => $channel->workspace_id,
                 'object_key' => $key,
                 'original_name' => 'photo'.$index.'.png',
                 'mime_type' => 'image/png',
@@ -1059,7 +1038,6 @@ test('访客可以一次发送多附件并按 B 端规则拆成独立消息', fu
             Storage::disk('local')->put($attachment->object_key, 'fake-image');
             Storage::disk('local')->put($thumbKey, 'fake-thumbnail');
             AttachmentUpload::factory()->create([
-                'workspace_id' => $channel->workspace_id,
                 'attachment_id' => $attachment->id,
                 'storage_profile_id' => $attachment->storage_profile_id,
                 'object_key' => $attachment->object_key,
@@ -1143,12 +1121,10 @@ test('接待状态包含之前已关闭会话消息用于同一联系人频道',
     ]);
 
     $otherChannel = Channel::factory()->create([
-        'workspace_id' => $channel->workspace_id,
     ]);
     $otherChannelConversation = Conversation::factory()
         ->forContact($firstConversation->contact)
         ->create([
-            'workspace_id' => $channel->workspace_id,
             'channel_id' => $otherChannel->id,
         ]);
     ConversationMessage::factory()->visitorText()->forConversation($otherChannelConversation)->create([
@@ -1385,12 +1361,11 @@ test('同事优先接待即使未配置未分配接管仍可手动释放给AI', 
         ],
     ]);
     $user = User::factory()->create();
-    $contact = Contact::factory()->create(['workspace_id' => $channel->workspace_id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($user)
         ->create([
-            'workspace_id' => $channel->workspace_id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $channel->reception_plan_version_id,
             'status' => ConversationStatus::Open,
@@ -1398,7 +1373,6 @@ test('同事优先接待即使未配置未分配接管仍可手动释放给AI', 
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $channel->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1464,8 +1438,8 @@ test('人工待接会话在没有人工可接待时由 AI 接管', function () {
 
     expect(Conversation::query()->firstOrFail()->inbox_status)->toBe(ConversationInboxStatus::TeammatePending);
 
-    $teammate = $channel->workspace->users()->firstOrFail();
-    $channel->workspace->users()->updateExistingPivot($teammate->id, [
+    $teammate = User::query()->firstOrFail();
+    $teammate->update([
         'online_status' => UserOnlineStatus::Offline->value,
     ]);
 
@@ -1530,7 +1504,6 @@ test('AI 优先接待会在同事未响应时让 AI 接管', function () {
         'inbox_status' => ConversationInboxStatus::TeammateHandling,
     ]);
     ConversationMessage::query()->create([
-        'workspace_id' => $channel->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1556,7 +1529,7 @@ test('人工已接待会话在客服离线时保持人工接待', function () {
             ]),
         ],
     ]);
-    $teammate = $channel->workspace->users()->firstOrFail();
+    $teammate = User::query()->firstOrFail();
 
     $started = app(StartOrResumeReceptionSessionAction::class)->handle($channel->code, null, ConversationEntryMode::Standalone);
     $conversation = Conversation::query()->findOrFail($started->conversation_id);
@@ -1565,7 +1538,7 @@ test('人工已接待会话在客服离线时保持人工接待', function () {
         'inbox_status' => ConversationInboxStatus::TeammateHandling,
     ]);
 
-    $channel->workspace->users()->updateExistingPivot($teammate->id, [
+    $teammate->update([
         'online_status' => UserOnlineStatus::Offline->value,
     ]);
 
@@ -1596,7 +1569,7 @@ test('人工已接待会话在非营业时间保持人工接待', function () {
             ]),
         ],
     ]);
-    $teammate = $channel->workspace->users()->firstOrFail();
+    $teammate = User::query()->firstOrFail();
 
     $started = app(StartOrResumeReceptionSessionAction::class)->handle($channel->code, null, ConversationEntryMode::Standalone);
     $conversation = Conversation::query()->findOrFail($started->conversation_id);
@@ -1655,17 +1628,13 @@ test('同事优先未分配接管在默认模型失效时保持人工待接', fu
 });
 
 test('实际接待身份使用 persona 名称', function () {
-    $user = User::factory()->create(['name' => '内部客服']);
+    $user = User::factory()->create(['name' => '内部客服', 'nickname' => '对外客服']);
     $channel = createReceptionChannel('AI 小助手', [
         'settings' => ChannelWebSettingsData::defaults([
             'visitor_interface' => [
                 'visitor_identity_mode' => WebChannelVisitorIdentityMode::ActualReceptionist->value,
             ],
         ]),
-    ]);
-    $channel->workspace->users()->attach($user->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'nickname' => '对外客服',
     ]);
 
     $started = app(StartOrResumeReceptionSessionAction::class)->handle($channel->code, null, ConversationEntryMode::Standalone);
@@ -1688,7 +1657,7 @@ test('实际接待身份使用 persona 名称', function () {
     expect($senders['ai message'])->toBe('AI 小助手')
         ->and($senders['teammate message'])->toBe('对外客服');
 
-    $channel->workspace->users()->updateExistingPivot($user->id, ['nickname' => null]);
+    $user->update(['nickname' => null]);
 
     $state = app(StartOrResumeReceptionSessionAction::class)->handle($channel->code, $started->session_token, ConversationEntryMode::Standalone);
     $senders = collect($state->messages)->pluck('sender_name', 'content');
@@ -1706,10 +1675,6 @@ test('统一服务身份会隐藏实际 AI 和同事名称', function () {
                 'service_display_name' => '统一客服',
             ],
         ]),
-    ]);
-    $channel->workspace->users()->attach($user->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'nickname' => '对外客服',
     ]);
 
     $started = app(StartOrResumeReceptionSessionAction::class)->handle($channel->code, null, ConversationEntryMode::Standalone);
@@ -1794,7 +1759,7 @@ test('AI 不可用冷却期内保持人工待接状态', function () {
             ]),
         ],
     ]);
-    $channel->workspace->users()->detach();
+    User::query()->update(['online_status' => UserOnlineStatus::Offline->value]);
 
     $started = app(StartOrResumeReceptionSessionAction::class)->handle(
         $channel->code,
@@ -1805,7 +1770,6 @@ test('AI 不可用冷却期内保持人工待接状态', function () {
     $conversation = Conversation::query()->findOrFail($started->conversation_id);
     $conversation->update(['inbox_status' => ConversationInboxStatus::TeammatePending]);
     ConversationEvent::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'type' => ConversationEventType::HandoffRequested,
         'payload' => ['reason' => 'ai_unavailable', 'actor_kind' => 'system'],
@@ -1833,7 +1797,7 @@ test('AI 不可用冷却期过期后重新进入 AI 接待', function () {
             ]),
         ],
     ]);
-    $channel->workspace->users()->detach();
+    User::query()->update(['online_status' => UserOnlineStatus::Offline->value]);
 
     $started = app(StartOrResumeReceptionSessionAction::class)->handle(
         $channel->code,
@@ -1844,7 +1808,6 @@ test('AI 不可用冷却期过期后重新进入 AI 接待', function () {
     $conversation = Conversation::query()->findOrFail($started->conversation_id);
     $conversation->update(['inbox_status' => ConversationInboxStatus::TeammatePending]);
     ConversationEvent::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'type' => ConversationEventType::HandoffRequested,
         'payload' => ['reason' => 'ai_unavailable', 'actor_kind' => 'system'],

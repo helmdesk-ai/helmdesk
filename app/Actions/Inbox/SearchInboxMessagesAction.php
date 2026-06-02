@@ -40,7 +40,6 @@ class SearchInboxMessagesAction
     public function handle(Workspace $workspace, User $viewer, string $contactId, string $search): array
     {
         $conversationIds = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contactId)
             ->pluck('id')
             ->all();
@@ -49,29 +48,18 @@ class SearchInboxMessagesAction
             return [];
         }
 
-        $matchedIds = $this->messageSearch->query($search)
-            ->where('workspace_id', $workspace->id)
-            ->keys()
-            ->all();
-
-        if ($matchedIds === []) {
-            return [];
-        }
-
         $messages = ConversationMessage::query()
             ->with(['senderUser', 'conversation.channel', 'conversation.contact'])
-            ->whereIn('id', $matchedIds)
             ->whereIn('conversation_id', $conversationIds)
+            ->whereIn('role', [MessageRole::Visitor, MessageRole::Ai, MessageRole::Teammate])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
 
         $results = [];
         foreach ($messages as $message) {
-            $matchedContent = $this->messageSearch->matchingText(
-                $search,
-                $this->visibleTextResolver->texts($message, $viewer),
-            );
+            $visibleTexts = $this->visibleTextResolver->texts($message, $viewer);
+            $matchedContent = $this->messageSearch->matchingText($search, $visibleTexts);
 
             if ($matchedContent === null) {
                 continue;
@@ -107,7 +95,7 @@ class SearchInboxMessagesAction
     /**
      * 处理收件箱聊天记录搜索请求。
      */
-    public function asController(Request $request, string $slug, string $contactId): JsonResponse
+    public function asController(Request $request, string $contactId): JsonResponse
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();

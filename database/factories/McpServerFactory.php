@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Enums\McpSyncStatus;
 use App\Enums\McpTransport;
 use App\Models\McpServer;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -24,7 +23,6 @@ class McpServerFactory extends Factory
         $name = fake()->company().' MCP';
 
         return [
-            'workspace_id' => Workspace::factory(),
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(6)),
             'name' => $name,
             'transport' => McpTransport::StreamableHttp,

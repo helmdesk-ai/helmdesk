@@ -32,7 +32,6 @@ class ShowTagTrashAction
         $perPage = max(1, min($perPage, 50));
 
         $paginator = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->onlyTrashed()
             ->withCount(['contacts', 'conversations'])
             // 标签组可能已被软删，回收站仍要展示其维度，故连带 trashed 一起加载。

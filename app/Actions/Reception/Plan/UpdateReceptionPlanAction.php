@@ -147,19 +147,17 @@ class UpdateReceptionPlanAction
     /**
      * 接收编辑表单后停留在当前方案详情页，方便用户继续配置。
      */
-    public function asController(Request $request, string $slug, string $plan): RedirectResponse
+    public function asController(Request $request, string $plan): RedirectResponse
     {
         $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
         Gate::authorize('workspace.manageAi', [$workspace]);
 
         $planModel = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
         $this->handle($workspace, $planModel, FormUpdateReceptionPlanData::from($request));
 
         return redirect()->route('workspace.manage.reception.plans.show', [
-            'slug' => $workspace->slug,
             'plan' => $planModel->id,
         ]);
     }
@@ -170,7 +168,6 @@ class UpdateReceptionPlanAction
     private function ensureNameIsAvailable(Workspace $workspace, ReceptionPlan $plan, string $name): void
     {
         $exists = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->where('name', $name)
             ->whereKeyNot($plan->id)
             ->exists();
@@ -268,7 +265,6 @@ class UpdateReceptionPlanAction
         }
 
         $validCount = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->whereIn('id', $unique)
             ->count();
 
@@ -293,7 +289,7 @@ class UpdateReceptionPlanAction
 
         $validCount = McpTool::query()
             ->whereIn('id', $unique)
-            ->whereHas('server', fn ($q) => $q->where('workspace_id', $workspace->id))
+            ->whereHas('server')
             ->count();
 
         if ($validCount !== count($unique)) {

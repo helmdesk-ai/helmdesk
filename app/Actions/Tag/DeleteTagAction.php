@@ -21,7 +21,6 @@ class DeleteTagAction
     public function handle(Workspace $workspace, string $id): void
     {
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($id);
 
         if ($tag->is_locked) {
@@ -43,7 +42,7 @@ class DeleteTagAction
         }
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $currentWorkspace = $ctx->workspace();

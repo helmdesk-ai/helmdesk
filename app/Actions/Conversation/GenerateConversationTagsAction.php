@@ -44,7 +44,7 @@ class GenerateConversationTagsAction
      */
     public function handle(Conversation $conversation, bool $finalize = false): void
     {
-        $conversation->loadMissing(['workspace', 'receptionPlanVersion']);
+        $conversation->loadMissing(['receptionPlanVersion']);
         Log::info('[conversation-tags] start', [
             'conversation_id' => $conversation->id,
             'finalize' => $finalize,
@@ -109,7 +109,6 @@ class GenerateConversationTagsAction
     private function resolveVocabulary(Conversation $conversation): array
     {
         $tags = Tag::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->whereHas('tagGroup', fn (Builder $query) => $query->where('scope', TagScope::Conversation->value))
             ->with('tagGroup')
             ->get();
@@ -279,9 +278,8 @@ class GenerateConversationTagsAction
             ->whereIn('id', array_keys($modelIds))
             ->where('type', AiModelType::Llm->value)
             ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query) use ($conversation): void {
+            ->whereHas('provider', function (Builder $query): void {
                 $query
-                    ->where('workspace_id', $conversation->workspace_id)
                     ->where('is_active', true);
             })
             ->get()
@@ -300,9 +298,8 @@ class GenerateConversationTagsAction
                 ->with('provider')
                 ->where('type', AiModelType::Llm->value)
                 ->where('is_active', true)
-                ->whereHas('provider', function (Builder $query) use ($conversation): void {
+                ->whereHas('provider', function (Builder $query): void {
                     $query
-                        ->where('workspace_id', $conversation->workspace_id)
                         ->where('is_active', true);
                 })
                 ->orderBy('sort_order')

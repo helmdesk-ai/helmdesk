@@ -23,7 +23,6 @@ class DeleteContactAction
     public function handle(Workspace $workspace, string $contactId, ?User $actor = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         DB::transaction(function () use ($contact, $actor) {
@@ -33,7 +32,7 @@ class DeleteContactAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
         $ctx = WorkspaceUserContextData::fromRequest($request);
         $workspace = $ctx->workspace();
