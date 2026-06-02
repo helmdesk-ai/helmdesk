@@ -224,7 +224,7 @@ class ConversationMessage extends Model
             // 全文搜索索引需要立即剔除撤回内容，避免 inbox 搜索到已撤回文本。
             $this->unsearchable();
 
-            // 撤回的若是会话最近一条消息，预览也要同步覆盖，避免列表里残留旧文本。
+            // 撤回的若是会话最近一条消息，预览也要同步覆盖，避免列表里残留原文本。
             if (
                 $conversation->last_message_at !== null
                 && $this->created_at !== null

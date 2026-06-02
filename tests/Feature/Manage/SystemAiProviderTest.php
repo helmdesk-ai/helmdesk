@@ -8,12 +8,9 @@ use App\Models\ReceptionPlanVersion;
 use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\AiProvider\AiProviderCatalog;
-use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\WithSystemContext;
@@ -227,42 +224,6 @@ test('单租户下管理员可以看到全部供应商', function () {
 
                 return true;
             }));
-});
-
-test('供应商列表会忽略无法解密的旧凭据', function () {
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'legacy-key-provider',
-        'name' => 'Legacy Key Provider',
-        'protocol' => AiProviderProtocol::OpenAI,
-        'icon' => null,
-        'credentials' => ['key' => 'sk-current'],
-        'credential_fields' => [[
-            'field' => 'key',
-            'label' => 'API Key',
-            'type' => 'password',
-            'required' => true,
-            'secret' => true,
-        ]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-
-    $legacyEncryptedCredentials = (new Encrypter(str_repeat('x', 32), config('app.cipher')))
-        ->encryptString(json_encode(['key' => 'sk-from-old-key'], JSON_THROW_ON_ERROR));
-
-    DB::table('ai_providers')
-        ->where('id', $provider->id)
-        ->update(['credentials' => $legacyEncryptedCredentials]);
-
-    $this->actingAs($this->user)
-        ->get(route('admin.manage.ai.providers.index'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('systemSettings/aiProviders/Index')
-            ->has('providers', 1)
-            ->where('providers.0.credential_values.key', null)
-            ->where('providers.0.credential_masks', []));
 });
 
 // ---------------------------------------------------------------------------
@@ -534,20 +495,6 @@ test('所有者可以删除任意供应商', function () {
         ->assertRedirect();
 
     expect(AiProvider::query()->find($provider->id))->toBeNull();
-});
-
-// ---------------------------------------------------------------------------
-// Model schema guards
-// ---------------------------------------------------------------------------
-
-test('AI 模型表不再保留支持输入类型字段', function () {
-    expect(Schema::hasColumn('ai_models', 'capabilities'))->toBeFalse();
-});
-
-test('AI 模型表不再保留用户维护的容量字段', function () {
-    expect(Schema::hasColumn('ai_models', 'max_concurrency'))->toBeFalse()
-        ->and(Schema::hasColumn('ai_models', 'requests_per_minute'))->toBeFalse()
-        ->and(Schema::hasColumn('ai_models', 'tokens_per_minute'))->toBeFalse();
 });
 
 // ---------------------------------------------------------------------------

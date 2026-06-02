@@ -70,7 +70,7 @@ class CaptureWebConversationContextAction
                 captured_at: Carbon::now()->toIso8601String(),
             );
         } else {
-            // 恢复会话：保留入站快照，仅刷新当前页；旧快照缺 UA 时用本次 UA 补齐派生字段。
+            // 恢复会话：保留入站快照，仅刷新当前页；既有快照缺 UA 时用本次 UA 补齐派生字段。
             $userAgent = $existing->user_agent ?? $this->text($client['user_agent'] ?? null);
             $ua = $existing->user_agent === null && $userAgent !== null
                 ? $this->userAgentParser->parse($userAgent)

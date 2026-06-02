@@ -23,7 +23,7 @@ test('双因素设置页面可以渲染', function () {
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]))
+        ->get(route('settings.two-factor.show'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/TwoFactor')
             ->where('two_factor_enabled', false)
@@ -43,7 +43,7 @@ test('双因素设置页面需要密码确认当已启用', function () {
     ]);
 
     $response = $this->actingAs($user)
-        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]));
+        ->get(route('settings.two-factor.show'));
 
     $response->assertRedirect(route('password.confirm'));
 });
@@ -61,7 +61,7 @@ test('双因素设置页面不需要密码确认当已禁用', function () {
     ]);
 
     $this->actingAs($user)
-        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]))
+        ->get(route('settings.two-factor.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/TwoFactor')
@@ -79,6 +79,6 @@ test('双因素设置页面返回禁止响应当双因素认证禁用时', funct
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]))
+        ->get(route('settings.two-factor.show'))
         ->assertForbidden();
 });

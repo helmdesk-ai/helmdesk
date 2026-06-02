@@ -63,13 +63,8 @@ class SystemUserContextData extends Data
     }
 
     /**
-     * 兼容旧调用签名，单租户下系统参数不再参与上下文解析。
+     * 从请求属性读取当前后台用户上下文。
      */
-    public static function fromModels(SystemContext $systemContext, User $user): self
-    {
-        return self::fromUser($user);
-    }
-
     public static function fromRequest(Request $request): self
     {
         $ctx = $request->attributes->get(self::class);
@@ -81,6 +76,9 @@ class SystemUserContextData extends Data
         return $ctx;
     }
 
+    /**
+     * 从请求属性尝试读取当前后台用户上下文。
+     */
     public static function tryFromRequest(Request $request): ?self
     {
         $ctx = $request->attributes->get(self::class);
@@ -88,16 +86,25 @@ class SystemUserContextData extends Data
         return $ctx instanceof self ? $ctx : null;
     }
 
+    /**
+     * 返回当前单租户后台上下文。
+     */
     public function systemContext(): SystemContext
     {
         return SystemContext::current();
     }
 
+    /**
+     * 返回当前后台固定标识。
+     */
     public function systemSlug(): string
     {
         return $this->system_slug;
     }
 
+    /**
+     * 调整当前用户菜单是否展示移除按钮。
+     */
     public function withShowRemoveButton(bool $showRemoveButton): self
     {
         $this->show_remove_button = $showRemoveButton;

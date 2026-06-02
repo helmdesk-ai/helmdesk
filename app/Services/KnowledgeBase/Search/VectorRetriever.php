@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  *  - 再调用 KnowledgeVectorTableManager::knnSearch 拿候选 (node_id, distance)，KNN 的 k
  *    根据允许集合大小自适应：scope 小时 k 取到 scope 全集，scope 大时按 topK * MULTIPLIER
  *    过取并以 KNN_HARD_CAP 兜底；
- *  - 系统切换 embedding model 后旧向量天然被 embedding_model_id 过滤掉，保证距离比较
+ *  - 系统切换 embedding model 后既有向量会被 embedding_model_id 过滤掉，保证距离比较
  *    始终发生在同一模型的向量空间内；
  *  - 每条 query 单独召回，跨 retriever 的结果由 HybridFuser 在上层合并。
  */

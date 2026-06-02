@@ -92,7 +92,7 @@ it('UpdateTranslationProviderCredentialsAction 合并新值', function () {
         ->and($provider->fresh()->name)->toBe('Renamed Google');
 });
 
-it('UpdateTranslationProviderCredentialsAction 提交空 secret 字段保留旧值', function () {
+it('UpdateTranslationProviderCredentialsAction 提交空 secret 字段保留原值', function () {
     $provider = TranslationProvider::factory()->create([
         'credentials' => ['api_key' => 'keep'],
     ]);

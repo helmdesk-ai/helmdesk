@@ -11,7 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * 打开创建知识库页面。
- * 当前创建表单不依赖任何后端首屏数据，因此不再下发 PageProps。
+ * 当前创建表单不依赖任何后端首屏数据，直接渲染创建页。
  */
 class ShowCreateKnowledgeBasePageAction
 {

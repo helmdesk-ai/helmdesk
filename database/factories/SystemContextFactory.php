@@ -32,7 +32,7 @@ class SystemContextFactory extends Factory
     }
 
     /**
-     * 测试中保留旧 factory 调用面，但不再写入已删除的系统表。
+     * 创建内存中的单租户上下文实例。
      *
      * @param  (callable(array<string, mixed>): array<string, mixed>)|array<string, mixed>  $attributes
      */

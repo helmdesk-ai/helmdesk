@@ -38,7 +38,7 @@ class CheckTranslationProviderAction
     ) {}
 
     /**
-     * 调用 driver 翻译并返回前端友好的结果 DTO；driver 抛出异常时降级为 success=false，不再向上抛。
+     * 调用 driver 翻译并返回前端友好的结果 DTO；driver 抛出异常时返回失败结果。
      *
      * @param  array<string, mixed>|null  $configuration
      */

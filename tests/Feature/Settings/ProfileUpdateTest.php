@@ -12,7 +12,7 @@ beforeEach(function () {
 test('配置档页面会显示', function () {
     $response = $this
         ->actingAs($this->user)
-        ->get(route('settings.profile.edit', ['from_system' => $this->systemSlug()]));
+        ->get(route('settings.profile.edit'));
 
     $response->assertOk();
 });
@@ -20,14 +20,14 @@ test('配置档页面会显示', function () {
 test('配置档信息可以更新', function () {
     $response = $this
         ->actingAs($this->user)
-        ->patch(route('settings.profile.update', ['from_system' => $this->systemSlug()]), [
+        ->patch(route('settings.profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('settings.profile.edit', ['from_system' => $this->systemSlug()]));
+        ->assertRedirect(route('settings.profile.edit'));
 
     $this->user->refresh();
 
@@ -39,14 +39,14 @@ test('配置档信息可以更新', function () {
 test('邮箱验证状态保持不变当邮箱地址保持不变', function () {
     $response = $this
         ->actingAs($this->user)
-        ->patch(route('settings.profile.update', ['from_system' => $this->systemSlug()]), [
+        ->patch(route('settings.profile.update'), [
             'name' => 'Test User',
             'email' => $this->user->email,
         ]);
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('settings.profile.edit', ['from_system' => $this->systemSlug()]));
+        ->assertRedirect(route('settings.profile.edit'));
 
     expect($this->user->refresh()->email_verified_at)->not->toBeNull();
 });
@@ -54,7 +54,7 @@ test('邮箱验证状态保持不变当邮箱地址保持不变', function () {
 test('用户可以删除其账号', function () {
     $response = $this
         ->actingAs($this->user)
-        ->delete(route('settings.profile.destroy', ['from_system' => $this->systemSlug()]), [
+        ->delete(route('settings.profile.destroy'), [
             'password' => 'password',
         ]);
 
@@ -69,14 +69,14 @@ test('用户可以删除其账号', function () {
 test('正确密码必须提供到删除账号', function () {
     $response = $this
         ->actingAs($this->user)
-        ->from(route('settings.profile.edit', ['from_system' => $this->systemSlug()]))
-        ->delete(route('settings.profile.destroy', ['from_system' => $this->systemSlug()]), [
+        ->from(route('settings.profile.edit'))
+        ->delete(route('settings.profile.destroy'), [
             'password' => 'wrong-password',
         ]);
 
     $response
         ->assertSessionHasErrors('password')
-        ->assertRedirect(route('settings.profile.edit', ['from_system' => $this->systemSlug()]));
+        ->assertRedirect(route('settings.profile.edit'));
 
     expect($this->user->fresh())->not->toBeNull();
 });

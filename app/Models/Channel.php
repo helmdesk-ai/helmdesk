@@ -74,7 +74,7 @@ class Channel extends Model
     }
 
     /**
-     * 渠道历史上部署的接待方案版本关系；保留以兼容旧数据，运行时已改由方案最新版解析。
+     * 渠道部署过的接待方案版本关系，用于审计和历史展示。
      */
     public function receptionPlanVersion(): BelongsTo
     {

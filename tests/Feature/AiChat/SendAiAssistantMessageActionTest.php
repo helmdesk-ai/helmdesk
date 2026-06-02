@@ -237,7 +237,7 @@ test('它拒绝无效历史角色在触及桥接前', function () {
     expect(fn () => app(SendAiAssistantMessageAction::class)->handle(
         $systemContext,
         'hello',
-        [['role' => 'bot', 'content' => 'legacy alias']],
+        [['role' => 'bot', 'content' => 'unsupported alias']],
         $model->id,
     ))->toThrow(ValidationException::class);
 
@@ -262,7 +262,7 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
     McpTool::factory()->for($activeServer, 'server')->create(['name' => 'search_orders', 'is_enabled' => true]);
     McpTool::factory()->for($activeServer, 'server')->create(['name' => 'cancel_order', 'is_enabled' => true]);
     // 已下线工具不应进入白名单。
-    McpTool::factory()->removed()->for($activeServer, 'server')->create(['name' => 'legacy_op']);
+    McpTool::factory()->removed()->for($activeServer, 'server')->create(['name' => 'removed_op']);
     // is_enabled = false 工具不应进入白名单。
     McpTool::factory()->for($activeServer, 'server')->create(['name' => 'paused_op', 'is_enabled' => false]);
 

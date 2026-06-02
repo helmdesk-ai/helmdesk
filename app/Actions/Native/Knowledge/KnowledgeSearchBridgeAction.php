@@ -14,7 +14,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * Native bridge 入口：Agent 工具调用知识库检索。
  *
  * Go 工具 knowledge_search 通过 phpbridge.CallNative 调用本 Action。
- *  - 入参 4 个字段（首个参数保留兼容旧 Go 调用，单租户下忽略）：
+ *  - 入参 4 个字段：
+ *      $scope             ：调用端作用域标识；
  *      $mode              ：grep / semantic / hybrid；
  *      $knowledgeBaseIds  ：Agent 可选的知识库 ID 列表；空列表表示全部知识库；
  *      $queries           ：单条 string 或字符串数组。
@@ -32,11 +33,13 @@ class KnowledgeSearchBridgeAction
     ) {}
 
     /**
+     * 执行知识库检索 bridge 调用。
+     *
      * @param  list<string>  $knowledgeBaseIds
      * @param  string|list<string>  $queries
      */
     public function handle(
-        string $legacyScope,
+        string $scope,
         string $mode,
         array $knowledgeBaseIds,
         string|array $queries,

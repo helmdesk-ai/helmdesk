@@ -5,13 +5,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('用户可以更新语言和时区偏好', function () {
-    [$systemContext, $user] = createSystemWithOwner([
+    [, $user] = createSystemWithOwner([
         'locale' => 'zh-CN',
         'timezone' => 'Asia/Shanghai',
     ]);
 
     $this->actingAs($user)
-        ->put(route('settings.language.update', ['from_system' => $systemContext->slug]), [
+        ->put(route('settings.language.update'), [
             'locale' => 'en',
             'timezone' => 'America/New_York',
         ])
@@ -26,10 +26,10 @@ test('用户可以更新语言和时区偏好', function () {
 });
 
 test('语言设置校验受支持偏好', function (array $payload, string $field) {
-    [$systemContext, $user] = createSystemWithOwner();
+    [, $user] = createSystemWithOwner();
 
     $this->actingAs($user)
-        ->put(route('settings.language.update', ['from_system' => $systemContext->slug]), $payload)
+        ->put(route('settings.language.update'), $payload)
         ->assertSessionHasErrors($field);
 })->with([
     'unsupported locale' => [[

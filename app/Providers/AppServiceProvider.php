@@ -70,7 +70,7 @@ class AppServiceProvider extends ServiceProvider
 
         // sqlite_rag 连接初始化时确保 sqlite-vec 扩展可用。
         // 真正的加载方式由 SqliteVecExtensionLoader 内部探测决定：
-        //  - Go 端已经通过 sqlite3_auto_extension 注册过 → 探测命中，PHP 不再 loadExtension；
+        //  - Go 端已经通过 sqlite3_auto_extension 注册过 → 探测命中，PHP 跳过 loadExtension；
         //  - 纯 PHP CLI 启动（artisan test / tinker 等） → 探测失败，PHP 主动 loadExtension。
         Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event): void {
             app(SqliteVecExtensionLoader::class)->ensureLoadedFor($event->connection);

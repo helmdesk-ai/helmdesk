@@ -15,6 +15,9 @@ class UpdateProfileAction
 {
     use AsAction;
 
+    /**
+     * 更新用户个人资料并在邮箱变化时清空验证时间。
+     */
     public function handle(User $user, FormUpdateProfileData $data): void
     {
         $user->fill($data->toArray());
@@ -26,15 +29,12 @@ class UpdateProfileAction
         $user->save();
     }
 
+    /**
+     * 处理个人资料更新请求并返回设置页。
+     */
     public function asController(Request $request): RedirectResponse
     {
         $this->handle($request->user(), FormUpdateProfileData::from($request));
-
-        $fromSystem = $request->query('from_system');
-
-        if (is_string($fromSystem) && $fromSystem !== '') {
-            return to_route('settings.profile.edit', ['from_system' => $fromSystem]);
-        }
 
         return to_route('settings.profile.edit');
     }

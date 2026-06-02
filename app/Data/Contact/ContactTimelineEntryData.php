@@ -10,7 +10,7 @@ use Spatie\LaravelData\Data;
  * 联系人时间线条目数据。
  * 由后端组装后传给 resources/js/pages/contacts/Index.vue、Trash.vue 和 ContactDetailDrawer.vue，用于页面展示、抽屉详情或局部交互状态。
  *
- * AI 角色消息 / AI 事件不再带 actor 主键，前端按 reception plan persona 渲染 AI 身份。
+ * AI 角色消息 / AI 事件按 reception plan persona 渲染 AI 身份。
  */
 class ContactTimelineEntryData extends Data
 {

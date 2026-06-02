@@ -11,7 +11,7 @@ trait WithSystemContext
     public ?SystemContext $systemContext = null;
 
     /**
-     * 旧系统后台测试默认使用总管理后台 guard。
+     * 系统后台测试默认使用总管理后台 guard。
      */
     public function actingAs(UserContract $user, $guard = null)
     {
@@ -47,13 +47,5 @@ trait WithSystemContext
         }
 
         return $this->systemContext;
-    }
-
-    /**
-     * 返回兼容旧测试路由调用的后台 slug。
-     */
-    protected function systemSlug(): string
-    {
-        return 'admin';
     }
 }

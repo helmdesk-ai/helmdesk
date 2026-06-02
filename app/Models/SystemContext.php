@@ -67,7 +67,7 @@ use Illuminate\Support\Carbon;
 class SystemContext extends Model
 {
     /**
-     * 单租户运行时上下文，保留旧系统调用面的兼容数据。
+     * 单租户后台的运行时上下文，字段来源于系统设置。
      */
     use HasFactory, HasUlids, SoftDeletes;
 
@@ -338,7 +338,7 @@ class SystemContext extends Model
     }
 
     /**
-     * 兼容旧调用面，把单租户上下文更新同步到系统设置。
+     * 将运行时上下文更新同步到系统设置。
      *
      * @param  array<string, mixed>  $attributes
      * @param  array<string, mixed>  $options
@@ -356,7 +356,7 @@ class SystemContext extends Model
     }
 
     /**
-     * 兼容旧调用面，把单租户上下文保存同步到系统设置。
+     * 将运行时上下文保存同步到系统设置。
      *
      * @param  array<string, mixed>  $options
      */
@@ -402,7 +402,7 @@ class SystemContext extends Model
     }
 
     /**
-     * 判断当前模型是否只是单租户兼容上下文，而不是数据库记录。
+     * 判断当前模型是否是内存中的运行时上下文。
      */
     private function isRuntimeContext(): bool
     {
@@ -410,7 +410,7 @@ class SystemContext extends Model
     }
 
     /**
-     * 把旧系统字段映射到单租户系统设置。
+     * 把运行时上下文字段同步到系统设置。
      */
     private function syncRuntimeSettings(): void
     {

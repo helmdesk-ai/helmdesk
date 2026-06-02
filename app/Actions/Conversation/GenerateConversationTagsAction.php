@@ -40,7 +40,7 @@ class GenerateConversationTagsAction
     ) {}
 
     /**
-     * 生成并应用会话标签；finalize 保留兼容旧调用，但 AI 不再删除标签。
+     * 生成并应用会话标签；finalize 表示会话关闭后的定稿请求。
      */
     public function handle(Conversation $conversation, bool $finalize = false): void
     {

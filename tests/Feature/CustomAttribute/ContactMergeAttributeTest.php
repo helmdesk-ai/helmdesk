@@ -185,7 +185,7 @@ test('合并处理已删除定义', function () {
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
-    $def = AttributeDefinition::factory()->text()->deleted()->create(['key' => 'legacy']);
+    $def = AttributeDefinition::factory()->text()->deleted()->create(['key' => 'archived']);
 
     ContactAttributeValue::factory()->create([
         'contact_id' => $merged->id,

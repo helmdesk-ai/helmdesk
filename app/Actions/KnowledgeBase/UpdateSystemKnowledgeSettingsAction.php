@@ -23,7 +23,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * - 保存嵌入模型、向量维度、重排序模型、摘要模型、分段策略等检索参数；
  * - 维度由用户在表单里手填（不少模型支持可变维度，统一不做后端探测），与嵌入模型一起作为
  *   "查询侧 / 索引侧必须对齐"的可信源；
- * - 当配置变更（含维度变化）会让索引失效时，把"清旧索引 + 派发逐条 Job"的耗时工作交给
+ * - 当配置变更（含维度变化）会让索引失效时，把"清理索引 + 派发逐条 Job"的耗时工作交给
  *   RebuildSystemKnowledgeIndexJob 异步处理，HTTP 请求只负责入库与派发。
  */
 class UpdateSystemKnowledgeSettingsAction
@@ -126,7 +126,7 @@ class UpdateSystemKnowledgeSettingsAction
 
     /**
      * 判断问答条目向量索引配置是否发生了需要重建的变更。
-     * 维度变化（即便嵌入模型 id 未变）也会让旧向量与新查询不可比，必须重建。
+     * 维度变化（即便嵌入模型 id 未变）也会让既有向量与新查询不可比，必须重建。
      */
     private function shouldRebuildQaVectorIndex(SystemContext $systemContext, FormUpdateSystemKnowledgeSettingsData $data, ?AiModel $embeddingModel, bool $dimensionChanged): bool
     {

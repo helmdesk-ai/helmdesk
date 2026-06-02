@@ -150,14 +150,14 @@ test('已删除定义并带值显示作为只读在详情', function () {
     ContactAttributeValue::factory()->create([
         'contact_id' => $contact->id,
         'definition_id' => $def->id,
-        'value_json' => ['value' => 'legacy'],
+        'value_json' => ['value' => 'archived value'],
     ]);
 
     $detail = ShowContactDetailAction::run($systemContext, $contact->id);
 
     $deletedField = collect($detail->custom_attributes)->firstWhere('key', 'old');
     expect($deletedField)->not->toBeNull()
-        ->and($deletedField->value)->toBe('legacy')
+        ->and($deletedField->value)->toBe('archived value')
         ->and($deletedField->deleted_at)->not->toBeNull()
         ->and($deletedField->is_editable)->toBeFalse();
 });

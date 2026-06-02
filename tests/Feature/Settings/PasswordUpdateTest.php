@@ -13,7 +13,7 @@ beforeEach(function () {
 test('密码更新页面会显示', function () {
     $response = $this
         ->actingAs($this->user)
-        ->get(route('settings.password.edit', ['from_system' => $this->systemSlug()]));
+        ->get(route('settings.password.edit'));
 
     $response->assertStatus(200);
 });
@@ -21,8 +21,8 @@ test('密码更新页面会显示', function () {
 test('密码可以更新', function () {
     $response = $this
         ->actingAs($this->user)
-        ->from(route('settings.password.edit', ['from_system' => $this->systemSlug()]))
-        ->put(route('settings.password.update', ['from_system' => $this->systemSlug()]), [
+        ->from(route('settings.password.edit'))
+        ->put(route('settings.password.update'), [
             'current_password' => 'password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
@@ -30,7 +30,7 @@ test('密码可以更新', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('settings.password.edit', ['from_system' => $this->systemSlug()]))
+        ->assertRedirect(route('settings.password.edit'))
         ->assertInertiaFlash('toast', [
             'type' => 'success',
             'message' => __('common.操作成功'),
@@ -42,8 +42,8 @@ test('密码可以更新', function () {
 test('正确密码必须提供到更新密码', function () {
     $response = $this
         ->actingAs($this->user)
-        ->from(route('settings.password.edit', ['from_system' => $this->systemSlug()]))
-        ->put(route('settings.password.update', ['from_system' => $this->systemSlug()]), [
+        ->from(route('settings.password.edit'))
+        ->put(route('settings.password.update'), [
             'current_password' => 'wrong-password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
@@ -51,5 +51,5 @@ test('正确密码必须提供到更新密码', function () {
 
     $response
         ->assertSessionHasErrors('current_password')
-        ->assertRedirect(route('settings.password.edit', ['from_system' => $this->systemSlug()]));
+        ->assertRedirect(route('settings.password.edit'));
 });

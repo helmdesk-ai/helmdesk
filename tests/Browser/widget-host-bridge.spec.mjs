@@ -369,7 +369,7 @@ async function run() {
       await visibilityClosed.jsonValue(),
     );
 
-    // 反向校验：从无效 source（非 iframe 的 window）发同样的消息，host 应忽略。
+    // 无效 source 校验：从非 iframe 的 window 发同样的消息，host 应忽略。
     await page.evaluate((code) => {
       const root = document.getElementById('helmdesk-widget-' + code);
       // 重新打开，再用 window.postMessage（source 是顶层 window 而非 iframe），不应触发关闭。

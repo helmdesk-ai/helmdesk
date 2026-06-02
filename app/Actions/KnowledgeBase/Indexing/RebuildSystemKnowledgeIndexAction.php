@@ -96,7 +96,7 @@ class RebuildSystemKnowledgeIndexAction
         }
         $query->delete();
 
-        // canonical text 节点仍保留，但旧维度向量已随 vec0 表消失，需清掉向量元信息。
+        // canonical text 节点仍保留，但维度变化后的向量已随 vec0 表消失，需清掉向量元信息。
         KnowledgeNode::query()
             ->where('strategy', KnowledgeIndexingStrategy::Text)
             ->where('embedding_dim', '>', 0)
@@ -107,7 +107,7 @@ class RebuildSystemKnowledgeIndexAction
     }
 
     /**
-     * 遍历文档，按策略清旧索引、标记状态并派发逐条索引任务。
+     * 遍历文档，按策略清理索引、标记状态并派发逐条索引任务。
      */
     private function rebuildDocumentStrategy(SystemContext $systemContext, KnowledgeIndexingStrategy $strategy, bool $resetVectorTables): void
     {

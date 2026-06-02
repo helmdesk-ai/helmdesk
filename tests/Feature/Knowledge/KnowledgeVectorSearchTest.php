@@ -18,7 +18,7 @@ uses(RefreshDatabase::class, WithSystemContext::class);
 /*
  * VectorRetriever 的边界 / 隔离行为：
  *  - 跨 systemContext 灌大量向量时，目标 systemContext 仍能从其 scope 内召回到节点；
- *  - 切换 embedding model 后旧向量按 embedding_model_id 隔离，不进入距离比较；
+ *  - 切换 embedding model 后既有向量按 embedding_model_id 隔离，不进入距离比较；
  *  - 允许集合为空时返回空数组。
  *
  * 用例通过 KnowledgeVectorTableManager 直接写入假向量，绕开 Go 桥的 embedder，保持离线。
@@ -136,11 +136,11 @@ test('VectorRetriever 跨 systemContext 时仍能从小集合的目标 systemCon
     expect($hits[0]->knowledgeNodeId)->toBe($targetNode->id);
 });
 
-test('VectorRetriever 按 embedding_model_id 隔离：切换模型后旧向量不再参与召回', function (): void {
+test('VectorRetriever 按 embedding_model_id 隔离：切换模型后不同模型向量不会参与召回', function (): void {
     $dim = 4;
     seedVectorNode($this->systemContext, $this->kb, $this->embeddingModel, [1.0, 0.0, 0.0, 0.0]);
 
-    // systemContext 切到一个新的 embedding 模型，旧节点 embedding_model_id 仍是旧模型。
+    // systemContext 切到新的 embedding 模型，既有节点 embedding_model_id 仍是原模型。
     $newModel = AiModel::query()->create([
         'ai_provider_id' => $this->provider->id,
         'model_id' => 'vec-new-'.Str::lower((string) Str::ulid()),

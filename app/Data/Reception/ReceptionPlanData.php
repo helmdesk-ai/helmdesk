@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
  * 接待方案展示数据。
  * 由 ShowReceptionPlanIndexPageAction 组装后下发给 resources/js/pages/reception/plans/Index.vue，
  * 同时支撑左侧列表行 / 详情区基础信息 / 服务场景分段使用。
- * 版本快照对运营隐藏（保存即发布、渠道自动跟随最新版），此处不再下发版本信息。
+ * 版本快照对运营隐藏（保存即发布、渠道自动跟随最新版），展示数据只包含方案当前配置。
  * capabilities / service_scenarios 字段仅"活跃 view 中的当前选中 plan"才会填充完整内容，
  * 其它列表行（含 trash 视图）下保持为空数组以减小 payload。
  */

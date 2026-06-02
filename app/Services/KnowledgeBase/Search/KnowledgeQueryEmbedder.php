@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
  *  - 返回值保持与原始 query 顺序一致（去重后第一次出现的位置）；
  *  - 系统已落了 knowledge_embedding_dimension 时把它作为可信源，运行时 embed 返回不同维度
  *    意味着模型 API 已经偏离落库时的版本，此时退化为 [0, []]，让 VectorRetriever 退到全文检索，
- *    避免拿新维度向量去比对旧维度的库。
+ *    避免拿当前维度向量去比对其他维度的库。
  */
 class KnowledgeQueryEmbedder
 {

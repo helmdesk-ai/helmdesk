@@ -186,7 +186,7 @@ test('支持自定义认证 header 名（如 X-Api-Key）', function () {
     expect($server->credentials['auth_header_value'])->toBe('sk_live_xxx');
 });
 
-test('更新表单未传认证字段时保留旧凭据', function () {
+test('更新表单未传认证字段时保留现有凭据', function () {
     fakeMcpBridge();
 
     $server = McpServer::factory()
@@ -199,7 +199,7 @@ test('更新表单未传认证字段时保留旧凭据', function () {
             'name' => 'Renamed',
             'endpoint_url' => 'https://mcp.example.com/v2',
             'timeout_seconds' => 45,
-            // 未传 auth_header_name / auth_header_value
+            // 未传 auth_header_name / auth_header_value，保留现有认证配置。
         ])
         ->assertRedirect();
 

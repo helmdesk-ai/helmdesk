@@ -55,16 +55,16 @@ class AttachmentBindingService
     }
 
     /**
-     * 按字段值同步附件绑定，并在替换时删除旧附件。
+     * 按字段值同步附件绑定，并在替换时删除原附件。
      */
     public function syncAttachment(Model $attachable, string $column, ?string $originalId): void
     {
         $attachmentId = $this->filledString($attachable->getAttribute($column));
 
         if ($originalId !== null && $originalId !== $attachmentId) {
-            $oldAttachment = Attachment::query()->find($originalId);
-            if ($oldAttachment instanceof Attachment) {
-                $this->deleteAttachment->handle($oldAttachment);
+            $previousAttachment = Attachment::query()->find($originalId);
+            if ($previousAttachment instanceof Attachment) {
+                $this->deleteAttachment->handle($previousAttachment);
             }
         }
 

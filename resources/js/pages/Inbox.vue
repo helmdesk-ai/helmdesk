@@ -1207,7 +1207,7 @@ function submitReply(): void {
         preserveScroll: true,
         preserveState: true,
         // 仅拉当前会话的 timeline 与 tab 计数；
-        // conversation_list 等保持客户端旧值，避免列表里其他会话的附件 URL 被
+        // conversation_list 等保持客户端当前值，避免列表里其他会话的附件 URL 被
         // 反复刷出新签名进而触发浏览器重新拉取图片。
         only: ['selection', 'tab_counts'],
         onSuccess: () => {
@@ -2433,7 +2433,7 @@ function reeditRecalledMessage(content: string): void {
   }
 
   const existing = replyForm.content;
-  // 「追加」语义：如果输入框非空，加换行隔开，避免黏连旧文本。
+  // 「追加」语义：如果输入框非空，加换行隔开，避免黏连已有文本。
   if (existing.length > 0) {
     replyForm.content = existing.endsWith('\n')
       ? existing + content
