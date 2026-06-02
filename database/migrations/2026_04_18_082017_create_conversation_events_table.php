@@ -17,6 +17,7 @@ return new class extends Migration
             $table->json('payload')->nullable();
 
             $table->index(['conversation_id', 'created_at', 'id'], 'conversation_events_timeline_idx');
+            $table->index(['actor_user_id', 'type', 'conversation_id'], 'conversation_events_actor_type_idx');
         });
     }
 

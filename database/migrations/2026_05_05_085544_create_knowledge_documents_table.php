@@ -40,8 +40,9 @@ return new class extends Migration
             $table->text('raptor_error')->nullable();
             $table->timestamp('raptor_indexed_at')->nullable();
 
-            $table->index(['knowledge_base_id', 'group_id'], 'idx_kb_doc_kb_group');
-            $table->index('created_at', 'idx_kb_doc_created_at');
+            $table->index(['knowledge_base_id', 'created_at'], 'idx_kb_doc_kb_created');
+            $table->index(['knowledge_base_id', 'group_id', 'created_at'], 'idx_kb_doc_kb_group_created');
+            $table->index(['knowledge_base_id', 'status', 'created_at'], 'idx_kb_doc_kb_status_created');
             $table->index(['knowledge_base_id', 'parse_status'], 'idx_kb_doc_kb_parse_status');
             $table->index(['knowledge_base_id', 'vector_status'], 'idx_kb_doc_kb_vector_status');
             $table->index(['knowledge_base_id', 'raptor_status'], 'idx_kb_doc_kb_raptor_status');

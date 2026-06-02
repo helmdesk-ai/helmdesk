@@ -21,6 +21,7 @@ return new class extends Migration
             $table->integer('sort_order')->default(0);
 
             $table->unique(['ai_provider_id', 'model_id', 'type']);
+            $table->index(['ai_provider_id', 'type', 'is_active', 'sort_order'], 'idx_ai_models_provider_type_active');
         });
     }
 

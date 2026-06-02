@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('question', 500);
             $table->unsignedInteger('sort_order')->default(0);
 
-            $table->index('knowledge_qa_entry_id', 'idx_kb_qa_question_entry');
+            $table->index(['knowledge_qa_entry_id', 'sort_order'], 'idx_kb_qa_question_entry_sort');
         });
     }
 

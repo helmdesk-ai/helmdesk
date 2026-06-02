@@ -24,10 +24,9 @@ return new class extends Migration
             $table->timestamp('vector_indexed_at')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
 
-            $table->index(['knowledge_base_id', 'group_id'], 'idx_kb_qa_entry_kb_group');
-            $table->index(['knowledge_base_id', 'status'], 'idx_kb_qa_entry_kb_status');
-            $table->index('created_at', 'idx_kb_qa_entry_created_at');
-            $table->index(['knowledge_base_id', 'question'], 'idx_kb_qa_entry_kb_question');
+            $table->index(['knowledge_base_id', 'created_at'], 'idx_kb_qa_entry_kb_created');
+            $table->index(['knowledge_base_id', 'group_id', 'created_at'], 'idx_kb_qa_entry_kb_group_created');
+            $table->index(['knowledge_base_id', 'status', 'created_at'], 'idx_kb_qa_entry_kb_status_created');
         });
     }
 

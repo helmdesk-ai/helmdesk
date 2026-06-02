@@ -20,7 +20,7 @@ return new class extends Migration
             $table->ulid('created_by_user_id')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->index('scope', 'tag_groups_scope_idx');
+            $table->index(['scope', 'sort_order', 'name'], 'tag_groups_scope_sort_idx');
         });
 
         DB::statement(

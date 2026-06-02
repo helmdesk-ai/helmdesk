@@ -31,8 +31,9 @@ return new class extends Migration
             $table->string('important_source', 20)->nullable();
             $table->timestamp('last_seen_at')->nullable();
 
-            $table->index('type');
-            $table->index(['is_important', 'last_seen_at'], 'contacts_important_seen_idx');
+            $table->index(['deleted_at', 'type', 'is_important', 'last_seen_at', 'created_at'], 'contacts_type_list_idx');
+            $table->index(['deleted_at', 'is_important', 'last_seen_at', 'created_at'], 'contacts_list_idx');
+            $table->index(['deleted_at', 'created_at'], 'contacts_trash_idx');
         });
     }
 

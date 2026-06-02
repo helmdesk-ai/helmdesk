@@ -31,8 +31,7 @@ return new class extends Migration
             $table->ulid('created_by_user_id')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->index('user_id');
-            $table->index('last_used_at');
+            $table->index(['user_id', 'last_used_at', 'usage_count', 'name'], 'canned_replies_owner_usage_idx');
         });
 
         // 同归属（个人/共享）下，shortcut 不重复。

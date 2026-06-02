@@ -26,7 +26,7 @@ return new class extends Migration
             $table->ulid('created_by_user_id')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->index('tag_group_id');
+            $table->index(['tag_group_id', 'name'], 'tags_group_name_idx');
         });
 
         DB::statement(

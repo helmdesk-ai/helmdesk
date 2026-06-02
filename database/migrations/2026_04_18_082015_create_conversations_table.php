@@ -29,6 +29,8 @@ return new class extends Migration
             $table->unsignedBigInteger('summary_last_message_seq_no')->default(0);
             $table->timestamp('summary_generated_at')->nullable();
             $table->json('ai_context')->nullable();
+            // 会话级渠道上下文快照：按渠道类型保存 Web 访客行为或 Telegram 用户元数据。
+            $table->json('channel_context')->nullable();
             $table->string('last_message_preview')->nullable();
             $table->timestamp('last_message_at')->nullable();
             $table->unsignedInteger('unread_visitor_message_count')->default(0);

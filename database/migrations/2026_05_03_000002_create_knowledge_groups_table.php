@@ -18,8 +18,8 @@ return new class extends Migration
             $table->boolean('is_default')->default(false);
             $table->unsignedInteger('sort_order')->default(0);
 
-            $table->index('knowledge_base_id');
-            $table->index('parent_id');
+            $table->index(['knowledge_base_id', 'parent_id', 'sort_order'], 'idx_kb_group_tree');
+            $table->index(['parent_id', 'sort_order'], 'idx_kb_group_parent_sort');
             $table->index(['knowledge_base_id', 'is_default'], 'idx_kb_group_default');
         });
     }

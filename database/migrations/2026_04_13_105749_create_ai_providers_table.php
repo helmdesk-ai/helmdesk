@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('is_builtin')->default(false);
             $table->integer('sort_order')->default(0);
 
+            $table->unique('slug');
             $table->index('sort_order');
         });
     }
