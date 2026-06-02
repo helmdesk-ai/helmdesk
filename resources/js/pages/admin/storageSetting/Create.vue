@@ -28,7 +28,7 @@ import type {
   ShowCreateStorageProfilePagePropsData,
 } from '@/types/generated';
 import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<ShowCreateStorageProfilePagePropsData>();

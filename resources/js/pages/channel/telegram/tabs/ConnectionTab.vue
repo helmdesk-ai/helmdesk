@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/composables/useI18n';
 import type { TelegramChannelData } from '@/types/generated';
 import { Form } from '@inertiajs/vue3';
-import { Bot } from 'lucide-vue-next';
+import { Bot } from '@lucide/vue';
 import { ref } from 'vue';
 
 const props = defineProps<{

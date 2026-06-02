@@ -20,7 +20,7 @@ import type {
 } from '@/types/generated';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { LoaderCircle, Plus, Server, Trash2 } from 'lucide-vue-next';
+import { LoaderCircle, Plus, Server, Trash2 } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import McpServerFormPanel from './McpServerFormPanel.vue';
 import McpToolListItem from './McpToolListItem.vue';

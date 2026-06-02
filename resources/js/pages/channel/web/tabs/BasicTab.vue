@@ -24,7 +24,7 @@ import type {
   WebChannelFormOptionsData,
 } from '@/types/generated';
 import { Form, Link } from '@inertiajs/vue3';
-import { AlertCircle } from 'lucide-vue-next';
+import { AlertCircle } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{

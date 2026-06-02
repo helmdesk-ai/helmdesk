@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
-import { ListFilter } from 'lucide-vue-next';
+import { ListFilter } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { computed, watch } from 'vue';
 

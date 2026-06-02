@@ -16,7 +16,7 @@ import { useI18n } from '@/composables/useI18n';
 import { getInitials } from '@/composables/useInitials';
 import type { AppPageProps } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ChevronsUpDown, LogOut, Settings } from 'lucide-vue-next';
+import { ChevronsUpDown, LogOut, Settings } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface Props {

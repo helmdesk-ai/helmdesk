@@ -19,7 +19,7 @@ import type {
   TranslationResult,
 } from '@/types/generated';
 import { Head, router, useHttp } from '@inertiajs/vue3';
-import { LoaderCircle, Plus, Trash2 } from 'lucide-vue-next';
+import { LoaderCircle, Plus, Trash2 } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import TranslationProviderFormPanel from './TranslationProviderFormPanel.vue';
 

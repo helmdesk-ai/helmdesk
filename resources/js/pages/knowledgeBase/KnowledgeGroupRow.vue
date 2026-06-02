@@ -14,7 +14,7 @@ import {
 import { useI18n } from '@/composables/useI18n';
 import type { KnowledgeGroupData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { Folder, MoreHorizontal } from 'lucide-vue-next';
+import { Folder, MoreHorizontal } from '@lucide/vue';
 import { ref } from 'vue';
 
 const props = defineProps<{

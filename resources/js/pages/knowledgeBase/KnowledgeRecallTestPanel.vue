@@ -27,7 +27,7 @@ import type {
   KnowledgeSearchMode,
 } from '@/types/generated';
 import { useHttp } from '@inertiajs/vue3';
-import { FileText, MessageSquareText, Search } from 'lucide-vue-next';
+import { FileText, MessageSquareText, Search } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

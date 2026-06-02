@@ -19,7 +19,7 @@ import {
   RotateCw,
   UploadCloud,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 type UploadStatus = 'pending' | 'uploading' | 'success' | 'failed';

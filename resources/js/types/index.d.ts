@@ -2,12 +2,12 @@
  * 文件说明：前端共享类型声明，补充页面 props、全局对象和模块类型。
  */
 import { InertiaLinkProps } from '@inertiajs/vue3';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { LucideIcon } from '@lucide/vue';
 import type {
   AiModelOptionData,
   GeneralSettingsData,
-  UserNotificationPreferencesData,
   SystemUserContextData,
+  UserNotificationPreferencesData,
 } from './generated';
 
 export interface Auth {

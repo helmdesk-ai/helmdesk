@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ToastClose, type ToastCloseProps } from 'reka-ui';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { computed, type HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
 

@@ -40,7 +40,7 @@ import type {
   ShowCannedReplyListPagePropsData,
 } from '@/types/generated';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { MoreHorizontal, Search } from 'lucide-vue-next';
+import { MoreHorizontal, Search } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<ShowCannedReplyListPagePropsData>();
@@ -195,9 +195,7 @@ watch(editOpen, (open) => {
                     mode="create"
                     variant="dialog"
                     :available-tokens="props.available_tokens"
-                    :can-manage-system-shared="
-                      props.can_manage_system_replies
-                    "
+                    :can-manage-system-shared="props.can_manage_system_replies"
                     :default-is-personal="true"
                     @saved="createOpen = false"
                     @cancel="createOpen = false"

@@ -11,7 +11,7 @@ import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/SettingsLayout.vue';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
-import { Monitor, Moon, Sun } from 'lucide-vue-next';
+import { Monitor, Moon, Sun } from '@lucide/vue';
 
 const { t } = useI18n();
 const { appearance, updateAppearance } = useAppearance();

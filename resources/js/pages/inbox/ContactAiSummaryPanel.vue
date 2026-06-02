@@ -11,7 +11,7 @@ import type {
   MessageTranslationData,
 } from '@/types/generated';
 import axios from 'axios';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{

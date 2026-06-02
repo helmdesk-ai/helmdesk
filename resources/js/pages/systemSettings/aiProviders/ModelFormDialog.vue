@@ -25,7 +25,7 @@ import {
 import { useI18n } from '@/composables/useI18n';
 import type { AiModelData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, watch } from 'vue';
 
 type ModelFormState = {

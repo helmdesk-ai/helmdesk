@@ -22,7 +22,7 @@ import SidebarUserMenu from '@/layouts/app/SidebarUserMenu.vue';
 import { cn, toUrl, urlIsActive } from '@/lib/utils';
 import type { NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Pin } from 'lucide-vue-next';
+import { Pin } from '@lucide/vue';
 import { computed } from 'vue';
 
 export type SidebarShellNavItem = NavItem & {

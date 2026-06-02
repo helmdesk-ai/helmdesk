@@ -13,7 +13,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowWebChannelListPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import {
@@ -85,18 +85,12 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
 
           <div class="flex items-center gap-2">
             <Button as-child>
-              <Link
-                :href="
-                  Web.ShowCreateWebChannelPageAction.url()
-                "
-              >
+              <Link :href="Web.ShowCreateWebChannelPageAction.url()">
                 {{ t('创建渠道') }}
               </Link>
             </Button>
             <Button variant="outline" as-child>
-              <Link
-                :href="Web.ListWebChannelTrashAction.url()"
-              >
+              <Link :href="Web.ListWebChannelTrashAction.url()">
                 {{ t('回收站') }}
               </Link>
             </Button>

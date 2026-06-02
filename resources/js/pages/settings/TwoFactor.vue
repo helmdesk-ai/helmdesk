@@ -50,7 +50,7 @@ import {
   ScanLine,
   ShieldBan,
   ShieldCheck,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import {
   computed,
   nextTick,

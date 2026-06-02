@@ -15,7 +15,7 @@ import { renderMarkdownToSafeHtml } from '@/lib/markdown';
 import type { ListKnowledgeDocumentItemData } from '@/types/generated';
 import { renderAsync as renderDocxAsync } from 'docx-preview';
 import DOMPurify from 'dompurify';
-import { ExternalLink } from 'lucide-vue-next';
+import { ExternalLink } from '@lucide/vue';
 import {
   GlobalWorkerOptions,
   getDocument,

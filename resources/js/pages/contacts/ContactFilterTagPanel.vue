@@ -10,7 +10,7 @@ import type {
   TagMatchMode,
   TagOptionData,
 } from '@/types/generated';
-import { Check, X } from 'lucide-vue-next';
+import { Check, X } from '@lucide/vue';
 
 const { t } = useI18n();
 

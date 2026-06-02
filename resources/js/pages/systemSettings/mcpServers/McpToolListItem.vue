@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/composables/useI18n';
 import type { McpToolData } from '@/types/generated';
-import { ChevronDown, ChevronRight } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

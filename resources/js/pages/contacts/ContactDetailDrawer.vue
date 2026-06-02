@@ -54,7 +54,7 @@ import type {
 } from '@/types/generated';
 import { router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Star } from 'lucide-vue-next';
+import { Star } from '@lucide/vue';
 import {
   computed,
   nextTick,

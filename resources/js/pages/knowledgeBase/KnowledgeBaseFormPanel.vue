@@ -49,8 +49,7 @@ const formDef = computed<RouteFormDefinition<'post'>>(() => {
     });
   }
 
-  return KnowledgeBase.CreateKnowledgeBaseAction.form({
-  });
+  return KnowledgeBase.CreateKnowledgeBaseAction.form({});
 });
 
 function onFormSuccess() {

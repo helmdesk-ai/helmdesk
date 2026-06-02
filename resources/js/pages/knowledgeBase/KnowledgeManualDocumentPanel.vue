@@ -21,7 +21,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
 import type { ListKnowledgeDocumentItemData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 type Mode = 'create' | 'edit';

@@ -36,7 +36,7 @@ import type {
   ListCannedReplyItemData,
 } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { ChevronDown, Sparkles } from 'lucide-vue-next';
+import { ChevronDown, Sparkles } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 
 interface Props {

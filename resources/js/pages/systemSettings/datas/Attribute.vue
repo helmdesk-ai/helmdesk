@@ -38,7 +38,7 @@ import type {
   ShowListAttributeDefinitionPagePropsData,
 } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowDown, ArrowUp, MoreHorizontal } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, MoreHorizontal } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import {

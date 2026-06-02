@@ -192,11 +192,7 @@ export function useSystemNotificationAlerts(
     });
   }
 
-  watch(
-    [options.userId, options.preferences],
-    subscribe,
-    { immediate: true },
-  );
+  watch([options.userId, options.preferences], subscribe, { immediate: true });
 
   onBeforeUnmount(closeSource);
 }

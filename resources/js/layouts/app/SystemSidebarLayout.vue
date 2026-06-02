@@ -26,7 +26,7 @@ import {
   MessagesSquare,
   Settings,
   Users,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed } from 'vue';
 
 interface Props {

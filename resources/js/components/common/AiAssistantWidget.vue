@@ -29,7 +29,7 @@ import {
   Square,
   Wrench,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import {
   computed,
   nextTick,

@@ -19,7 +19,7 @@ import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { ShowReceptionPlanListPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowReceptionPlanListPagePropsData>();

@@ -14,7 +14,7 @@ import {
 import { useChannelPreviewDraft } from '@/composables/useChannelPreviewDraft';
 import { useI18n } from '@/composables/useI18n';
 import type { PublicStandaloneChannelData } from '@/types/generated';
-import { MessageCircle, X } from 'lucide-vue-next';
+import { MessageCircle, X } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const { t } = useI18n();

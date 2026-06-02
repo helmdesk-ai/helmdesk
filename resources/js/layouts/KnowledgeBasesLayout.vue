@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useI18n } from '@/composables/useI18n';
-import { PanelLeft } from 'lucide-vue-next';
+import { PanelLeft } from '@lucide/vue';
 
 defineProps<{
   contentClass?: string;

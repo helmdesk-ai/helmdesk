@@ -60,7 +60,7 @@ import type {
   TagMatchMode,
 } from '@/types/generated';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal, Search, Star } from 'lucide-vue-next';
+import { MoreHorizontal, Search, Star } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import ContactDetailDrawer from './ContactDetailDrawer.vue';

@@ -21,8 +21,7 @@ const { formatDateTime } = useDateTime();
 const restoreForm = useForm({});
 
 const buildTrashPageUrl = (page: number): string => {
-  return Telegram.ListTelegramChannelTrashAction.url({ query: { page } },
-  );
+  return Telegram.ListTelegramChannelTrashAction.url({ query: { page } });
 };
 </script>
 
@@ -39,11 +38,7 @@ const buildTrashPageUrl = (page: number): string => {
           />
 
           <Button variant="outline" class="shrink-0" as-child>
-            <Link
-              :href="
-                Telegram.ListTelegramChannelsAction.url()
-              "
-            >
+            <Link :href="Telegram.ListTelegramChannelsAction.url()">
               {{ t('返回列表') }}
             </Link>
           </Button>

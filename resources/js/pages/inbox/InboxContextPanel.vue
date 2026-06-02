@@ -44,7 +44,7 @@ import type {
 } from '@/types/generated';
 import { router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Globe, MessageSquare, Send } from 'lucide-vue-next';
+import { Globe, MessageSquare, Send } from '@lucide/vue';
 import {
   computed,
   nextTick,

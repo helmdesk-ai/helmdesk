@@ -15,9 +15,7 @@ const props = defineProps<CreateReceptionPlanPagePropsData>();
 const { t } = useI18n();
 
 function goToList(): void {
-  router.visit(
-    Plan.ShowReceptionPlanIndexPageAction.url(),
-  );
+  router.visit(Plan.ShowReceptionPlanIndexPageAction.url());
 }
 </script>
 

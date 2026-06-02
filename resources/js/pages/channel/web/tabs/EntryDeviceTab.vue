@@ -381,10 +381,7 @@ const updateEntryBottomOffset = (value: string | number) => {
           </div>
         </section>
 
-        <FormActions
-          :submit-label="t('保存')"
-          :processing="processing"
-        />
+        <FormActions :submit-label="t('保存')" :processing="processing" />
       </div>
     </template>
   </Form>

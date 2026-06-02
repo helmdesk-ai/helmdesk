@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
 import type { ListKnowledgeQaEntryItemData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle, Plus, Trash2 } from 'lucide-vue-next';
+import { LoaderCircle, Plus, Trash2 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 type Mode = 'create' | 'edit';

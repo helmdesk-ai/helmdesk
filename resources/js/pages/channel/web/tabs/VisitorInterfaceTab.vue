@@ -26,7 +26,7 @@ import type {
   WebChannelFormOptionsData,
 } from '@/types/generated';
 import { Form } from '@inertiajs/vue3';
-import { Check, Plus, Trash2 } from 'lucide-vue-next';
+import { Check, Plus, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{

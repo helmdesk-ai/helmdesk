@@ -94,7 +94,7 @@ import {
   Star,
   UserRound,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<ShowInboxPagePropsData>();

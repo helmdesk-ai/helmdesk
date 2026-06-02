@@ -36,9 +36,7 @@ withDefaults(
 
 const { t } = useI18n();
 
-const listHref = computed(() =>
-  KnowledgeBase.ListKnowledgeBasesAction.url(),
-);
+const listHref = computed(() => KnowledgeBase.ListKnowledgeBasesAction.url());
 </script>
 
 <template>

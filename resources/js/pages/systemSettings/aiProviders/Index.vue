@@ -38,7 +38,7 @@ import {
   Pencil,
   Plus,
   Trash2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import AddProviderDialog from './AddProviderDialog.vue';
 import ModelFormDialog from './ModelFormDialog.vue';

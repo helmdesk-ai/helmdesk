@@ -32,7 +32,7 @@ import type {
   WebChannelQueryParamMappingData,
 } from '@/types/generated';
 import { Form, router } from '@inertiajs/vue3';
-import { Trash2 } from 'lucide-vue-next';
+import { Trash2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 type ParamTarget = WebChannelQueryParamMappingData['target'];

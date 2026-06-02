@@ -25,7 +25,7 @@ import type {
   TranslationResult,
 } from '@/types/generated';
 import { useForm, useHttp } from '@inertiajs/vue3';
-import { LoaderCircle, Trash2 } from 'lucide-vue-next';
+import { LoaderCircle, Trash2 } from '@lucide/vue';
 import { computed, watch } from 'vue';
 
 type CredentialField = {
@@ -289,15 +289,12 @@ function submit(): void {
       protocol: data.protocol,
       configuration: data.configuration,
     }))
-    .post(
-      Translation.CreateTranslationProviderAction.url(),
-      {
-        preserveScroll: true,
-        onSuccess: () => emit('saved'),
-        onError: (errors) =>
-          handleActionError(errors as Record<string, string | undefined>),
-      },
-    );
+    .post(Translation.CreateTranslationProviderAction.url(), {
+      preserveScroll: true,
+      onSuccess: () => emit('saved'),
+      onError: (errors) =>
+        handleActionError(errors as Record<string, string | undefined>),
+    });
 }
 
 const checkHttp = useHttp<CheckPayload, CheckResponse>({

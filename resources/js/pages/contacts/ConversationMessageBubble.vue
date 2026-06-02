@@ -26,7 +26,7 @@ import type {
   ConversationContactSummaryData,
   TimelineEntryData,
 } from '@/types/generated';
-import { LoaderCircle, Paperclip } from 'lucide-vue-next';
+import { LoaderCircle, Paperclip } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = withDefaults(

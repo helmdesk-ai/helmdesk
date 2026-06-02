@@ -20,7 +20,7 @@ import { useToast } from '@/composables/useToast';
 import type { EnumOptionData, McpServerData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 type AuthPreset = 'none' | 'bearer' | 'header';

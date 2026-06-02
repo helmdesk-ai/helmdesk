@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { useI18n } from '@/composables/useI18n';
 import type { BrandOptionData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LoaderCircle } from 'lucide-vue-next';
+import { ArrowLeft, LoaderCircle } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 type CredentialField = {

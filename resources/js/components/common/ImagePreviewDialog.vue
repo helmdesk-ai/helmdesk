@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { useI18n } from '@/composables/useI18n';
 import { formatFileSize } from '@/lib/format';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { VisuallyHidden } from 'reka-ui';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 

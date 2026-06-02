@@ -31,7 +31,7 @@ import type {
   TranslationProviderOptionData,
 } from '@/types/generated';
 import type { InertiaForm } from '@inertiajs/vue3';
-import { AlertTriangle, ArrowDown, ArrowUp, Trash2 } from 'lucide-vue-next';
+import { AlertTriangle, ArrowDown, ArrowUp, Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 
 export type ReceptionModelCandidateDraft = {

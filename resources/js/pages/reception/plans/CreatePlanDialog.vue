@@ -23,7 +23,7 @@ import type { MessageTranslationConfigDraft } from '@/pages/reception/plans/Plan
 import type { ReceptionStrategyConfigDraft } from '@/pages/reception/plans/PlanStrategyForm.vue';
 import type { AiModelOptionData, EnumOptionData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{

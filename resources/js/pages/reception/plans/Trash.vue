@@ -38,11 +38,7 @@ const buildTrashPageUrl = (page: number): string =>
           />
 
           <Button variant="outline" class="shrink-0" as-child>
-            <Link
-              :href="
-                Plan.ShowReceptionPlanIndexPageAction.url()
-              "
-            >
+            <Link :href="Plan.ShowReceptionPlanIndexPageAction.url()">
               {{ t('返回列表') }}
             </Link>
           </Button>

@@ -9,7 +9,7 @@ import { toUrl, urlIsActive } from '@/lib/utils';
 import admin from '@/routes/admin';
 import type { AppPageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Globe, Send } from 'lucide-vue-next';
+import { Globe, Send } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 type ActiveMode = 'exact' | 'path' | 'prefix';

@@ -31,7 +31,7 @@ import type {
   UserOptionData,
 } from '@/types/generated';
 import { router, usePage } from '@inertiajs/vue3';
-import { ChevronDown, Search, X } from 'lucide-vue-next';
+import { ChevronDown, Search, X } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 interface Props {

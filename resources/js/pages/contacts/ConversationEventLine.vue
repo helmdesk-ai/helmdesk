@@ -4,7 +4,7 @@
 -->
 <script setup lang="ts">
 import type { TimelineEntryData } from '@/types/generated';
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDown } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

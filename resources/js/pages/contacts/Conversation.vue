@@ -15,7 +15,7 @@ import type {
   ShowConversationListPagePropsData,
 } from '@/types/generated';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronLeft, Search } from 'lucide-vue-next';
+import { ChevronLeft, Search } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import ContactDetailDrawer from './ContactDetailDrawer.vue';

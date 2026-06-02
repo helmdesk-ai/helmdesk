@@ -7,9 +7,9 @@ import common from './zh-CN/common';
 import contact from './zh-CN/contact';
 import conversation from './zh-CN/conversation';
 import settings from './zh-CN/settings';
-import systemSettings from './zh-CN/system-settings';
-import systemManagement from './zh-CN/system-management';
 import systemAdmin from './zh-CN/system-admin';
+import systemManagement from './zh-CN/system-management';
+import systemSettings from './zh-CN/system-settings';
 
 export default {
   ...common,

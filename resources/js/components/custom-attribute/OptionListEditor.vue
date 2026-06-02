@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/composables/useI18n';
-import { Plus, Trash2 } from 'lucide-vue-next';
+import { Plus, Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 
 const { t } = useI18n();

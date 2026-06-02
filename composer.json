@@ -29,7 +29,7 @@
         "smalot/pdfparser": "^2.12",
         "spatie/laravel-data": "^4.18",
         "spatie/laravel-settings": "^3.6",
-        "spatie/laravel-typescript-transformer": "^2.5",
+        "spatie/laravel-typescript-transformer": "^3.0",
         "symfony/http-client": "^8.0",
         "symfony/mailgun-mailer": "^8.0",
         "symfony/postmark-mailer": "^8.0",

@@ -20,7 +20,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowTelegramChannelListPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowTelegramChannelListPagePropsData>();

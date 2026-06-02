@@ -36,7 +36,7 @@ import type {
   ShowMailSettingsPagePropsData,
 } from '@/types/generated';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Trash2, Undo2 } from 'lucide-vue-next';
+import { Trash2, Undo2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowMailSettingsPagePropsData>();

@@ -25,7 +25,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useUrlTab } from '@/composables/useUrlTab';
 import type { WebChannelData } from '@/types/generated';
 import { Form } from '@inertiajs/vue3';
-import { Check, CircleHelp, Copy } from 'lucide-vue-next';
+import { Check, CircleHelp, Copy } from '@lucide/vue';
 import * as QRCode from 'qrcode';
 import { computed, ref } from 'vue';
 
@@ -422,10 +422,7 @@ const copyWidgetCode = async () => {
           </section>
         </div>
 
-        <FormActions
-          :submit-label="t('保存')"
-          :processing="processing"
-        />
+        <FormActions :submit-label="t('保存')" :processing="processing" />
       </div>
     </template>
   </Form>

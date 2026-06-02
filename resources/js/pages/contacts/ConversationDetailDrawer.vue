@@ -14,7 +14,7 @@ import type {
   ListConversationItemData,
   TimelineEntryData,
 } from '@/types/generated';
-import { ArrowUpRight } from 'lucide-vue-next';
+import { ArrowUpRight } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import ConversationEventLine from './ConversationEventLine.vue';

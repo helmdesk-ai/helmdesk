@@ -85,8 +85,7 @@ export default {
   排除此标签: 'Exclude this tag',
 
   // 系统设置 - 常规设置
-  配置系统的基本信息和设置:
-    'Configure basic system information and settings',
+  配置系统的基本信息和设置: 'Configure basic system information and settings',
   创建系统: 'Create system',
   创建一个新的系统来组织你的团队和项目:
     'Create a new system to organize your team and projects',
@@ -403,8 +402,7 @@ export default {
   '确认恢复知识库？': 'Restore this knowledge base?',
   '恢复后将重新出现在知识库列表中。':
     'After restore, it will appear in the knowledge base list again.',
-  '为当前系统添加一个知识库。':
-    'Add a knowledge base for the current admin.',
+  '为当前系统添加一个知识库。': 'Add a knowledge base for the current admin.',
   '调整知识库头像、名称和描述。':
     'Adjust the knowledge base avatar, name, and description.',
   '支持上传文档和手动添加自定义内容，解析后用于知识库检索。':

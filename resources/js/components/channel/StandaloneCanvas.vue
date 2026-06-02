@@ -55,7 +55,7 @@ import {
   Paperclip,
   Smile,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { CSSProperties, WatchStopHandle } from 'vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -1510,7 +1510,7 @@ onUnmounted(() => {
           <div class="flex w-full flex-1 flex-col px-4 sm:px-6">
             <div
               ref="messageListEl"
-              class="flex-1 space-y-4 overflow-y-auto py-6 pr-3 [scrollbar-gutter:stable]"
+              class="flex-1 [scrollbar-gutter:stable] space-y-4 overflow-y-auto py-6 pr-3"
             >
               <div
                 v-if="showInlineGreeting && hasGreetingContent"

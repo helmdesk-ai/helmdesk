@@ -30,9 +30,7 @@ const readContext = (): SystemUserContextData | null => {
     : null;
 };
 
-const mapContext = (
-  context: SystemUserContextData,
-): CurrentSystemContext => ({
+const mapContext = (context: SystemUserContextData): CurrentSystemContext => ({
   id: context.system_slug,
   slug: context.system_slug,
   name: context.system_name,

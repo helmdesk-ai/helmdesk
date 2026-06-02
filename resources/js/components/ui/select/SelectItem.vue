@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from 'vue';
 import type { SelectItemProps } from 'reka-ui';
 import { SelectItem, SelectItemIndicator, SelectItemText } from 'reka-ui';
-import { Check } from 'lucide-vue-next';
+import { Check } from '@lucide/vue';
 import { cn } from '@/lib/utils';
 
 const props = defineProps<

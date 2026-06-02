@@ -14,7 +14,7 @@ import { useI18n } from '@/composables/useI18n';
 import cannedReplyRoutes from '@/routes/admin/canned-replies';
 import type { CannedReplyComposerItemData } from '@/types/generated';
 import axios from 'axios';
-import { Sparkles } from 'lucide-vue-next';
+import { Sparkles } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 
 interface RenderedReply {

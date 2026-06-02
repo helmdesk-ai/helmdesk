@@ -9,7 +9,7 @@ import {
 } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { onClickOutside, useVModel } from '@vueuse/core';
-import { Check, ChevronDown, Search } from 'lucide-vue-next';
+import { Check, ChevronDown, Search } from '@lucide/vue';
 import type { CSSProperties, HTMLAttributes } from 'vue';
 import { computed, nextTick, onUnmounted, ref } from 'vue';
 

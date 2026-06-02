@@ -40,7 +40,7 @@ import type {
   ShowListTagPagePropsData,
 } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Lock, MoreHorizontal } from 'lucide-vue-next';
+import { Lock, MoreHorizontal } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const { t } = useI18n();

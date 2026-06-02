@@ -57,7 +57,7 @@ import {
   Smartphone,
   Trash2,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch, type Component } from 'vue';
 
 type PlanFormTab =
@@ -142,9 +142,7 @@ const activePlanBasicsSection = computed<PlanBasicsFormSection>(() =>
     : activePlanFormTab.value,
 );
 
-const listUrl = computed(() =>
-  Plan.ShowReceptionPlanIndexPageAction.url(),
-);
+const listUrl = computed(() => Plan.ShowReceptionPlanIndexPageAction.url());
 
 // ---------- 方案表单：基础字段 + 服务场景 + 方案级 KB/MCP 统一存放在 useForm 里 ----------
 type PlanFormState = PlanBasicsFormShape & {

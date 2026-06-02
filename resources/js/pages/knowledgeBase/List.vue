@@ -66,7 +66,7 @@ import {
   PenLine,
   Search,
   Settings2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue';
 
 const KnowledgeDocumentPreviewDialog = defineAsyncComponent(
@@ -283,8 +283,7 @@ function buildDocumentListPageUrl(page: number): string {
   if (page > 1) {
     query.page = String(page);
   }
-  return KnowledgeBase.ListKnowledgeBasesAction.url({ query },
-  );
+  return KnowledgeBase.ListKnowledgeBasesAction.url({ query });
 }
 
 watch(searchInput, () => {
@@ -1720,7 +1719,7 @@ function confirmDeleteQaEntry(): void {
         class="max-h-[calc(100vh-2rem)] overflow-hidden p-0 sm:max-w-2xl"
       >
         <div
-          class="max-h-[calc(100vh-2rem)] overflow-y-auto p-6 [scrollbar-gutter:stable]"
+          class="max-h-[calc(100vh-2rem)] [scrollbar-gutter:stable] overflow-y-auto p-6"
         >
           <DialogHeader class="space-y-3 pr-8">
             <DialogTitle>{{ t('上传文档') }}</DialogTitle>

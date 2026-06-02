@@ -79,8 +79,7 @@ const REPLY_TRANSLATION_DEBOUNCE_MS = 600;
 export function useReplyTranslationPreview(
   options: UseReplyTranslationPreviewOptions,
 ): UseReplyTranslationPreviewReturn {
-  const { selection, currentUserLocale, replyContent, enabled } =
-    options;
+  const { selection, currentUserLocale, replyContent, enabled } = options;
 
   const { t } = useI18n();
 
