@@ -5,7 +5,7 @@ namespace App\Actions\Fortify;
 use App\Enums\SystemRole;
 use App\Enums\UserOnlineStatus;
 use App\Models\User;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;

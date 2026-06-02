@@ -2,10 +2,10 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\FormCreateReceptionPlanData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\FormCreateReceptionPlanData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Data\SystemUserContextData;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;

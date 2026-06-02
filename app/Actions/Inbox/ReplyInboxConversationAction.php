@@ -11,7 +11,7 @@ use App\Exceptions\BusinessException;
 use App\Models\Conversation;
 use App\Models\SystemContext;
 use App\Models\User;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;

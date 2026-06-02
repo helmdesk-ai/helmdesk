@@ -2,7 +2,7 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\ReceptionPersonaTone;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;

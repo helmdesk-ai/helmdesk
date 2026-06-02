@@ -3,7 +3,7 @@
 namespace App\Actions\Reception\Plan;
 
 use App\Data\EnumOptionData;
-use App\Data\Reception\CreateReceptionPlanPagePropsData;
+use App\Data\Reception\Plan\CreateReceptionPlanPagePropsData;
 use App\Data\SystemUserContextData;
 use App\Enums\ReceptionPersonaTone;
 use App\Models\SystemContext;

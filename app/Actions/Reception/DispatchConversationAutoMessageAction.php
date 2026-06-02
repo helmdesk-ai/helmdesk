@@ -2,9 +2,9 @@
 
 namespace App\Actions\Reception;
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\PersonaConfigData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\PersonaConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\ConversationAutoMessageTrigger;
 use App\Enums\ConversationEventType;

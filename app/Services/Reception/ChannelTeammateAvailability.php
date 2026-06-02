@@ -3,13 +3,13 @@
 namespace App\Services\Reception;
 
 use App\Data\Reception\HumanServiceStatusData;
-use App\Data\Reception\ReceptionBusinessHoursData;
-use App\Data\Reception\ReceptionBusinessHoursDayData;
+use App\Data\Reception\Plan\ReceptionBusinessHoursData;
+use App\Data\Reception\Plan\ReceptionBusinessHoursDayData;
 use App\Enums\Reception\HumanServiceUnavailableReason;
 use App\Enums\UserOnlineStatus;
 use App\Models\Channel;
 use App\Models\User;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Carbon\Carbon;
 
 /**

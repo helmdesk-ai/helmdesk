@@ -2,7 +2,7 @@
 
 namespace App\Data\User;
 
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use DateTimeZone;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;

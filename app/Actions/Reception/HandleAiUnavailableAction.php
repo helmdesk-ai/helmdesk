@@ -2,7 +2,7 @@
 
 namespace App\Actions\Reception;
 
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\ConversationEventType;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\MessageKind;

@@ -5,8 +5,8 @@ namespace App\Actions\Translation;
 use App\Data\Translation\MessageTranslationData;
 use App\Enums\MessageTranslationOutcome;
 use App\Models\Conversation;
+use App\Services\Localization\LocalePreference;
 use App\Services\Translation\Exceptions\TranslationException;
-use App\Support\LocalePreference;
 use Illuminate\Support\Facades\Log;
 use Lorisleiva\Actions\Concerns\AsAction;
 

@@ -8,7 +8,7 @@ use App\Data\SystemUserContextData;
 use App\Jobs\Inbox\TranslateInboxContactAiSummaryJob;
 use App\Models\Contact;
 use App\Models\SystemContext;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;

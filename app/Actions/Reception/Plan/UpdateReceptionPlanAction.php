@@ -2,10 +2,10 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\FormUpdateReceptionPlanData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\FormUpdateReceptionPlanData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Data\SystemUserContextData;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;

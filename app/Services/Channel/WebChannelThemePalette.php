@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Channel;
+namespace App\Services\Channel;
 
 /**
  * 网站渠道统一主题色板。
@@ -35,13 +35,5 @@ class WebChannelThemePalette
             '#C2185B',     // 玫红
             '#020617',     // 墨黑
         ];
-    }
-
-    /**
-     * 返回默认主题色。
-     */
-    public static function default(): string
-    {
-        return self::DEFAULT;
     }
 }

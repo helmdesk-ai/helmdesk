@@ -3,15 +3,15 @@
 namespace App\Actions\Native\Reception;
 
 use App\Actions\Reception\Plan\CollectPlanMcpServersAction;
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Enums\AiProviderProtocol;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\ReceptionLanguage;
 use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\ReceptionPlanVersion;
+use App\Services\Localization\LocalePreference;
 use App\Services\Reception\ChannelTeammateAvailability;
-use App\Support\LocalePreference;
 use LogicException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;

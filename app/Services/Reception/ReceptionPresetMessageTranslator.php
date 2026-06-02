@@ -3,11 +3,11 @@
 namespace App\Services\Reception;
 
 use App\Actions\Translation\TranslateConversationMessageAction;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Models\Conversation;
 use App\Models\User;
+use App\Services\Localization\LocalePreference;
 use App\Services\Translation\Exceptions\TranslationException;
-use App\Support\LocalePreference;
 use Illuminate\Support\Facades\Log;
 
 /**

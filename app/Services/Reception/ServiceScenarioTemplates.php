@@ -1,14 +1,9 @@
 <?php
 
-namespace App\Support\Reception;
+namespace App\Services\Reception;
 
 /**
- * 接待方案服务场景预置模板。新建 Plan 时可基于模板生成服务场景草稿。
- *
- * 设计取舍：
- * - 模板内容直接落中文常量，不进 i18n 体系；模板属于"运营人员可改的预置实例"
- *   而非"枚举类显示文案"，多语言切换的优先级低，先保持一份高质量的中文文案
- * - 知识库与 MCP 工具配置在接待方案级统一管理，不在服务场景内单独配置
+ * 接待方案服务场景预置模板。
  *
  * @phpstan-type ScenarioTemplate array{
  *     code: string,
@@ -32,22 +27,6 @@ final class ServiceScenarioTemplates
             self::aftersale(),
             self::logistics(),
         ];
-    }
-
-    /**
-     * 根据模板 code 查找模板；不存在返回 null。
-     *
-     * @return ScenarioTemplate|null
-     */
-    public static function find(string $code): ?array
-    {
-        foreach (self::all() as $template) {
-            if ($template['code'] === $code) {
-                return $template;
-            }
-        }
-
-        return null;
     }
 
     /**

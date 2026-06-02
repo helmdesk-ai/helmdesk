@@ -9,7 +9,7 @@ use App\Jobs\Inbox\TranslateInboxConversationSummaryJob;
 use App\Models\Conversation;
 use App\Models\SystemContext;
 use App\Models\User;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;

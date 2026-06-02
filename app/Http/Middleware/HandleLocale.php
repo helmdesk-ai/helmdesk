@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;

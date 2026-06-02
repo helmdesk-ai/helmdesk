@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Support;
+namespace App\Services\Localization;
 
 use Illuminate\Http\Request;
 
 /**
- * 统一前后端语言偏好的标准化、请求解析和浏览器语言识别。
+ * 统一前后端语言偏好的标准化、匹配和浏览器语言识别。
  */
 class LocalePreference
 {
@@ -84,18 +84,6 @@ class LocalePreference
         }
 
         return explode('-', $left)[0] === explode('-', $right)[0];
-    }
-
-    /**
-     * 从请求参数、Cookie 或浏览器偏好中解析前端语言标识。
-     */
-    public static function fromRequest(Request $request): string
-    {
-        return self::normalizeFrontend(
-            $request->input('locale')
-                ?? $request->cookie('locale')
-                ?? self::preferredBrowserLocale($request)
-        );
     }
 
     /**

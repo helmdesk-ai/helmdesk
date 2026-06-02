@@ -3,11 +3,11 @@
 namespace App\Actions\Reception\Plan;
 
 use App\Data\EnumOptionData;
-use App\Data\Reception\ReceptionPlanData;
+use App\Data\Reception\Plan\ReceptionPlanData;
+use App\Data\Reception\Plan\ShowReceptionPlanDetailPagePropsData;
 use App\Data\Reception\ServiceScenario\PlanKnowledgeBaseOptionData;
 use App\Data\Reception\ServiceScenario\PlanMcpToolOptionData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioTemplateData;
-use App\Data\Reception\ShowReceptionPlanDetailPagePropsData;
 use App\Data\SystemUserContextData;
 use App\Data\Translation\TranslationProviderOptionData;
 use App\Enums\AutoMessageTranslationFailureMode;
@@ -18,7 +18,7 @@ use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\AiRuntime\AiModelResolver;
-use App\Support\Reception\ServiceScenarioTemplates;
+use App\Services\Reception\ServiceScenarioTemplates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;

@@ -1,7 +1,7 @@
 <?php
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\Reception\ReceptionRoutingMode;
 use App\Enums\ReceptionPlanVersionStatus;

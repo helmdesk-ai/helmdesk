@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Data\Reception;
+namespace App\Data\Reception\Plan;
 
 use App\Enums\Reception\ReceptionRoutingMode;
 use DateTimeZone;

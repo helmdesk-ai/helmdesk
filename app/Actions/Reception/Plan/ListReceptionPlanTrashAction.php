@@ -2,8 +2,8 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\Reception\ListReceptionPlanTrashPagePropsData;
-use App\Data\Reception\ReceptionPlanData;
+use App\Data\Reception\Plan\ListReceptionPlanTrashPagePropsData;
+use App\Data\Reception\Plan\ReceptionPlanData;
 use App\Data\SimplePaginationData;
 use App\Data\SystemUserContextData;
 use App\Models\ReceptionPlan;

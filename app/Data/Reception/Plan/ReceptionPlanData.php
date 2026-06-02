@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Data\Reception;
+namespace App\Data\Reception\Plan;
 
 use App\Data\AiRuntime\ModelSelectionStatusData;
+use App\Data\Reception\ModelCandidateData;
+use App\Data\Reception\ModelInvocationData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioData;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;

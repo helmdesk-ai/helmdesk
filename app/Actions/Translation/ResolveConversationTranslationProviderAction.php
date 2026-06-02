@@ -2,7 +2,7 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\TranslationProvider;

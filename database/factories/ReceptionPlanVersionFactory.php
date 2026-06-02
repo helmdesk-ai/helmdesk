@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Enums\ReceptionPlanVersionStatus;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
