@@ -4,10 +4,10 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\TranslateConversationMessageAction;
 use App\Data\Inbox\FormPreviewInboxReplyTranslationData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Conversation\ConversationReplyPermission;
 use App\Services\Translation\Exceptions\TranslationException;
 use App\Support\LocalePreference;
@@ -37,7 +37,7 @@ class PreviewInboxReplyTranslationAction
      *
      * @return array{visitor_content: ?string, visitor_locale: ?string, source_locale: ?string}
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, string $content): array
+    public function handle(SystemContext $systemContext, User $user, string $conversationId, string $content): array
     {
         $conversation = Conversation::query()
             ->with(['channel'])
@@ -87,10 +87,10 @@ class PreviewInboxReplyTranslationAction
      */
     public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
         $data = FormPreviewInboxReplyTranslationData::from($request);
 
-        return response()->json($this->handle($ctx->workspace(), $user, $conversationId, $data->content));
+        return response()->json($this->handle($ctx->systemContext(), $user, $conversationId, $data->content));
     }
 }

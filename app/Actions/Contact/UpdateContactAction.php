@@ -3,12 +3,12 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormUpdateContactData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ContactType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,7 +21,7 @@ class UpdateContactAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, FormUpdateContactData $data, ?User $actor = null): Contact
+    public function handle(SystemContext $systemContext, string $contactId, FormUpdateContactData $data, ?User $actor = null): Contact
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
@@ -98,11 +98,11 @@ class UpdateContactAction
 
     public function asController(Request $request, string $id): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $data = FormUpdateContactData::from($request);
 
-        $this->handle($workspace, $id, $data, $request->user());
+        $this->handle($systemContext, $id, $data, $request->user());
 
         return back();
     }

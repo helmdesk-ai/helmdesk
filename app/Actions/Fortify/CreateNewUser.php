@@ -2,8 +2,8 @@
 
 namespace App\Actions\Fortify;
 
+use App\Enums\SystemRole;
 use App\Enums\UserOnlineStatus;
-use App\Enums\WorkspaceRole;
 use App\Models\User;
 use App\Support\LocalePreference;
 use Illuminate\Support\Facades\Validator;
@@ -47,7 +47,7 @@ class CreateNewUser implements CreatesNewUsers
                 $input['locale'] ?? LocalePreference::frontendFromLaravel(app()->getLocale())
             ),
             'timezone' => $input['timezone'] ?? null,
-            'role' => WorkspaceRole::Owner->value,
+            'role' => SystemRole::Owner->value,
             'online_status' => UserOnlineStatus::Online->value,
             'last_active_at' => now(),
             'is_super_admin' => true,

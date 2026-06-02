@@ -8,8 +8,8 @@ import contact from './zh-CN/contact';
 import conversation from './zh-CN/conversation';
 import settings from './zh-CN/settings';
 import systemSettings from './zh-CN/system-settings';
-import workspaceManagement from './zh-CN/workspace-management';
-import workspaceSettings from './zh-CN/workspace-settings';
+import systemManagement from './zh-CN/system-management';
+import systemAdmin from './zh-CN/system-admin';
 
 export default {
   ...common,
@@ -17,8 +17,8 @@ export default {
   ...auth,
   ...app,
   ...systemSettings,
-  ...workspaceManagement,
-  ...workspaceSettings,
+  ...systemManagement,
+  ...systemAdmin,
   ...contact,
   ...conversation,
 } as const;

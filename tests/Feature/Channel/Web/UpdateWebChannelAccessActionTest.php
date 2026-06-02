@@ -5,13 +5,13 @@ use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelAccessData;
 use App\Enums\Channel\Web\WebChannelWidgetEntryPosition;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->workspace = Workspace::factory()->create();
+    $this->systemContext = SystemContext::factory()->create();
     $this->channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'existing-secret-1234567890abcdef',

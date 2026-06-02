@@ -6,12 +6,12 @@ use App\Services\Translation\Exceptions\TranslationProviderException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->createUserWithWorkspace();
+    $this->createUserWithSystem();
     $this->provider = TranslationProvider::factory()->create([
         'slug' => 'google-tr-test',
         'credentials' => ['api_key' => 'fake-key'],

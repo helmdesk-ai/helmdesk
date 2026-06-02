@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * AI模型数据。
- * 由后端组装后传给 resources/js/pages/workspaceSettings/aiProviders/Index.vue，
+ * 由后端组装后传给 resources/js/pages/systemSettings/aiProviders/Index.vue，
  * 用于页面展示供应商下的模型标识、类型和启用状态。
  */
 class AiModelData extends Data

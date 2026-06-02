@@ -10,12 +10,12 @@ use App\Services\Translation\Drivers\GoogleTranslateDriver;
 use App\Services\Translation\Drivers\TencentCloudTranslateDriver;
 use App\Services\Translation\TranslatorManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->createUserWithWorkspace();
+    $this->createUserWithSystem();
 });
 
 it('google-translate 协议返回 GoogleTranslateDriver', function () {

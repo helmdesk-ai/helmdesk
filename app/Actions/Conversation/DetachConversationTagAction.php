@@ -2,10 +2,10 @@
 
 namespace App\Actions\Conversation;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +22,7 @@ class DetachConversationTagAction
     /**
      * 给会话上的有效标签写入 removed_at 抑制墓碑，等价于人工移除。
      */
-    public function handle(Workspace $workspace, string $conversationId, string $tagId, ?User $actor = null): void
+    public function handle(SystemContext $systemContext, string $conversationId, string $tagId, ?User $actor = null): void
     {
         $conversation = Conversation::query()
             ->findOrFail($conversationId);
@@ -43,8 +43,8 @@ class DetachConversationTagAction
      */
     public function asController(Request $request, string $conversation, string $tagId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $this->handle($ctx->workspace(), $conversation, $tagId, $request->user());
+        $ctx = SystemUserContextData::fromRequest($request);
+        $this->handle($ctx->systemContext(), $conversation, $tagId, $request->user());
 
         return response()->json(['success' => true]);
     }

@@ -2,13 +2,13 @@
 
 namespace App\Actions\Tag;
 
+use App\Data\SystemUserContextData;
 use App\Data\Tag\FormUpdateTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +24,7 @@ class UpdateTagAction
     /**
      * 更新标签字段并在同维度组之间移动；改名后刷新关联联系人搜索索引。
      */
-    public function handle(Workspace $workspace, string $id, FormUpdateTagData $data, ?User $actor = null): Tag
+    public function handle(SystemContext $systemContext, string $id, FormUpdateTagData $data, ?User $actor = null): Tag
     {
         $tag = Tag::query()
             ->with('tagGroup')
@@ -91,10 +91,10 @@ class UpdateTagAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $currentWorkspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $currentSystem = $ctx->systemContext();
         $data = FormUpdateTagData::from($request);
-        $this->handle($currentWorkspace, $id, $data, $request->user());
+        $this->handle($currentSystem, $id, $data, $request->user());
 
         return back();
     }

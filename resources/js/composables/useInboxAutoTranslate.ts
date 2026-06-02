@@ -5,7 +5,7 @@
  * 发起批量翻译请求，并在消息获得翻译后停止 pending 状态。
  */
 import { localeMatches } from '@/lib/locale';
-import inboxActions from '@/routes/workspace/inbox';
+import inboxActions from '@/routes/admin/inbox';
 import type {
   ContactStitchedTimelineData,
   ContactTimelineEntryData,

@@ -9,8 +9,8 @@ use Spatie\LaravelData\Data;
 /**
  * 创建翻译供应商表单数据。
  *
- * 来自 resources/js/pages/workspaceSettings/translationProviders/Index.vue 的「添加供应商」表单提交，
- * 后端用它在当前工作区下创建一条 translation_providers 记录（凭据留空，等用户后续填）。
+ * 来自 resources/js/pages/systemSettings/translationProviders/Index.vue 的「添加供应商」表单提交，
+ * 后端用它在当前系统下创建一条 translation_providers 记录（凭据留空，等用户后续填）。
  */
 class FormCreateTranslationProviderData extends Data
 {

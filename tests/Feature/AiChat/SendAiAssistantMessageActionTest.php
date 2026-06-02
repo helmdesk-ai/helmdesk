@@ -6,8 +6,8 @@ use App\Models\AiProvider;
 use App\Models\KnowledgeBase;
 use App\Models\McpServer;
 use App\Models\McpTool;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 uses(RefreshDatabase::class);
 
-function createAiChatTestProvider(Workspace $workspace, array $attributes = []): AiProvider
+function createAiChatTestProvider(SystemContext $systemContext, array $attributes = []): AiProvider
 {
     return AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -43,8 +43,8 @@ function createAiChatTestModel(AiProvider $provider, array $attributes = []): Ai
 }
 
 test('它携带最近二十条历史消息到Go运行时', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     config([
@@ -67,7 +67,7 @@ test('它携带最近二十条历史消息到Go运行时', function () {
         ->all();
     $prompt = str_repeat('p', 9000);
 
-    app(SendAiAssistantMessageAction::class)->handle($workspace, $prompt, $history, $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, $prompt, $history, $model->id);
 
     Http::assertSent(function ($request) use ($history, $prompt): bool {
         $messages = $request['messages'];
@@ -83,14 +83,14 @@ test('它携带最近二十条历史消息到Go运行时', function () {
     });
 });
 
-test('它拒绝过大的聊天历史来自工作区路由', function () {
+test('它拒绝过大的聊天历史来自系统路由', function () {
     $user = User::factory()->create(['is_super_admin' => true]);
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     $this->actingAs($user, 'admin')
-        ->postJson(route('workspace.ai-chat.messages.store'), [
+        ->postJson(route('admin.ai-chat.messages.store'), [
             'prompt' => 'hello',
             'model_id' => $model->id,
             'history' => collect(range(1, 21))
@@ -102,21 +102,21 @@ test('它拒绝过大的聊天历史来自工作区路由', function () {
 });
 
 test('它拒绝空提示词在触及桥接前', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     Http::fake();
 
-    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($workspace, "   \n\t", [], $model->id))
+    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, "   \n\t", [], $model->id))
         ->toThrow(ValidationException::class);
 
     Http::assertNothingSent();
 });
 
 test('它转发用户提示词到Go运行时', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     config([
@@ -133,14 +133,14 @@ test('它转发用户提示词到Go运行时', function () {
 
     $prompt = str_repeat('a', 9000);
 
-    app(SendAiAssistantMessageAction::class)->handle($workspace, $prompt, [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, $prompt, [], $model->id);
 
     Http::assertSent(fn ($request): bool => ($request['messages'][0]['content'] ?? null) === $prompt);
 });
 
 test('它暴露已净化错误和返回422当桥接失败时', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     config([
@@ -157,7 +157,7 @@ test('它暴露已净化错误和返回422当桥接失败时', function () {
     ]);
 
     try {
-        app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello', [], $model->id);
+        app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
         expect(true)->toBeFalse('Expected UnprocessableEntityHttpException');
     } catch (UnprocessableEntityHttpException $exception) {
         expect($exception->getMessage())
@@ -166,10 +166,10 @@ test('它暴露已净化错误和返回422当桥接失败时', function () {
     }
 });
 
-test('工作区路由是限流到合理数字的请求每分钟', function () {
+test('系统路由是限流到合理数字的请求每分钟', function () {
     $user = User::factory()->create(['is_super_admin' => true]);
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     config([
@@ -187,14 +187,14 @@ test('工作区路由是限流到合理数字的请求每分钟', function () {
     // 30 是当前 throttle:30,1 的阈值；第 31 次必须被 RateLimiter 截下来。
     for ($i = 0; $i < 30; $i++) {
         $this->actingAs($user, 'admin')
-            ->postJson(route('workspace.ai-chat.messages.store'), [
+            ->postJson(route('admin.ai-chat.messages.store'), [
                 'prompt' => 'hi',
                 'model_id' => $model->id,
             ]);
     }
 
     $this->actingAs($user, 'admin')
-        ->postJson(route('workspace.ai-chat.messages.store'), [
+        ->postJson(route('admin.ai-chat.messages.store'), [
             'prompt' => 'hi',
             'model_id' => $model->id,
         ])
@@ -202,40 +202,40 @@ test('工作区路由是限流到合理数字的请求每分钟', function () {
 });
 
 test('它拒绝聊天请求且没有已选择的模型', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     createAiChatTestModel($provider);
 
     Http::fake();
 
-    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello'))
+    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello'))
         ->toThrow(ValidationException::class);
 
     Http::assertNothingSent();
 });
 
 test('它拒绝不可用已选择模型', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider, ['is_active' => false]);
 
     Http::fake();
 
-    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello', [], $model->id))
+    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id))
         ->toThrow(ValidationException::class);
 
     Http::assertNothingSent();
 });
 
 test('它拒绝无效历史角色在触及桥接前', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     Http::fake();
 
     expect(fn () => app(SendAiAssistantMessageAction::class)->handle(
-        $workspace,
+        $systemContext,
         'hello',
         [['role' => 'bot', 'content' => 'legacy alias']],
         $model->id,
@@ -245,8 +245,8 @@ test('它拒绝无效历史角色在触及桥接前', function () {
 });
 
 test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     // 期望被推送的服务：is_active = true 且至少有 1 个 is_enabled 工具。
@@ -255,7 +255,7 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
         ->create([
             'is_active' => true,
             'endpoint_url' => 'https://mcp.example.com/active',
-            'headers' => ['X-Tenant' => 'wsx'],
+            'headers' => ['X-Context' => 'wsx'],
             'timeout_seconds' => 45,
             'sort_order' => 1,
         ]);
@@ -293,7 +293,7 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
 
     Http::assertSent(function ($request) use ($activeServer): bool {
         $mcpServers = $request['mcp_servers'] ?? null;
@@ -309,7 +309,7 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
             && ($server['transport'] ?? null) === 'streamable_http'
             && ($server['timeout_seconds'] ?? null) === 45
             && ($server['credentials']['auth_header_value'] ?? null) === 'Bearer mcp-token'
-            && ($server['headers']['X-Tenant'] ?? null) === 'wsx'
+            && ($server['headers']['X-Context'] ?? null) === 'wsx'
             && is_array($server['tool_names'] ?? null)
             && count($server['tool_names']) === 2
             && in_array('search_orders', $server['tool_names'], true)
@@ -317,9 +317,9 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
     });
 });
 
-test('它在工作区没有可用 MCP 工具时下发空数组到 Go 桥接', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+test('它在系统没有可用 MCP 工具时下发空数组到 Go 桥接', function () {
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     config([
@@ -334,14 +334,14 @@ test('它在工作区没有可用 MCP 工具时下发空数组到 Go 桥接', fu
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
 
     Http::assertSent(fn ($request): bool => ($request['mcp_servers'] ?? null) === []);
 });
 
 test('它把知识库列表下发给 Go 桥接', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     $kb = KnowledgeBase::factory()->create([
@@ -361,7 +361,7 @@ test('它把知识库列表下发给 Go 桥接', function () {
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
 
     Http::assertSent(function ($request) use ($kb): bool {
         $bases = $request['knowledge_bases'] ?? null;
@@ -376,8 +376,8 @@ test('它把知识库列表下发给 Go 桥接', function () {
 });
 
 test('它把 MCP 空凭据和空请求头序列化为 JSON 对象', function () {
-    $workspace = Workspace::factory()->create();
-    $provider = createAiChatTestProvider($workspace);
+    $systemContext = SystemContext::factory()->create();
+    $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
     $server = McpServer::factory()->create([
@@ -400,7 +400,7 @@ test('它把 MCP 空凭据和空请求头序列化为 JSON 对象', function () 
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($workspace, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
 
     Http::assertSent(function ($request): bool {
         $payload = json_decode($request->body());

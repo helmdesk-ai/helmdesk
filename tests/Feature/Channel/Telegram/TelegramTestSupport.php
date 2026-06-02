@@ -4,16 +4,16 @@ use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Support\Str;
 
 // Telegram 渠道测试共享夹具：被 telegram 各测试文件 require_once 引入，函数存在性保护避免重复声明。
 
 if (! function_exists('createTelegramTestModel')) {
     /**
-     * 创建一个工作区内可用的 LLM 模型，供接待方案版本部署。
+     * 创建一个系统内可用的 LLM 模型，供接待方案版本部署。
      */
-    function createTelegramTestModel(Workspace $workspace): AiModel
+    function createTelegramTestModel(SystemContext $systemContext): AiModel
     {
         $provider = AiProvider::query()->create([
             'brand' => 'custom-openai',
@@ -42,9 +42,9 @@ if (! function_exists('createTelegramDeployablePlanVersion')) {
     /**
      * 创建一个可部署到渠道的接待方案版本。
      */
-    function createTelegramDeployablePlanVersion(Workspace $workspace, bool $withoutAutoMessages = false): ReceptionPlanVersion
+    function createTelegramDeployablePlanVersion(SystemContext $systemContext, bool $withoutAutoMessages = false): ReceptionPlanVersion
     {
-        $model = createTelegramTestModel($workspace);
+        $model = createTelegramTestModel($systemContext);
         $plan = ReceptionPlan::factory()->create([
             'name' => 'TG 接待方案-'.Str::lower(Str::random(6)),
         ]);

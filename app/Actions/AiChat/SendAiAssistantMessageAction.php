@@ -2,10 +2,10 @@
 
 namespace App\Actions\AiChat;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AiProviderProtocol;
 use App\Models\AiModel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\GoBridge\Exceptions\GoBridgeException;
 use App\Services\GoBridge\GoBridgeClient;
@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
- * 把工作区浮动框里输入的一条消息转发给 Go 侧流式处理器。
+ * 把系统浮动框里输入的一条消息转发给 Go 侧流式处理器。
  */
 class SendAiAssistantMessageAction
 {
@@ -43,7 +43,7 @@ class SendAiAssistantMessageAction
      * @param  array<int, array{role: string, content: string}>  $history
      * @return array{topic: string, model: array{provider: string, name: string, model_id: string}}
      */
-    public function handle(Workspace $workspace, string $prompt, array $history = [], ?string $modelId = null): array
+    public function handle(SystemContext $systemContext, string $prompt, array $history = [], ?string $modelId = null): array
     {
         $trimmed = trim($prompt);
         if ($trimmed === '') {
@@ -58,7 +58,7 @@ class SendAiAssistantMessageAction
             ]);
         }
 
-        $model = $this->resolveActiveModel($workspace, trim($modelId));
+        $model = $this->resolveActiveModel($systemContext, trim($modelId));
         $provider = $model->provider;
 
         $protocol = $provider->protocol instanceof AiProviderProtocol
@@ -68,7 +68,7 @@ class SendAiAssistantMessageAction
         // 前端已做 history 校验，这里只做归一化。
         $messages = $this->buildMessagePayload($history, $trimmed);
 
-        $topic = $this->makeTopic($workspace);
+        $topic = $this->makeTopic($systemContext);
 
         $payload = [
             'topic' => $topic,
@@ -87,8 +87,8 @@ class SendAiAssistantMessageAction
                 'is_active' => (bool) $model->is_active,
             ],
             'messages' => $messages,
-            'mcp_servers' => $this->collectMcpServers->handle($workspace),
-            'knowledge_bases' => $this->collectKnowledgeBases->handle($workspace),
+            'mcp_servers' => $this->collectMcpServers->handle($systemContext),
+            'knowledge_bases' => $this->collectKnowledgeBases->handle($systemContext),
         ];
 
         try {
@@ -129,7 +129,7 @@ class SendAiAssistantMessageAction
      */
     public function asController(Request $request): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
 
         $validated = $request->validate([
             'prompt' => ['required', 'string'],
@@ -148,7 +148,7 @@ class SendAiAssistantMessageAction
         ));
 
         $payload = $this->handle(
-            $workspace,
+            $systemContext,
             (string) $validated['prompt'],
             $history,
             (string) $validated['model_id'],
@@ -158,11 +158,11 @@ class SendAiAssistantMessageAction
     }
 
     /**
-     * 选出当前工作区应当使用的有效 LLM 模型。
+     * 选出当前系统应当使用的有效 LLM 模型。
      */
-    private function resolveActiveModel(Workspace $workspace, string $modelId): AiModel
+    private function resolveActiveModel(SystemContext $systemContext, string $modelId): AiModel
     {
-        if (! $this->modelResolver->isValidActiveLlmModel($workspace, $modelId)) {
+        if (! $this->modelResolver->isValidActiveLlmModel($systemContext, $modelId)) {
             throw ValidationException::withMessages([
                 'model_id' => __('ai.chat.selected_model_unavailable'),
             ]);
@@ -245,9 +245,9 @@ class SendAiAssistantMessageAction
     /**
      * 为当前对话生成不可预测的 Mercure topic。
      */
-    private function makeTopic(Workspace $workspace): string
+    private function makeTopic(SystemContext $systemContext): string
     {
-        return sprintf('urn:helmdesk:ai-chat:%s:%s', $workspace->id, (string) Str::ulid());
+        return sprintf('urn:helmdesk:ai-chat:%s:%s', $systemContext->id, (string) Str::ulid());
     }
 
     /**

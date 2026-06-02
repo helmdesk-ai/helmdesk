@@ -16,14 +16,14 @@ use App\Services\Telegram\TelegramHtmlConverter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
 require_once __DIR__.'/TelegramTestSupport.php';
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     Http::fake([
         '*/getUserProfilePhotos' => Http::response(['ok' => true, 'result' => ['photos' => []]]),
     ]);
@@ -34,8 +34,8 @@ beforeEach(function () {
  */
 function seedTelegramConversation(): array
 {
-    $workspace = test()->workspace;
-    $version = createTelegramDeployablePlanVersion($workspace, withoutAutoMessages: true);
+    $systemContext = test()->systemContext;
+    $version = createTelegramDeployablePlanVersion($systemContext, withoutAutoMessages: true);
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
     ]);

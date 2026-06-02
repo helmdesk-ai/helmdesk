@@ -33,7 +33,7 @@ import {
 import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ListTagGroupItemData,
   ListTagItemData,
@@ -170,7 +170,7 @@ const openCreateGroup = () => {
 };
 
 const submitCreateGroup = () => {
-  createGroupForm.post(workspace.manage.tags.groups.store.url(), {
+  createGroupForm.post(admin.manage.tags.groups.store.url(), {
     preserveScroll: true,
     onSuccess: () => {
       createGroupOpen.value = false;
@@ -191,7 +191,7 @@ const submitEditGroup = () => {
     return;
   }
   editGroupForm.put(
-    workspace.manage.tags.groups.update.url({
+    admin.manage.tags.groups.update.url({
       id: editingGroup.value.id,
     }),
     {
@@ -209,7 +209,7 @@ const submitDeleteGroup = () => {
     return;
   }
   deleteGroupForm.delete(
-    workspace.manage.tags.groups.destroy.url({
+    admin.manage.tags.groups.destroy.url({
       id: deletingGroup.value.id,
     }),
     {
@@ -231,7 +231,7 @@ const openCreateTag = (group: ListTagGroupItemData) => {
 };
 
 const submitCreateTag = () => {
-  createTagForm.post(workspace.manage.tags.store.url(), {
+  createTagForm.post(admin.manage.tags.store.url(), {
     preserveScroll: true,
     onSuccess: () => {
       createTagOpen.value = false;
@@ -255,7 +255,7 @@ const submitEditTag = () => {
     return;
   }
   editTagForm.put(
-    workspace.manage.tags.update.url({
+    admin.manage.tags.update.url({
       id: editingTag.value.id,
     }),
     {
@@ -273,7 +273,7 @@ const submitDeleteTag = () => {
     return;
   }
   deleteTagForm.delete(
-    workspace.manage.tags.destroy.url({
+    admin.manage.tags.destroy.url({
       id: deletingTag.value.id,
     }),
     {
@@ -286,7 +286,7 @@ const submitDeleteTag = () => {
 };
 
 const submitMerge = () => {
-  mergeForm.post(workspace.manage.tags.merge.url(), {
+  mergeForm.post(admin.manage.tags.merge.url(), {
     preserveScroll: true,
     onSuccess: () => {
       mergeOpen.value = false;
@@ -340,7 +340,7 @@ watch(mergeOpen, (open) => {
               </Button>
               <Button @click="openCreateGroup">{{ t('新建标签组') }}</Button>
               <Button variant="outline" as-child>
-                <Link :href="workspace.manage.tags.trash.url()">
+                <Link :href="admin.manage.tags.trash.url()">
                   {{ t('回收站') }}
                 </Link>
               </Button>

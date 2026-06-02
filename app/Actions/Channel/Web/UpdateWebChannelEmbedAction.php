@@ -5,7 +5,7 @@ namespace App\Actions\Channel\Web;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelEmbedData;
 use App\Data\Channel\Web\WebChannelQueryParamMappingData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\Channel\Web\WebChannelParamTarget;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelResolutionService;
@@ -57,14 +57,14 @@ class UpdateWebChannelEmbedAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 
         $this->handle($channelModel, FormUpdateWebChannelEmbedData::from($request));
 
-        return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
+        return redirect()->back(302, [], route('admin.manage.channels.web.show', [
             'channel' => $channelModel->id,
         ]));
     }

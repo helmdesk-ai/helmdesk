@@ -22,9 +22,9 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->withoutVite();
@@ -35,7 +35,7 @@ beforeEach(function () {
         IndexRaptorKnowledgeDocumentJob::class,
     ]);
 
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     $this->kb = KnowledgeBase::factory()->create([
         'name' => '产品知识库',
     ]);
@@ -50,7 +50,7 @@ test('所有者可以将 .md 文件上传到知识库默认分组下', function 
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         )
@@ -87,7 +87,7 @@ test('axios JSON 上传返回创建的文档列表数据', function () {
 
     $response = $this->actingAs($this->user)
         ->postJson(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         );
@@ -107,7 +107,7 @@ test('单次提交可以批量上传多个不同格式的文档', function () {
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$first, $second, $third]]
         )
@@ -128,10 +128,10 @@ test('问答知识库不能上传普通文档', function () {
     $file = UploadedFile::fake()->createWithContent('intro.md', '# 简介');
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->withHeader('X-Inertia', 'true')
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $qaKnowledgeBase->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $qaKnowledgeBase->id,
             ]),
             ['files' => [$file]]
         )
@@ -147,7 +147,7 @@ test('二进制格式的文档保留原文件但不直接抽取正文', function
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         )
@@ -170,7 +170,7 @@ test('可以以内联方式读取知识库文档原文件', function () {
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         )
@@ -180,7 +180,7 @@ test('可以以内联方式读取知识库文档原文件', function () {
 
     $response = $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.documents.preview-file', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.preview-file', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         );
@@ -198,18 +198,18 @@ test('单租户下管理员可以读取任意知识库文档原文件', function
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         )
         ->assertRedirect();
 
     $document = KnowledgeDocument::query()->firstOrFail();
-    $outsider = $this->createUserWithWorkspace();
+    $outsider = $this->createUserWithSystem();
 
     $this->actingAs($outsider)
         ->get(
-            route('workspace.manage.knowledge-bases.documents.preview-file', [
+            route('admin.manage.knowledge-bases.documents.preview-file', [
                 'knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
@@ -223,9 +223,9 @@ test('批量上传中包含不支持扩展名的文件时校验失败', function
     $invalid = UploadedFile::fake()->create('bad.exe', 4);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$valid, $invalid]]
         )
@@ -247,7 +247,7 @@ test('指定属于当前知识库的分组时文档归到该分组', function ()
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file], 'group_id' => $group->id]
         )
@@ -269,9 +269,9 @@ test('不属于当前知识库的分组返回校验错误', function () {
     $file = UploadedFile::fake()->createWithContent('intro.md', '# 简介');
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file], 'group_id' => $foreignGroup->id]
         )
@@ -284,9 +284,9 @@ test('不在允许列表中的扩展名会被拒绝', function () {
     $file = UploadedFile::fake()->createWithContent('not-supported.exe', 'hello');
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         )
@@ -297,9 +297,9 @@ test('不在允许列表中的扩展名会被拒绝', function () {
 
 test('未提供文件时返回字段级校验错误', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             []
         )
@@ -307,13 +307,13 @@ test('未提供文件时返回字段级校验错误', function () {
 });
 
 test('单租户下管理员可以上传到任意知识库', function () {
-    $outsider = $this->createUserWithWorkspace();
+    $outsider = $this->createUserWithSystem();
 
     $file = UploadedFile::fake()->createWithContent('intro.md', '# Hi');
 
     $this->actingAs($outsider)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', [
+            route('admin.manage.knowledge-bases.documents.store', [
                 'knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
@@ -331,7 +331,7 @@ test('删除文档将其从数据库移除', function () {
 
     $this->actingAs($this->user)
         ->delete(
-            route('workspace.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         )
@@ -347,7 +347,7 @@ test('删除上传文档会同步删除原文件附件', function () {
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['files' => [$file]]
         )
@@ -358,7 +358,7 @@ test('删除上传文档会同步删除原文件附件', function () {
 
     $this->actingAs($this->user)
         ->delete(
-            route('workspace.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         )
@@ -406,7 +406,7 @@ test('删除文档会一并清空 sqlite_rag 中的节点 / 全文 / 大纲', fu
 
     $this->actingAs($this->user)
         ->delete(
-            route('workspace.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         )
@@ -420,7 +420,7 @@ test('删除文档会一并清空 sqlite_rag 中的节点 / 全文 / 大纲', fu
 });
 
 test('单租户下管理员可以删除任意知识库文档', function () {
-    $outsider = $this->createUserWithWorkspace();
+    $outsider = $this->createUserWithSystem();
 
     /** @var KnowledgeDocument $document */
     $document = KnowledgeDocument::factory()->create([
@@ -429,7 +429,7 @@ test('单租户下管理员可以删除任意知识库文档', function () {
 
     $this->actingAs($outsider)
         ->delete(
-            route('workspace.manage.knowledge-bases.documents.destroy', [
+            route('admin.manage.knowledge-bases.documents.destroy', [
                 'knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
@@ -460,7 +460,7 @@ test('当选中知识库 + 分组时，文档列表只返回该范围下的文�
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
                 'group' => $group->id,
             ])
         )
@@ -513,7 +513,7 @@ test('当选中父分组时，文档列表包含其子分组文档', function ()
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
                 'group' => $parentGroup->id,
             ])
         )
@@ -547,7 +547,7 @@ test('当只选中知识库时，文档列表返回全部分组下的文档', fu
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
             ])
         )
         ->assertInertia(fn ($page) => $page
@@ -572,7 +572,7 @@ test('可以按文档状态筛选知识库文档列表', function () {
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
                 'status' => KnowledgeDocumentStatus::Failed->value,
             ])
         )
@@ -598,7 +598,7 @@ test('可以按文件名搜索知识库文档列表', function () {
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
                 'search' => 'refund',
             ])
         )
@@ -621,7 +621,7 @@ test('文档列表按每页 10 条分页，并返回分页元信息', function (
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
             ])
         )
         ->assertInertia(fn ($page) => $page
@@ -636,7 +636,7 @@ test('文档列表按每页 10 条分页，并返回分页元信息', function (
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
                 'page' => 3,
             ])
         )
@@ -658,7 +658,7 @@ test('未选中知识库时分页元信息为空集合', function () {
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', [])
+            route('admin.manage.knowledge-bases.index', [])
         )
         ->assertInertia(fn ($page) => $page
             ->component('knowledgeBase/List')
@@ -684,7 +684,7 @@ test('所有者可以将文档移动到另一个分组', function () {
 
     $this->actingAs($this->user)
         ->put(
-            route('workspace.manage.knowledge-bases.documents.move', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.move', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ]),
             ['group_id' => $targetGroup->id]
@@ -703,9 +703,9 @@ test('移动文档时不能使用其它知识库的分组', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->put(
-            route('workspace.manage.knowledge-bases.documents.move', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.move', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ]),
             ['group_id' => $foreignGroup->id]
@@ -718,7 +718,7 @@ test('所有者可以在知识库下手动添加 Markdown 文档', function () {
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
             ]),
             [
                 'title' => '退款政策',
@@ -752,7 +752,7 @@ test('手动添加文档可以指定分组', function () {
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
             ]),
             [
                 'title' => '安装指南',
@@ -772,10 +772,10 @@ test('问答知识库不能手动添加普通文档', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->withHeader('X-Inertia', 'true')
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $qaKnowledgeBase->id,
+            route('admin.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $qaKnowledgeBase->id,
             ]),
             ['title' => '普通文档', 'content' => '内容']
         )
@@ -786,9 +786,9 @@ test('问答知识库不能手动添加普通文档', function () {
 
 test('手动添加文档校验标题和正文必填', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
             ]),
             []
         )
@@ -803,9 +803,9 @@ test('手动添加文档时不属于当前知识库的分组返回校验错误',
     $foreignGroup = $otherKb->defaultDocumentGroup()->firstOrFail();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
             ]),
             [
                 'title' => '简介',
@@ -819,11 +819,11 @@ test('手动添加文档时不属于当前知识库的分组返回校验错误',
 });
 
 test('单租户下管理员可以在任意知识库手动添加内容', function () {
-    $outsider = $this->createUserWithWorkspace();
+    $outsider = $this->createUserWithSystem();
 
     $this->actingAs($outsider)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', [
+            route('admin.manage.knowledge-bases.documents.manual.store', [
                 'knowledgeBase' => $this->kb->id,
             ]),
             ['title' => 'Hi', 'content' => 'Body']
@@ -838,7 +838,7 @@ test('可以预览手动添加的文档（流式返回 Markdown 正文）', func
 
     $this->actingAs($this->user)
         ->post(
-            route('workspace.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.store', ['knowledgeBase' => $this->kb->id,
             ]),
             ['title' => '手册', 'content' => $content]
         )
@@ -848,7 +848,7 @@ test('可以预览手动添加的文档（流式返回 Markdown 正文）', func
 
     $response = $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.documents.preview-file', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.preview-file', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         );
@@ -875,7 +875,7 @@ test('手动文档预览按 Markdown 正文返回', function () {
 
     $response = $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.documents.preview-file', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.preview-file', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         );
@@ -901,7 +901,7 @@ test('编辑手动添加的文档会更新标题、正文、字节数和校验�
 
     $this->actingAs($this->user)
         ->put(
-            route('workspace.manage.knowledge-bases.documents.manual.update', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.update', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ]),
             ['title' => '新标题', 'content' => $newContent]
@@ -937,9 +937,9 @@ test('编辑手动文档时校验标题和正文必填', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.knowledge-bases.index'))
+        ->from(route('admin.manage.knowledge-bases.index'))
         ->put(
-            route('workspace.manage.knowledge-bases.documents.manual.update', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.manual.update', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ]),
             []
@@ -948,7 +948,7 @@ test('编辑手动文档时校验标题和正文必填', function () {
 });
 
 test('单租户下管理员可以编辑任意知识库手动文档', function () {
-    $outsider = $this->createUserWithWorkspace();
+    $outsider = $this->createUserWithSystem();
 
     /** @var KnowledgeDocument $document */
     $document = KnowledgeDocument::factory()->create([
@@ -958,7 +958,7 @@ test('单租户下管理员可以编辑任意知识库手动文档', function ()
 
     $this->actingAs($outsider)
         ->put(
-            route('workspace.manage.knowledge-bases.documents.manual.update', [
+            route('admin.manage.knowledge-bases.documents.manual.update', [
                 'knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ]),
@@ -985,7 +985,7 @@ test('文档列表项会带上 source_type 标识', function () {
 
     $this->actingAs($this->user)
         ->get(
-            route('workspace.manage.knowledge-bases.index', ['kb' => $this->kb->id,
+            route('admin.manage.knowledge-bases.index', ['kb' => $this->kb->id,
             ])
         )
         ->assertInertia(fn ($page) => $page
@@ -1005,7 +1005,7 @@ test('删除手动添加的文档不会影响附件表', function () {
 
     $this->actingAs($this->user)
         ->delete(
-            route('workspace.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
+            route('admin.manage.knowledge-bases.documents.destroy', ['knowledgeBase' => $this->kb->id,
                 'document' => $document->id,
             ])
         )

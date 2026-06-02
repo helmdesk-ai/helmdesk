@@ -5,11 +5,11 @@ namespace App\Actions\KnowledgeBase;
 use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeRecallTestResultData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -33,9 +33,9 @@ class RunKnowledgeRecallTestAction
     /**
      * 在指定知识库范围内执行检索，并把原始命中富集成面板用结果。
      */
-    public function handle(Workspace $workspace, KnowledgeBase $knowledgeBase, FormKnowledgeSearchData $input): KnowledgeRecallTestResultData
+    public function handle(SystemContext $systemContext, KnowledgeBase $knowledgeBase, FormKnowledgeSearchData $input): KnowledgeRecallTestResultData
     {
-        $result = $this->search->handle($workspace, $input);
+        $result = $this->search->handle($systemContext, $input);
 
         return KnowledgeRecallTestResultData::fromSearchResult(
             mode: $result->mode,
@@ -105,8 +105,8 @@ class RunKnowledgeRecallTestAction
      */
     public function asController(Request $request, string $knowledgeBase): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
@@ -117,6 +117,6 @@ class RunKnowledgeRecallTestAction
             'knowledge_base_ids' => [$kb->id],
         ]);
 
-        return response()->json($this->handle($workspace, $kb, $data)->toArray());
+        return response()->json($this->handle($systemContext, $kb, $data)->toArray());
     }
 }

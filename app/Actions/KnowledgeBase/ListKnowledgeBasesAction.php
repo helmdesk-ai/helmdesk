@@ -8,9 +8,9 @@ use App\Data\KnowledgeBase\KnowledgeIndexingStrategyOptionData;
 use App\Data\KnowledgeBase\ListKnowledgeDocumentItemData;
 use App\Data\KnowledgeBase\ListKnowledgeQaEntryItemData;
 use App\Data\KnowledgeBase\ShowKnowledgeBaseListPagePropsData;
-use App\Data\KnowledgeBase\WorkspaceKnowledgeSettingsData;
+use App\Data\KnowledgeBase\SystemKnowledgeSettingsData;
 use App\Data\SimplePaginationData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AiModelType;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeChunkingStrategy;
@@ -22,7 +22,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Settings\KnowledgeSettings;
 use Illuminate\Http\Request;
@@ -59,7 +59,7 @@ class ListKnowledgeBasesAction
      * 枚举解析根据当前选中知识库的类别在 loadDocumentList / loadQaEntryList 中延迟执行，
      * 因此 handle() 入口统一使用 ?string 类型。
      */
-    public function handle(Workspace $workspace, ?string $selectedKnowledgeBaseId = null, ?string $selectedGroupId = null, ?string $search = null, ?string $status = null, int $page = 1, int $perPage = self::DOCUMENT_LIST_PER_PAGE): ShowKnowledgeBaseListPagePropsData
+    public function handle(SystemContext $systemContext, ?string $selectedKnowledgeBaseId = null, ?string $selectedGroupId = null, ?string $search = null, ?string $status = null, int $page = 1, int $perPage = self::DOCUMENT_LIST_PER_PAGE): ShowKnowledgeBaseListPagePropsData
     {
         $search = $this->normalizeSearch($search);
         $perPage = max(1, min($perPage, 100));
@@ -74,7 +74,7 @@ class ListKnowledgeBasesAction
             ->oldest('created_at')
             ->oldest('id')
             ->get();
-        $allKnowledgeBases->each->setRelation('workspace', $workspace);
+        $allKnowledgeBases->each->setRelation('systemContext', $systemContext);
         $this->settings->refresh();
 
         $knowledgeBaseListData = $allKnowledgeBases
@@ -112,10 +112,10 @@ class ListKnowledgeBasesAction
             document_list_pagination: $documentPagination,
             qa_entry_list: $qaEntryList,
             qa_entry_list_pagination: $qaEntryPagination,
-            workspace_knowledge_settings: WorkspaceKnowledgeSettingsData::fromSettings($this->settings),
-            embedding_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Embedding),
-            rerank_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Rerank),
-            summary_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Llm),
+            system_knowledge_settings: SystemKnowledgeSettingsData::fromSettings($this->settings),
+            embedding_model_options: $this->resolver->getKnowledgeBaseModelOptions($systemContext, AiModelType::Embedding),
+            rerank_model_options: $this->resolver->getKnowledgeBaseModelOptions($systemContext, AiModelType::Rerank),
+            summary_model_options: $this->resolver->getKnowledgeBaseModelOptions($systemContext, AiModelType::Llm),
             indexing_strategy_options: KnowledgeIndexingStrategyOptionData::options(),
             document_status_options: EnumOptionData::fromCases(KnowledgeDocumentStatus::cases()),
             qa_status_options: EnumOptionData::fromCases(KnowledgeQaEntryStatus::cases()),
@@ -241,11 +241,11 @@ class ListKnowledgeBasesAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         return Inertia::render('knowledgeBase/List', $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             selectedKnowledgeBaseId: $request->query('kb'),
             selectedGroupId: $request->query('group'),
             search: $this->resolveSearch($request->query('search')),

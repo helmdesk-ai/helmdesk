@@ -2,8 +2,8 @@
 
 namespace App\Actions\AiChat;
 
-use App\Data\WorkspaceUserContextData;
-use App\Models\Workspace;
+use App\Data\SystemUserContextData;
+use App\Models\SystemContext;
 use App\Services\GoBridge\Exceptions\GoBridgeException;
 use App\Services\GoBridge\GoBridgeClient;
 use Illuminate\Http\JsonResponse;
@@ -30,10 +30,10 @@ class StopAiAssistantMessageAction
     /**
      * @return array{stopped: bool}
      */
-    public function handle(Workspace $workspace, string $topic): array
+    public function handle(SystemContext $systemContext, string $topic): array
     {
         $topic = trim($topic);
-        if ($topic === '' || ! str_starts_with($topic, $this->topicPrefix($workspace))) {
+        if ($topic === '' || ! str_starts_with($topic, $this->topicPrefix($systemContext))) {
             throw ValidationException::withMessages([
                 'topic' => __('ai.chat.invalid_topic'),
             ]);
@@ -73,20 +73,20 @@ class StopAiAssistantMessageAction
 
     public function asController(Request $request): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
 
         $validated = $request->validate([
             'topic' => ['required', 'string'],
         ]);
 
         return response()->json(
-            $this->handle($workspace, (string) $validated['topic']),
+            $this->handle($systemContext, (string) $validated['topic']),
             Response::HTTP_OK,
         );
     }
 
-    private function topicPrefix(Workspace $workspace): string
+    private function topicPrefix(SystemContext $systemContext): string
     {
-        return sprintf('urn:helmdesk:ai-chat:%s:', $workspace->id);
+        return sprintf('urn:helmdesk:ai-chat:%s:', $systemContext->id);
     }
 }

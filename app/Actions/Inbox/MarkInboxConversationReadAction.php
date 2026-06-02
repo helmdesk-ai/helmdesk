@@ -2,9 +2,9 @@
 
 namespace App\Actions\Inbox;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Conversation;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -20,7 +20,7 @@ class MarkInboxConversationReadAction
     /**
      * 当前用户是会话负责人时，将访客消息已读位置推进到当前时刻。
      */
-    public function handle(Workspace $workspace, string $userId, string $conversationId): void
+    public function handle(SystemContext $systemContext, string $userId, string $conversationId): void
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -43,10 +43,10 @@ class MarkInboxConversationReadAction
      */
     public function asController(Request $request, string $conversationId): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
 
         $this->handle(
-            workspace: $ctx->workspace(),
+            systemContext: $ctx->systemContext(),
             userId: $ctx->user_id,
             conversationId: $conversationId,
         );

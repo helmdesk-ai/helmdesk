@@ -2,17 +2,17 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除工作区翻译供应商（仅限非内置且未被接待方案引用）。
+ * 删除系统翻译供应商（仅限非内置且未被接待方案引用）。
  *
  * 内置供应商（is_builtin = true）禁止删除，因为它们由 Catalog 维护、删了会被下次设置页加载再次重建。
  * 渠道默认跟随接待方案最新版，故引用检查只看当前 reception_plans 草稿行的 translation_config.provider_id。
@@ -24,15 +24,15 @@ class DeleteTranslationProviderAction
     /**
      * 删除一条 translation_providers 记录。
      */
-    public function handle(Workspace $workspace, string $providerSlug): void
+    public function handle(SystemContext $systemContext, string $providerSlug): void
     {
-        $provider = $workspace->translationProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = $systemContext->translationProviders()->where('slug', $providerSlug)->firstOrFail();
 
         if ($provider->is_builtin) {
             throw new BusinessException(__('translation.cannot_delete_builtin'));
         }
 
-        if ($this->isReferencedByReceptionPlan($workspace, $provider->id)) {
+        if ($this->isReferencedByReceptionPlan($systemContext, $provider->id)) {
             throw new BusinessException(__('translation.cannot_delete_in_use'));
         }
 
@@ -40,9 +40,9 @@ class DeleteTranslationProviderAction
     }
 
     /**
-     * 判断该供应商是否被本工作区任意接待方案选用。
+     * 判断该供应商是否被本系统任意接待方案选用。
      */
-    private function isReferencedByReceptionPlan(Workspace $workspace, string $providerId): bool
+    private function isReferencedByReceptionPlan(SystemContext $systemContext, string $providerId): bool
     {
         return ReceptionPlan::query()
             ->where('translation_config->provider_id', $providerId)
@@ -54,10 +54,10 @@ class DeleteTranslationProviderAction
      */
     public function asController(Request $request, string $provider): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $this->handle($workspace, $provider);
+        $this->handle($systemContext, $provider);
 
         return back();
     }

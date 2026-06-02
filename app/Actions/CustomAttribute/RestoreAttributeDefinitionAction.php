@@ -2,9 +2,9 @@
 
 namespace App\Actions\CustomAttribute;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\AttributeDefinition;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,13 +16,13 @@ class RestoreAttributeDefinitionAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $definitionId): AttributeDefinition
+    public function handle(SystemContext $systemContext, string $definitionId): AttributeDefinition
     {
         $definition = AttributeDefinition::query()
             ->onlyTrashed()
             ->findOrFail($definitionId);
 
-        $maxOrder = $workspace->attributeDefinitions()
+        $maxOrder = $systemContext->attributeDefinitions()
             ->active()
             ->max('display_order') ?? -1;
 
@@ -35,9 +35,9 @@ class RestoreAttributeDefinitionAction
 
     public function asController(Request $request, string $id): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
 
-        $this->handle($workspace, $id);
+        $this->handle($systemContext, $id);
 
         return back();
     }

@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Data\User\UserNotificationPreferencesData;
+use App\Enums\SystemRole;
 use App\Enums\UserOnlineStatus;
-use App\Enums\WorkspaceRole;
 use App\Notifications\QueuedResetPassword;
 use App\Notifications\QueuedVerifyEmail;
 use App\Settings\MailSettings;
@@ -32,7 +32,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $avatar
  * @property string $locale
  * @property string|null $timezone
- * @property WorkspaceRole $role
+ * @property SystemRole $role
  * @property string|null $nickname
  * @property UserOnlineStatus $online_status
  * @property Carbon|null $last_active_at
@@ -101,7 +101,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'notification_preferences' => UserNotificationPreferencesData::class.':default',
-            'role' => WorkspaceRole::class,
+            'role' => SystemRole::class,
             'online_status' => UserOnlineStatus::class,
             'two_factor_confirmed_at' => 'datetime',
             'last_active_at' => 'datetime',
@@ -110,7 +110,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * 用户被物理删除时清理其个人快捷回复，避免私有内容因外键置空变成工作区共享。
+     * 用户被物理删除时清理其个人快捷回复，避免私有内容因外键置空变成系统共享。
      */
     protected static function booted(): void
     {

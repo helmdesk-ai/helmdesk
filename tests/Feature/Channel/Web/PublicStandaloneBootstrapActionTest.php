@@ -16,7 +16,7 @@ use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Settings\GeneralSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -26,14 +26,14 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->workspace = Workspace::factory()->create();
-    $this->planVersion = createPublicBootstrapReceptionPlanVersion($this->workspace);
+    $this->systemContext = SystemContext::factory()->create();
+    $this->planVersion = createPublicBootstrapReceptionPlanVersion($this->systemContext);
 });
 
 /**
  * 创建一个绑定 AiModel 的接待方案版本，模拟公开 bootstrap 接口期望的"渠道可用"前提。
  */
-function createPublicBootstrapReceptionPlanVersion(Workspace $workspace, array $providerAttributes = [], array $modelAttributes = []): ReceptionPlanVersion
+function createPublicBootstrapReceptionPlanVersion(SystemContext $systemContext, array $providerAttributes = [], array $modelAttributes = []): ReceptionPlanVersion
 {
     $provider = AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -69,7 +69,7 @@ function createPublicBootstrapReceptionPlanVersion(Workspace $workspace, array $
 /**
  * 创建公开启动测试用的网站渠道入口图标附件。
  */
-function createPublicBootstrapChannelIcon(Workspace $workspace, array $attributes = []): Attachment
+function createPublicBootstrapChannelIcon(SystemContext $systemContext, array $attributes = []): Attachment
 {
     return Attachment::factory()->create(array_merge([
         'disk' => 'local',
@@ -169,7 +169,7 @@ test('软删除的渠道 widget bootstrap 跳过 embed host 校验和落库', fu
 
 test('公开启动在接待方案模型失效时仍返回基础启动数据以便降级人工待接', function () {
     $invalidVersion = createPublicBootstrapReceptionPlanVersion(
-        $this->workspace,
+        $this->systemContext,
         modelAttributes: ['is_active' => false],
     );
 
@@ -288,8 +288,8 @@ test('公开启动使用共享访客界面并保留入口样式', function () {
 });
 
 test('公开组件启动会下发自定义入口图标地址', function () {
-    $defaultIcon = createPublicBootstrapChannelIcon($this->workspace);
-    $activeIcon = createPublicBootstrapChannelIcon($this->workspace);
+    $defaultIcon = createPublicBootstrapChannelIcon($this->systemContext);
+    $activeIcon = createPublicBootstrapChannelIcon($this->systemContext);
     $channel = Channel::factory()->create([
         'reception_plan_id' => $this->planVersion->reception_plan_id,
         'reception_plan_version_id' => $this->planVersion->id,

@@ -5,10 +5,10 @@ namespace App\Actions\CustomAttribute;
 use App\Data\CustomAttribute\ListAttributeDefinitionItemData;
 use App\Data\CustomAttribute\ShowListAttributeDefinitionPagePropsData;
 use App\Data\EnumOptionData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Models\AttributeDefinition;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,9 +21,9 @@ class ShowAttributeDefinitionListAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace): ShowListAttributeDefinitionPagePropsData
+    public function handle(SystemContext $systemContext): ShowListAttributeDefinitionPagePropsData
     {
-        $definitions = $workspace->attributeDefinitions()
+        $definitions = $systemContext->attributeDefinitions()
             ->withCount('contactAttributeValues')
             ->ordered()
             ->get();
@@ -38,9 +38,9 @@ class ShowAttributeDefinitionListAction
 
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        $props = $this->handle($workspace);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $props = $this->handle($systemContext);
 
-        return Inertia::render('workspaceSettings/datas/Attribute', $props->toArray());
+        return Inertia::render('systemSettings/datas/Attribute', $props->toArray());
     }
 }

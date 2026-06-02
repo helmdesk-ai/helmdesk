@@ -7,14 +7,14 @@ use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 展示当前工作区仪表板页面。
+ * 展示当前系统仪表板页面。
  */
 class ShowDashboardPageAction
 {
     use AsAction;
 
     /**
-     * 返回当前工作区仪表板页面组件名。
+     * 返回当前系统仪表板页面组件名。
      */
     public function handle(): string
     {
@@ -22,7 +22,7 @@ class ShowDashboardPageAction
     }
 
     /**
-     * 渲染当前工作区仪表板页面。
+     * 渲染当前系统仪表板页面。
      */
     public function asController(): Response
     {

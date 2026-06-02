@@ -5,13 +5,13 @@ namespace App\Actions\Reception\Plan;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\ChannelActivePlanVersionResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 解析渠道要绑定的接待方案，统一校验同工作区 + 最新版本可用。
+ * 解析渠道要绑定的接待方案，统一校验同系统 + 最新版本可用。
  * 渠道绑方案后自动跟随其最新已发布版本，因此校验对象是「方案的最新版」而非具体版本。
  */
 class ResolveChannelReceptionPlanAction
@@ -29,7 +29,7 @@ class ResolveChannelReceptionPlanAction
     /**
      * 校验并返回归一化后的接待方案 ID；方案不存在或无可用最新版本时抛业务异常。
      */
-    public function handle(Workspace $workspace, string $planId, bool $requireUsable = true): string
+    public function handle(SystemContext $systemContext, string $planId, bool $requireUsable = true): string
     {
         $plan = ReceptionPlan::query()
             ->find($planId);
@@ -50,7 +50,7 @@ class ResolveChannelReceptionPlanAction
         }
 
         $compiled = is_array($version->compiled_config) ? $version->compiled_config : [];
-        if (! $this->resolver->hasUsableModels($workspace, $compiled)) {
+        if (! $this->resolver->hasUsableModels($systemContext, $compiled)) {
             throw new BusinessException(__('channel.messages.reception_plan_version_model_unavailable'));
         }
 

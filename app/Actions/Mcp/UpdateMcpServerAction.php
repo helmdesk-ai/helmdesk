@@ -3,9 +3,9 @@
 namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormUpdateMcpServerData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\McpServer;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -27,9 +27,9 @@ class UpdateMcpServerAction
     /**
      * 更新一台 MCP 服务，只保存配置，不触发远端连接或工具同步。
      */
-    public function handle(Workspace $workspace, string $slug, FormUpdateMcpServerData $data): McpServer
+    public function handle(SystemContext $systemContext, string $slug, FormUpdateMcpServerData $data): McpServer
     {
-        $server = $this->findServer($workspace, $slug);
+        $server = $this->findServer($systemContext, $slug);
 
         $server->name = $data->name;
         $server->endpoint_url = $data->endpoint_url;
@@ -50,11 +50,11 @@ class UpdateMcpServerAction
      */
     public function asController(Request $request, string $server): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $data = FormUpdateMcpServerData::from($request);
-        $this->handle($workspace, $server, $data);
+        $this->handle($systemContext, $server, $data);
 
         return back();
     }
@@ -62,9 +62,9 @@ class UpdateMcpServerAction
     /**
      * 加载目标服务，找不到时 404。
      */
-    private function findServer(Workspace $workspace, string $slug): McpServer
+    private function findServer(SystemContext $systemContext, string $slug): McpServer
     {
-        return $workspace->mcpServers()->where('slug', $slug)->firstOrFail();
+        return $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
     }
 
     /**

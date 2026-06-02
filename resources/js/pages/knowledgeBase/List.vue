@@ -49,7 +49,7 @@ import KnowledgeGroupRow from '@/pages/knowledgeBase/KnowledgeGroupRow.vue';
 import KnowledgeManualDocumentPanel from '@/pages/knowledgeBase/KnowledgeManualDocumentPanel.vue';
 import KnowledgeQaDocumentPanel from '@/pages/knowledgeBase/KnowledgeQaDocumentPanel.vue';
 import KnowledgeRecallTestPanel from '@/pages/knowledgeBase/KnowledgeRecallTestPanel.vue';
-import WorkspaceKnowledgeSettingsPanel from '@/pages/knowledgeBase/WorkspaceKnowledgeSettingsPanel.vue';
+import SystemKnowledgeSettingsPanel from '@/pages/knowledgeBase/SystemKnowledgeSettingsPanel.vue';
 import type {
   KnowledgeBaseCategory,
   KnowledgeBaseData,
@@ -404,7 +404,7 @@ function openEditDialog(kb: KnowledgeBaseData): void {
   activeRightPage.value = 'knowledge_base_form';
 }
 
-function openWorkspaceSettingsPage(): void {
+function openSystemSettingsPage(): void {
   clearTransientListState();
   activeRightPage.value = 'retrieval_settings';
 }
@@ -962,7 +962,7 @@ function confirmDeleteQaEntry(): void {
                       size="icon"
                       class="h-8 w-8 shrink-0"
                       :aria-label="t('检索配置')"
-                      @click="openWorkspaceSettingsPage"
+                      @click="openSystemSettingsPage"
                     >
                       <Settings2 class="h-4 w-4" />
                     </Button>
@@ -1135,9 +1135,9 @@ function confirmDeleteQaEntry(): void {
         @saved="returnToKnowledgeBasePage"
       />
 
-      <WorkspaceKnowledgeSettingsPanel
+      <SystemKnowledgeSettingsPanel
         v-else-if="activeRightPage === 'retrieval_settings'"
-        :settings="props.workspace_knowledge_settings"
+        :settings="props.system_knowledge_settings"
         :embedding-model-options="props.embedding_model_options"
         :rerank-model-options="props.rerank_model_options"
         :summary-model-options="props.summary_model_options"

@@ -2,10 +2,10 @@
 
 namespace App\Actions\Translation;
 
+use App\Data\SystemUserContextData;
 use App\Data\Translation\FormUpdateTranslationProviderData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\SystemContext;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 保存工作区翻译供应商的凭据。
+ * 保存系统翻译供应商的凭据。
  *
  * 合并语义和 UpdateAiProviderCredentialsAction 对齐：secret 字段提交空值表示"不变"，明文字段提交空值表示清空。
  */
@@ -24,9 +24,9 @@ class UpdateTranslationProviderCredentialsAction
     /**
      * 校验后保存名称，并用 mergeCredentials 合并凭据。
      */
-    public function handle(Workspace $workspace, string $providerSlug, FormUpdateTranslationProviderData $data): TranslationProvider
+    public function handle(SystemContext $systemContext, string $providerSlug, FormUpdateTranslationProviderData $data): TranslationProvider
     {
-        $provider = $this->findProvider($workspace, $providerSlug);
+        $provider = $this->findProvider($systemContext, $providerSlug);
         $this->validateConfiguration($provider, $data->configuration);
 
         $credentials = $provider->mergeCredentials($data->configuration);
@@ -43,11 +43,11 @@ class UpdateTranslationProviderCredentialsAction
      */
     public function asController(Request $request, string $provider): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $data = FormUpdateTranslationProviderData::from($request);
-        $this->handle($workspace, $provider, $data);
+        $this->handle($systemContext, $provider, $data);
 
         return back();
     }
@@ -55,9 +55,9 @@ class UpdateTranslationProviderCredentialsAction
     /**
      * 按 provider 的 credential_fields 动态生成校验规则。
      */
-    private function findProvider(Workspace $workspace, string $slug): TranslationProvider
+    private function findProvider(SystemContext $systemContext, string $slug): TranslationProvider
     {
-        return $workspace->translationProviders()->where('slug', $slug)->firstOrFail();
+        return $systemContext->translationProviders()->where('slug', $slug)->firstOrFail();
     }
 
     /**

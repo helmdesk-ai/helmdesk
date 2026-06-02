@@ -9,7 +9,7 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 
 /**
  * 创建 MCP 服务表单数据。
- * 来自 resources/js/pages/workspaceSettings/mcpServers/McpServerFormPanel.vue 的提交。
+ * 来自 resources/js/pages/systemSettings/mcpServers/McpServerFormPanel.vue 的提交。
  *
  * 认证统一为一对 header：
  *  - 都填即开启认证；

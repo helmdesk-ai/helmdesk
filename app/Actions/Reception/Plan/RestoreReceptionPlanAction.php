@@ -2,7 +2,7 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\ReceptionPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,8 +29,8 @@ class RestoreReceptionPlanAction
      */
     public function asController(Request $request, string $plan): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $planModel = ReceptionPlan::query()
             ->onlyTrashed()

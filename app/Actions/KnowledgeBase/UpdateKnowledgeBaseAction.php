@@ -3,10 +3,10 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormUpdateKnowledgeBaseData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Models\KnowledgeBase;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Storage\AttachmentBindingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 更新工作区知识库基础信息。
+ * 更新系统知识库基础信息。
  */
 class UpdateKnowledgeBaseAction
 {
@@ -31,10 +31,10 @@ class UpdateKnowledgeBaseAction
     /**
      * 更新知识库名称、头像和描述。
      */
-    public function handle(Workspace $workspace, KnowledgeBase $knowledgeBase, FormUpdateKnowledgeBaseData $data): void
+    public function handle(SystemContext $systemContext, KnowledgeBase $knowledgeBase, FormUpdateKnowledgeBaseData $data): void
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($workspace, $name, (string) $knowledgeBase->id);
+        $this->ensureNameIsAvailable($systemContext, $name, (string) $knowledgeBase->id);
         $originalAvatarId = filled($knowledgeBase->avatar_id) ? (string) $knowledgeBase->avatar_id : null;
         $this->attachments->assertAssignable(
             attachable: $knowledgeBase,
@@ -57,21 +57,21 @@ class UpdateKnowledgeBaseAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $knowledgeBaseModel = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
 
-        $this->handle($workspace, $knowledgeBaseModel, FormUpdateKnowledgeBaseData::from($request));
+        $this->handle($systemContext, $knowledgeBaseModel, FormUpdateKnowledgeBaseData::from($request));
 
         return back();
     }
 
     /**
-     * 校验当前工作区内知识库名称是否可用。
+     * 校验当前系统内知识库名称是否可用。
      */
-    private function ensureNameIsAvailable(Workspace $workspace, string $name, string $exceptId): void
+    private function ensureNameIsAvailable(SystemContext $systemContext, string $name, string $exceptId): void
     {
         $exists = KnowledgeBase::query()
             ->where('name', $name)

@@ -2,11 +2,11 @@
 
 namespace App\Actions\Tag;
 
+use App\Data\SystemUserContextData;
 use App\Data\Tag\FormCreateTagGroupData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\SystemContext;
 use App\Models\TagGroup;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,9 +19,9 @@ class CreateTagGroupAction
     use AsAction;
 
     /**
-     * 校验组名在工作区内唯一后创建标签组。
+     * 校验组名在系统内唯一后创建标签组。
      */
-    public function handle(Workspace $workspace, FormCreateTagGroupData $data, ?User $actor = null): TagGroup
+    public function handle(SystemContext $systemContext, FormCreateTagGroupData $data, ?User $actor = null): TagGroup
     {
         $name = trim($data->name);
         $normalizedName = mb_strtolower($name);
@@ -49,9 +49,9 @@ class CreateTagGroupAction
      */
     public function asController(Request $request)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormCreateTagGroupData::from($request);
-        $this->handle($ctx->workspace(), $data, $request->user());
+        $this->handle($ctx->systemContext(), $data, $request->user());
 
         return back();
     }

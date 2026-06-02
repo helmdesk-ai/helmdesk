@@ -9,7 +9,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\KnowledgeFullTextRepository;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use App\Services\KnowledgeBase\Parsing\MarkdownChunkPlanner;
@@ -52,13 +52,13 @@ class WriteCanonicalChunksAction
         if ($knowledgeBase === null) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
-        $workspace = Workspace::current();
+        $systemContext = SystemContext::current();
 
         if ($document->parse_status !== KnowledgeDocumentParseStatus::Succeeded || ! filled($document->parsed_content)) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
 
-        $segments = $this->planner->plan($workspace, (string) $document->parsed_content);
+        $segments = $this->planner->plan($systemContext, (string) $document->parsed_content);
         if ($segments === []) {
             throw new BusinessException(__('knowledge_base.documents.errors.no_segments'));
         }

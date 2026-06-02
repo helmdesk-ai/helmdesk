@@ -12,7 +12,7 @@ use App\Models\Contact;
 use App\Models\ContactIdentity;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -32,7 +32,7 @@ beforeEach(function () {
 
 function signedChannelFor(string $secret = 'test-secret-supersecret-xxxxxxxxxx'): Channel
 {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
     $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
         'slug' => 'signed-token-provider-'.Str::lower(Str::random(6)),

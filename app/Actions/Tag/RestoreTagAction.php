@@ -2,11 +2,11 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Contact;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +19,7 @@ class RestoreTagAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $id): Tag
+    public function handle(SystemContext $systemContext, string $id): Tag
     {
         $tag = Tag::query()
             ->onlyTrashed()
@@ -65,8 +65,8 @@ class RestoreTagAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $this->handle($ctx->workspace(), $id);
+        $ctx = SystemUserContextData::fromRequest($request);
+        $this->handle($ctx->systemContext(), $id);
 
         return back();
     }

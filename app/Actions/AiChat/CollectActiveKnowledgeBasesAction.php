@@ -3,11 +3,11 @@
 namespace App\Actions\AiChat;
 
 use App\Models\KnowledgeBase;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 收集当前 workspace 下"可供 Agent 检索"的知识库列表。
+ * 收集当前 systemContext 下"可供 Agent 检索"的知识库列表。
  *
  * Go 侧据此向 LLM 渲染 knowledge_search 工具的描述与白名单：
  *  - 没有任何知识库 → 不挂 knowledge_search 工具，避免 LLM 看到空白单元；
@@ -21,7 +21,7 @@ class CollectActiveKnowledgeBasesAction
     /**
      * @return list<array{id: string, name: string, description: string}>
      */
-    public function handle(Workspace $workspace): array
+    public function handle(SystemContext $systemContext): array
     {
         $knowledgeBases = KnowledgeBase::query()
             ->orderBy('created_at')

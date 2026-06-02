@@ -11,7 +11,7 @@ import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ListTagItemData,
   ShowTagTrashPagePropsData,
@@ -26,7 +26,7 @@ const restoreForm = useForm({});
 const restoringTagId = ref<string | null>(null);
 
 const buildTagTrashPageUrl = (page: number): string => {
-  return workspace.manage.tags.trash.url({
+  return admin.manage.tags.trash.url({
     query: { page },
   });
 };
@@ -42,7 +42,7 @@ const submitRestore = (tag: ListTagItemData) => {
   restoreForm.clearErrors();
 
   restoreForm.put(
-    workspace.manage.tags.restore.url({
+    admin.manage.tags.restore.url({
       id: tag.id,
     }),
     {
@@ -72,7 +72,7 @@ const submitRestore = (tag: ListTagItemData) => {
             />
 
             <Button variant="outline" class="shrink-0" as-child>
-              <Link :href="workspace.manage.tags.index.url()">
+              <Link :href="admin.manage.tags.index.url()">
                 {{ t('返回列表') }}
               </Link>
             </Button>

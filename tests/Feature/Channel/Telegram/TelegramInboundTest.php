@@ -15,14 +15,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
 require_once __DIR__.'/TelegramTestSupport.php';
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 /**
@@ -40,8 +40,8 @@ function fakeTelegramProfilePhotosUnavailable(): void
  */
 function makeInboundTelegramChannel(): Channel
 {
-    $workspace = test()->workspace;
-    $version = createTelegramDeployablePlanVersion($workspace);
+    $systemContext = test()->systemContext;
+    $version = createTelegramDeployablePlanVersion($systemContext);
 
     return Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,

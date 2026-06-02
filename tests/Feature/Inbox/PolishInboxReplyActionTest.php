@@ -10,18 +10,18 @@ use App\Models\AiProvider;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function (): void {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 
     config([
         'services.go_runtime.base_url' => 'http://go-runtime.test',
@@ -29,7 +29,7 @@ beforeEach(function (): void {
     ]);
 });
 
-function createReplyPolishTestModel(Workspace $workspace, array $providerAttributes = [], array $modelAttributes = []): AiModel
+function createReplyPolishTestModel(SystemContext $systemContext, array $providerAttributes = [], array $modelAttributes = []): AiModel
 {
     $provider = AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -55,7 +55,7 @@ function createReplyPolishTestModel(Workspace $workspace, array $providerAttribu
     ], $modelAttributes));
 }
 
-function createReplyPolishConversation(Workspace $workspace, User $user, array $attributes = []): Conversation
+function createReplyPolishConversation(SystemContext $systemContext, User $user, array $attributes = []): Conversation
 {
     $contact = Contact::factory()->create([
         'name' => 'Mia',
@@ -74,8 +74,8 @@ function createReplyPolishConversation(Workspace $workspace, User $user, array $
 }
 
 test('收件箱回复助手会转发模式模型风格和会话上下文到 Go 运行时', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
+    $model = createReplyPolishTestModel($this->systemContext);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
     $userLocale = $this->user->locale;
 
     $visitorMessage = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create([
@@ -135,8 +135,8 @@ test('收件箱回复助手会转发模式模型风格和会话上下文到 Go �
 });
 
 test('收件箱回复助手允许空内容生成回复候选', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
+    $model = createReplyPolishTestModel($this->systemContext);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
 
     Http::fake(function (Request $request) {
         if (str_ends_with($request->url(), '/_helmdesk/internal/ai/reply-polish/generate')) {
@@ -170,8 +170,8 @@ test('收件箱回复助手允许空内容生成回复候选', function (): void
 });
 
 test('收件箱回复助手在改写模式拒绝纯空白内容且不会调用运行时', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
+    $model = createReplyPolishTestModel($this->systemContext);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
     Http::fake();
 
     $this->actingAs($this->user)
@@ -187,11 +187,11 @@ test('收件箱回复助手在改写模式拒绝纯空白内容且不会调用�
     Http::assertNothingSent();
 });
 
-test('收件箱回复助手忽略不属于当前工作区会话的引用消息', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
-    $otherWorkspace = Workspace::factory()->create();
-    $otherConversation = createReplyPolishConversation($otherWorkspace, $this->user);
+test('收件箱回复助手忽略不属于当前系统会话的引用消息', function (): void {
+    $model = createReplyPolishTestModel($this->systemContext);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
+    $otherSystem = SystemContext::factory()->create();
+    $otherConversation = createReplyPolishConversation($otherSystem, $this->user);
     $foreignMessage = ConversationMessage::factory()->forConversation($otherConversation)->visitorText()->create([
         'content' => 'This message is from another conversation.',
     ]);
@@ -228,8 +228,8 @@ test('收件箱回复助手忽略不属于当前工作区会话的引用消息',
 });
 
 test('收件箱回复助手在运行时返回空候选时抛出业务错误', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
+    $model = createReplyPolishTestModel($this->systemContext);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
 
     Http::fake(function (Request $request) {
         if (str_ends_with($request->url(), '/_helmdesk/internal/ai/reply-polish/generate')) {
@@ -254,8 +254,8 @@ test('收件箱回复助手在运行时返回空候选时抛出业务错误', fu
 });
 
 test('收件箱回复助手只向运行时发送最近三十条文本消息', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
+    $model = createReplyPolishTestModel($this->systemContext);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
 
     for ($i = 1; $i <= 35; $i++) {
         ConversationMessage::factory()->forConversation($conversation)->visitorText()->create([
@@ -294,7 +294,7 @@ test('收件箱回复助手只向运行时发送最近三十条文本消息', fu
 });
 
 test('收件箱回复润色拒绝不可用模型且不会调用运行时', function (): void {
-    $conversation = createReplyPolishConversation($this->workspace, $this->user);
+    $conversation = createReplyPolishConversation($this->systemContext, $this->user);
     Http::fake();
 
     $this->actingAs($this->user)
@@ -311,9 +311,9 @@ test('收件箱回复润色拒绝不可用模型且不会调用运行时', funct
 });
 
 test('收件箱回复润色复用会话回复权限控制', function (): void {
-    $model = createReplyPolishTestModel($this->workspace);
+    $model = createReplyPolishTestModel($this->systemContext);
     $otherUser = User::factory()->create();
-    $conversation = createReplyPolishConversation($this->workspace, $otherUser);
+    $conversation = createReplyPolishConversation($this->systemContext, $otherUser);
     Http::fake();
 
     $this->actingAs($this->user)

@@ -5,11 +5,11 @@ namespace App\Actions\Channel\Web;
 use App\Actions\Attachment\AttachUploadedAttachmentsAction;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Web\FormUpdateWebChannelBasicData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Channel\WebChannelResolutionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,12 +36,12 @@ class UpdateWebChannelBasicAction
     /**
      * 保存网站渠道基础信息和接待方案绑定。
      */
-    public function handle(Workspace $workspace, Channel $channel, FormUpdateWebChannelBasicData $data): void
+    public function handle(SystemContext $systemContext, Channel $channel, FormUpdateWebChannelBasicData $data): void
     {
         $submittedPlanId = $data->receptionPlanId();
         $requireUsable = $submittedPlanId !== $channel->reception_plan_id;
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $workspace,
+            $systemContext,
             $submittedPlanId,
             requireUsable: $requireUsable,
         );
@@ -65,14 +65,14 @@ class UpdateWebChannelBasicAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 
-        $this->handle($workspace, $channelModel, FormUpdateWebChannelBasicData::from($request));
+        $this->handle($systemContext, $channelModel, FormUpdateWebChannelBasicData::from($request));
 
-        return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
+        return redirect()->back(302, [], route('admin.manage.channels.web.show', [
             'channel' => $channelModel->id,
         ]));
     }

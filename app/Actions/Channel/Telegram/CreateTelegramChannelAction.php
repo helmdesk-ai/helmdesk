@@ -5,12 +5,12 @@ namespace App\Actions\Channel\Telegram;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Telegram\FormCreateTelegramChannelData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Exceptions\BusinessException;
 use App\Exceptions\TelegramApiException;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Telegram\TelegramBotApi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,10 +40,10 @@ class CreateTelegramChannelAction
      * 流程严格「先校验后落库」：getMe 失败即拒绝（Token 非法），不写入任何数据；
      * webhook 注册失败则回滚已创建的渠道，避免留下半配置状态。
      */
-    public function handle(Workspace $workspace, FormCreateTelegramChannelData $data): Channel
+    public function handle(SystemContext $systemContext, FormCreateTelegramChannelData $data): Channel
     {
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $workspace,
+            $systemContext,
             $data->receptionPlanId(),
             requireUsable: true,
         );
@@ -99,12 +99,12 @@ class CreateTelegramChannelAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $channel = $this->handle($workspace, FormCreateTelegramChannelData::from($request));
+        $channel = $this->handle($systemContext, FormCreateTelegramChannelData::from($request));
 
-        return redirect()->route('workspace.manage.channels.telegram.show', [
+        return redirect()->route('admin.manage.channels.telegram.show', [
             'channel' => $channel->id,
         ]);
     }

@@ -2,24 +2,24 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除工作区内自定义 AI 供应商配置。
+ * 删除系统内自定义 AI 供应商配置。
  */
 class DeleteAiProviderAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $providerSlug): void
+    public function handle(SystemContext $systemContext, string $providerSlug): void
     {
-        $provider = $workspace->aiProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = $systemContext->aiProviders()->where('slug', $providerSlug)->firstOrFail();
 
         $resolver = app(AiModelResolver::class);
 
@@ -37,10 +37,10 @@ class DeleteAiProviderAction
 
     public function asController(Request $request, string $provider)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $this->handle($workspace, $provider);
+        $this->handle($systemContext, $provider);
 
         return back();
     }

@@ -3,12 +3,12 @@
 namespace App\Actions\Inbox;
 
 use App\Actions\Reception\ReleaseConversationToAiAction;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\InboxView;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -28,7 +28,7 @@ class ReleaseInboxConversationToAiAction
         private readonly ReleaseConversationToAiAction $releaseConversationToAiAction,
     ) {}
 
-    public function handle(Workspace $workspace, User $user, string $conversationId): Conversation
+    public function handle(SystemContext $systemContext, User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -45,14 +45,14 @@ class ReleaseInboxConversationToAiAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $conversation = $this->handle(
-            workspace: $ctx->workspace(),
+            systemContext: $ctx->systemContext(),
             user: User::query()->findOrFail($ctx->user_id),
             conversationId: $conversationId,
         );
 
-        return redirect()->route('workspace.inbox.show', [
+        return redirect()->route('admin.inbox.show', [
             'view' => $conversation->inbox_status === ConversationInboxStatus::TeammatePending
                 ? InboxView::Pending
                 : InboxView::Ai,

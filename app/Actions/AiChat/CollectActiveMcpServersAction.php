@@ -4,11 +4,11 @@ namespace App\Actions\AiChat;
 
 use App\Enums\McpTransport;
 use App\Models\McpServer;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 收集当前 workspace 下"启用且配置完整"的 MCP 服务列表，附带各自的启用工具白名单。
+ * 收集当前 systemContext 下"启用且配置完整"的 MCP 服务列表，附带各自的启用工具白名单。
  *
  * Go 侧据此为本轮对话挂载 MCP 工具：
  *  - server 维度过滤 `is_active = true` 且有 endpoint；
@@ -24,11 +24,11 @@ class CollectActiveMcpServersAction
     use AsAction;
 
     /**
-     * 查询并归一化当前 workspace 下所有可用的 MCP 服务及其工具白名单。
+     * 查询并归一化当前 systemContext 下所有可用的 MCP 服务及其工具白名单。
      *
      * @return array<int, array<string, mixed>>
      */
-    public function handle(Workspace $workspace): array
+    public function handle(SystemContext $systemContext): array
     {
         $servers = McpServer::query()
             ->where('is_active', true)

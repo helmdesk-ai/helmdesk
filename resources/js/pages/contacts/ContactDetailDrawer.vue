@@ -41,7 +41,7 @@ import {
   isLikelyValidPhone,
   splitPhoneNumber,
 } from '@/lib/phone';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ContactAttributeFieldData,
   ContactDetailData,
@@ -189,7 +189,7 @@ const saveCustomAttributes = (silent = false) => {
   }
 
   attrForm.put(
-    workspace.contacts.attributes.update.url({
+    admin.contacts.attributes.update.url({
       id: props.contactId,
     }),
     {
@@ -581,7 +581,7 @@ const fetchDetail = async (id: string, silent = false) => {
   detailError.value = '';
   try {
     const response = await fetch(
-      workspace.contacts.show.url(
+      admin.contacts.show.url(
         {
           id,
         },
@@ -746,7 +746,7 @@ const openEdit = () => {
 
 const submitEdit = () => {
   editForm.put(
-    workspace.contacts.update.url({
+    admin.contacts.update.url({
       id: props.contactId,
     }),
     {
@@ -782,7 +782,7 @@ const submitAddIdentity = () => {
 
   identityForm.clearErrors('value');
   identityForm.post(
-    workspace.contacts.identities.store.url({
+    admin.contacts.identities.store.url({
       contactId: props.contactId,
     }),
     {
@@ -827,7 +827,7 @@ const submitReplaceIdentity = () => {
 
   replaceIdentityForm.clearErrors('value');
   replaceIdentityForm.put(
-    workspace.contacts.identities.replace.url({
+    admin.contacts.identities.replace.url({
       contactId: props.contactId,
       identityId: replacingIdentity.value.id,
     }),
@@ -850,7 +850,7 @@ const submitDeleteIdentity = () => {
   }
 
   deleteIdentityForm.delete(
-    workspace.contacts.identities.destroy.url({
+    admin.contacts.identities.destroy.url({
       contactId: props.contactId,
       identityId: deletingIdentity.value.id,
     }),
@@ -890,7 +890,7 @@ const toggleImportance = async (): Promise<void> => {
   importanceProcessing.value = true;
   try {
     await axios.put(
-      workspace.contacts.importance.update.url({
+      admin.contacts.importance.update.url({
         id: props.contactId,
       }),
       { is_important: !contactDetail.value.is_important },
@@ -913,7 +913,7 @@ const handleAttachTag = async (tagId: string) => {
   tagProcessing.value = true;
   try {
     await axios.post(
-      workspace.contacts.tags.attach.url({
+      admin.contacts.tags.attach.url({
         id: props.contactId,
       }),
       { tag_id: tagId },
@@ -935,7 +935,7 @@ const handleDetachTag = async (tagId: string) => {
   tagProcessing.value = true;
   try {
     await axios.delete(
-      workspace.contacts.tags.detach.url({
+      admin.contacts.tags.detach.url({
         id: props.contactId,
         tagId,
       }),

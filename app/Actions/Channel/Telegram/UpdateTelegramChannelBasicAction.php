@@ -5,10 +5,10 @@ namespace App\Actions\Channel\Telegram;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Telegram\FormUpdateTelegramChannelBasicData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,12 +32,12 @@ class UpdateTelegramChannelBasicAction
     /**
      * 保存 Telegram 渠道基本信息与接待方案引用。
      */
-    public function handle(Workspace $workspace, Channel $channel, FormUpdateTelegramChannelBasicData $data): void
+    public function handle(SystemContext $systemContext, Channel $channel, FormUpdateTelegramChannelBasicData $data): void
     {
         $submittedPlanId = $data->receptionPlanId();
         $requireUsable = $submittedPlanId !== $channel->reception_plan_id;
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $workspace,
+            $systemContext,
             $submittedPlanId,
             requireUsable: $requireUsable,
         );
@@ -66,16 +66,16 @@ class UpdateTelegramChannelBasicAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $channelModel = Channel::query()
             ->where('type', ChannelType::Telegram)
             ->findOrFail($channel);
 
-        $this->handle($workspace, $channelModel, FormUpdateTelegramChannelBasicData::from($request));
+        $this->handle($systemContext, $channelModel, FormUpdateTelegramChannelBasicData::from($request));
 
-        return redirect()->route('workspace.manage.channels.telegram.show', [
+        return redirect()->route('admin.manage.channels.telegram.show', [
             'channel' => $channelModel->id,
         ]);
     }

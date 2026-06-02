@@ -7,8 +7,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * 单个 MCP 工具的展示数据。
- * 由 McpServerData::fromModel 装配后随 ShowWorkspaceMcpServersPagePropsData 下发，
- * 用于 resources/js/pages/workspaceSettings/mcpServers 详情面板的工具列表行渲染。
+ * 由 McpServerData::fromModel 装配后随 ShowSystemMcpServersPagePropsData 下发，
+ * 用于 resources/js/pages/systemSettings/mcpServers 详情面板的工具列表行渲染。
  */
 class McpToolData extends Data
 {

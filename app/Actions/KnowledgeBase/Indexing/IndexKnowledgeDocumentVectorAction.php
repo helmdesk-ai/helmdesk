@@ -9,7 +9,7 @@ use App\Enums\KnowledgeNodeKind;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use Illuminate\Support\Collection;
@@ -44,7 +44,7 @@ class IndexKnowledgeDocumentVectorAction
         if ($kb === null) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
-        $workspace = Workspace::current();
+        $systemContext = SystemContext::current();
         if (! $kb->hasIndexingStrategy(KnowledgeIndexingStrategy::Vector)) {
             $document->updateStageStatus(KnowledgeIndexingStrategy::Vector, KnowledgeDocumentIndexingStatus::Idle, knowledgeBase: $kb);
 
@@ -54,7 +54,7 @@ class IndexKnowledgeDocumentVectorAction
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
 
-        $embeddingModel = $workspace->knowledgeEmbeddingModel;
+        $embeddingModel = $systemContext->knowledgeEmbeddingModel;
         if ($embeddingModel === null || $embeddingModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_embedding_model'));
         }

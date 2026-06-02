@@ -3,10 +3,10 @@
 namespace App\Actions\Inbox;
 
 use App\Data\Inbox\FormUpdateConversationVisitorLocaleData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ReceptionLanguage;
 use App\Models\Conversation;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -22,7 +22,7 @@ class UpdateConversationVisitorLocaleAction
     /**
      * 更新会话的 visitor_locale 字段。
      */
-    public function handle(Workspace $workspace, string $conversationId, ReceptionLanguage $visitorLocale): Conversation
+    public function handle(SystemContext $systemContext, string $conversationId, ReceptionLanguage $visitorLocale): Conversation
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -41,11 +41,11 @@ class UpdateConversationVisitorLocaleAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormUpdateConversationVisitorLocaleData::from($request);
 
         $this->handle(
-            workspace: $ctx->workspace(),
+            systemContext: $ctx->systemContext(),
             conversationId: $conversationId,
             visitorLocale: $data->visitor_locale,
         );

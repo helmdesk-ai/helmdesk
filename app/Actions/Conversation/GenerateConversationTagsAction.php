@@ -102,7 +102,7 @@ class GenerateConversationTagsAction
     }
 
     /**
-     * 取当前工作区会话维度的受控词表（标签 ID → Tag）。
+     * 取当前系统会话维度的受控词表（标签 ID → Tag）。
      *
      * @return array<string, Tag>
      */

@@ -143,7 +143,7 @@ return [
         'claim_failed' => 'Failed to claim this conversation; it may already be taken.',
         'transfer_to_teammate_not_allowed' => 'You can only transfer conversations currently assigned to you.',
         'transfer_target_must_be_teammate' => 'Choose another teammate as the transfer target.',
-        'transfer_target_not_found' => 'Choose a teammate in the current workspace.',
+        'transfer_target_not_found' => 'Choose a teammate in the current admin.',
         'recall_not_owner' => 'You can only recall messages you sent.',
         'recall_already_recalled' => 'This message has already been recalled.',
         'recall_kind_not_allowed' => 'This kind of message cannot be recalled.',

@@ -10,7 +10,7 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -120,17 +120,17 @@ class ConversationDemoGenerator
      *
      * @return array{conversations:int,messages:int,events:int}
      */
-    public function generate(Workspace $workspace, int $count): array
+    public function generate(SystemContext $systemContext, int $count): array
     {
-        return DB::transaction(fn () => $this->run($workspace, $count));
+        return DB::transaction(fn () => $this->run($systemContext, $count));
     }
 
     /**
      * @return array{conversations:int,messages:int,events:int}
      */
-    private function run(Workspace $workspace, int $count): array
+    private function run(SystemContext $systemContext, int $count): array
     {
-        $contacts = $workspace->contacts()->limit(max(10, min($count, 40)))->get();
+        $contacts = $systemContext->contacts()->limit(max(10, min($count, 40)))->get();
         if ($contacts->isEmpty()) {
             $contacts = Contact::factory()
                 ->count(max(10, min($count, 20)))
@@ -143,7 +143,7 @@ class ConversationDemoGenerator
                 ]);
         }
 
-        $users = $workspace->users()->get();
+        $users = $systemContext->users()->get();
 
         $messageCount = 0;
         $eventCount = 0;

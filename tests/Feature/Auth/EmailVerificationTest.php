@@ -27,17 +27,17 @@ test('未验证用户不能访问仪表盘在验证邮箱前', function () {
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertRedirect(route('workspace.dashboard', absolute: false));
+        ->assertRedirect(route('admin.dashboard', absolute: false));
 });
 
 test('未验证超级管理员可以访问后台当邮件服务器禁用时', function () {
-    [$workspace, $user] = createWorkspaceWithOwner([
+    [$systemContext, $user] = createSystemWithOwner([
         'email_verified_at' => null,
     ]);
 
     $this->actingAs($user, 'admin')
         ->get(route('dashboard'))
-        ->assertRedirect(route('workspace.dashboard', absolute: false));
+        ->assertRedirect(route('admin.dashboard', absolute: false));
 });
 
 test('未验证超级管理员可以访问系统设置在验证邮箱前', function () {

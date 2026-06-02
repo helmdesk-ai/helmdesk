@@ -3,7 +3,7 @@
 -->
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type { ContactListType, EnumOptionData } from '@/types/generated';
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -30,7 +30,7 @@ const tabs = computed<ContactTab[]>(() => [
     return {
       value,
       label: option.label,
-      href: workspace.contacts.index.url({
+      href: admin.contacts.index.url({
         type: value,
       }),
     };
@@ -38,7 +38,7 @@ const tabs = computed<ContactTab[]>(() => [
   {
     value: 'trash',
     label: t('回收站'),
-    href: workspace.contacts.trash.url(),
+    href: admin.contacts.trash.url(),
   },
 ]);
 </script>

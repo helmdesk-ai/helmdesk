@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
-import cannedReplyRoutes from '@/routes/workspace/canned-replies';
+import cannedReplyRoutes from '@/routes/admin/canned-replies';
 import type { CannedReplyComposerItemData } from '@/types/generated';
 import axios from 'axios';
 import { Sparkles } from 'lucide-vue-next';

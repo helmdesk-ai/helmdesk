@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/composables/useI18n';
 import { toUrl, urlIsActive } from '@/lib/utils';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type { AppPageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Globe, Send } from 'lucide-vue-next';
@@ -35,12 +35,12 @@ const sidebarNavItems = computed<SubMenuItem[]>(() => {
   return [
     {
       title: t('网站'),
-      href: workspace.manage.channels.web.index.url(),
+      href: admin.manage.channels.web.index.url(),
       icon: Globe,
     },
     {
       title: t('Telegram'),
-      href: workspace.manage.channels.telegram.index.url(),
+      href: admin.manage.channels.telegram.index.url(),
       icon: Send,
     },
   ];

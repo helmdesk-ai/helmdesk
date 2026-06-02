@@ -4,45 +4,45 @@ use App\Models\CannedReply;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->withoutVite();
-    $this->owner = $this->createUserWithWorkspace();
+    $this->owner = $this->createUserWithSystem();
 });
 
 test('管理员可以查看快捷回复列表页面', function () {
     CannedReply::factory()
-        ->create(['name' => '工作区共享 1']);
+        ->create(['name' => '系统共享 1']);
 
     CannedReply::factory()
         ->ownedBy($this->owner)
         ->create(['name' => '我的私有 1']);
 
     $this->actingAs($this->owner)
-        ->get(route('workspace.canned-replies.index'))
+        ->get(route('admin.canned-replies.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('cannedReplies/Index')
             ->has('canned_reply_list', 2)
             ->has('available_tokens')
-            ->where('can_manage_workspace_replies', true)
+            ->where('can_manage_system_replies', true)
             ->etc()
         );
 });
 
 test('管理员可以创建个人快捷回复', function () {
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
-        ->post(route('workspace.canned-replies.store'), [
+        ->from(route('admin.canned-replies.index'))
+        ->post(route('admin.canned-replies.store'), [
             'name' => '我的退款回复',
             'content' => '你好 {{contact.name}}，已收到。',
             'shortcut' => 'refund',
             'is_personal' => true,
         ])
-        ->assertRedirect(route('workspace.canned-replies.index'));
+        ->assertRedirect(route('admin.canned-replies.index'));
 
     $reply = CannedReply::query()->where('name', '我的退款回复')->firstOrFail();
     expect((string) $reply->user_id)->toBe((string) $this->owner->id);
@@ -51,13 +51,13 @@ test('管理员可以创建个人快捷回复', function () {
 
 test('管理员可以创建共享快捷回复', function () {
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
-        ->post(route('workspace.canned-replies.store'), [
+        ->from(route('admin.canned-replies.index'))
+        ->post(route('admin.canned-replies.store'), [
             'name' => '团队共享 V2',
             'content' => '通用回复',
             'is_personal' => false,
         ])
-        ->assertRedirect(route('workspace.canned-replies.index'));
+        ->assertRedirect(route('admin.canned-replies.index'));
 
     $reply = CannedReply::query()->where('name', '团队共享 V2')->firstOrFail();
     expect($reply->user_id)->toBeNull();
@@ -70,8 +70,8 @@ test('shortcut 在同一归属内不可重复', function () {
         ->create(['user_id' => null]);
 
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
-        ->post(route('workspace.canned-replies.store'), [
+        ->from(route('admin.canned-replies.index'))
+        ->post(route('admin.canned-replies.store'), [
             'name' => '重复短码',
             'content' => 'test',
             'shortcut' => 'refund',
@@ -86,9 +86,9 @@ test('管理员可以编辑自己的个人模版', function () {
         ->create(['name' => 'Old']);
 
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
+        ->from(route('admin.canned-replies.index'))
         ->put(
-            route('workspace.canned-replies.update', ['cannedReply' => $personal->id,
+            route('admin.canned-replies.update', ['cannedReply' => $personal->id,
             ]),
             [
                 'name' => 'New name',
@@ -96,7 +96,7 @@ test('管理员可以编辑自己的个人模版', function () {
                 'is_personal' => true,
             ]
         )
-        ->assertRedirect(route('workspace.canned-replies.index'));
+        ->assertRedirect(route('admin.canned-replies.index'));
 
     expect($personal->fresh()->name)->toBe('New name');
 });
@@ -107,9 +107,9 @@ test('管理员可以把个人模版切换为共享', function () {
         ->create(['name' => 'Mine']);
 
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
+        ->from(route('admin.canned-replies.index'))
         ->put(
-            route('workspace.canned-replies.update', ['cannedReply' => $personal->id,
+            route('admin.canned-replies.update', ['cannedReply' => $personal->id,
             ]),
             [
                 'name' => 'Mine',
@@ -117,7 +117,7 @@ test('管理员可以把个人模版切换为共享', function () {
                 'is_personal' => false,
             ]
         )
-        ->assertRedirect(route('workspace.canned-replies.index'));
+        ->assertRedirect(route('admin.canned-replies.index'));
 
     expect($personal->fresh()->user_id)->toBeNull();
 });
@@ -127,9 +127,9 @@ test('管理员可以把共享模版切换为自己个人', function () {
         ->create(['name' => 'Team', 'user_id' => null]);
 
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
+        ->from(route('admin.canned-replies.index'))
         ->put(
-            route('workspace.canned-replies.update', ['cannedReply' => $shared->id,
+            route('admin.canned-replies.update', ['cannedReply' => $shared->id,
             ]),
             [
                 'name' => 'Team',
@@ -137,7 +137,7 @@ test('管理员可以把共享模版切换为自己个人', function () {
                 'is_personal' => true,
             ]
         )
-        ->assertRedirect(route('workspace.canned-replies.index'));
+        ->assertRedirect(route('admin.canned-replies.index'));
 
     expect((string) $shared->fresh()->user_id)->toBe((string) $this->owner->id);
 });
@@ -153,9 +153,9 @@ test('切换归属后会按新范围检查短码冲突', function () {
         ->create(['name' => 'Mine']);
 
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
+        ->from(route('admin.canned-replies.index'))
         ->put(
-            route('workspace.canned-replies.update', ['cannedReply' => $personal->id,
+            route('admin.canned-replies.update', ['cannedReply' => $personal->id,
             ]),
             [
                 'name' => 'Mine',
@@ -175,10 +175,10 @@ test('删除会软删除模版', function () {
         ->create();
 
     $this->actingAs($this->owner)
-        ->from(route('workspace.canned-replies.index'))
-        ->delete(route('workspace.canned-replies.destroy', ['cannedReply' => $reply->id,
+        ->from(route('admin.canned-replies.index'))
+        ->delete(route('admin.canned-replies.destroy', ['cannedReply' => $reply->id,
         ]))
-        ->assertRedirect(route('workspace.canned-replies.index'));
+        ->assertRedirect(route('admin.canned-replies.index'));
 
     expect(CannedReply::query()->find($reply->id))->toBeNull();
     expect(CannedReply::withTrashed()->find($reply->id)->trashed())->toBeTrue();

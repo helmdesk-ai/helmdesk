@@ -2,7 +2,7 @@
 
 namespace App\Actions\KnowledgeBase\Document;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
@@ -80,12 +80,12 @@ class StreamKnowledgeDocumentPreviewFileAction
     }
 
     /**
-     * 接收预览文件请求，并限制在当前工作区知识库文档内。
+     * 接收预览文件请求，并限制在当前系统知识库文档内。
      */
     public function asController(Request $request, string $knowledgeBase, string $document): StreamedResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

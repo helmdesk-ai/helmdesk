@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\AiChat\StopAiAssistantMessageAction;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -10,8 +10,8 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 uses(RefreshDatabase::class);
 
 test('它转发有效后台聊天话题到 Go 运行时', function () {
-    $workspace = Workspace::factory()->create();
-    $topic = "urn:helmdesk:ai-chat:{$workspace->id}:01KSTOPTEST";
+    $systemContext = SystemContext::factory()->create();
+    $topic = "urn:helmdesk:ai-chat:{$systemContext->id}:01KSTOPTEST";
 
     config([
         'services.go_runtime.base_url' => 'http://go-runtime.test',
@@ -25,7 +25,7 @@ test('它转发有效后台聊天话题到 Go 运行时', function () {
         ]),
     ]);
 
-    $result = app(StopAiAssistantMessageAction::class)->handle($workspace, $topic);
+    $result = app(StopAiAssistantMessageAction::class)->handle($systemContext, $topic);
 
     expect($result)->toBe(['stopped' => true]);
 
@@ -36,17 +36,17 @@ test('它转发有效后台聊天话题到 Go 运行时', function () {
 });
 
 test('它拒绝无效聊天话题', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     app(StopAiAssistantMessageAction::class)->handle(
-        $workspace,
+        $systemContext,
         'urn:helmdesk:ai-chat:other:01KSTOPTEST',
     );
 })->throws(ValidationException::class);
 
 test('它拒绝格式错误的停止响应来自Go运行时', function () {
-    $workspace = Workspace::factory()->create();
-    $topic = "urn:helmdesk:ai-chat:{$workspace->id}:01KSTOPTEST";
+    $systemContext = SystemContext::factory()->create();
+    $topic = "urn:helmdesk:ai-chat:{$systemContext->id}:01KSTOPTEST";
 
     config([
         'services.go_runtime.base_url' => 'http://go-runtime.test',
@@ -59,5 +59,5 @@ test('它拒绝格式错误的停止响应来自Go运行时', function () {
         ]),
     ]);
 
-    app(StopAiAssistantMessageAction::class)->handle($workspace, $topic);
+    app(StopAiAssistantMessageAction::class)->handle($systemContext, $topic);
 })->throws(UnprocessableEntityHttpException::class);

@@ -19,12 +19,12 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 
     /** @var StorageSettings $settings */
     $settings = app(StorageSettings::class);
@@ -34,12 +34,12 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    if ($this->workspace) {
-        Storage::disk('local')->deleteDirectory('workspaces/'.$this->workspace->id);
+    if ($this->systemContext) {
+        Storage::disk('local')->deleteDirectory('systems/'.$this->systemContext->id);
     }
 });
 
-test('本地代理上传会完成为私有附件且下载需要工作区访问权限', function () {
+test('本地代理上传会完成为私有附件且下载需要系统访问权限', function () {
     $contents = 'hello attachment';
     $file = UploadedFile::fake()->createWithContent('note.txt', $contents);
 
@@ -91,7 +91,7 @@ test('自包含下载URL签名随参数变化', function () {
     $attachment = Attachment::factory()->create([
         'storage_profile_id' => $profile->id,
         'disk' => 'local',
-        'object_key' => 'workspaces/'.$this->workspace->id.'/files/private.txt',
+        'object_key' => 'systems/'.$this->systemContext->id.'/files/private.txt',
         'original_name' => 'private.txt',
         'mime_type' => 'text/plain',
         'extension' => 'txt',
@@ -272,8 +272,8 @@ test('已完成上传不能再次完成在附件已附加后', function () {
     $attachment = Attachment::query()->findOrFail($attachmentId);
     $attachment->update([
         'status' => AttachmentStatus::Attached,
-        'attachable_type' => $this->workspace->getMorphClass(),
-        'attachable_id' => $this->workspace->id,
+        'attachable_type' => $this->systemContext->getMorphClass(),
+        'attachable_id' => $this->systemContext->id,
         'expires_at' => null,
     ]);
 
@@ -326,7 +326,7 @@ test('自包含下载URL包含正确的文件名和MIME参数', function () {
     $attachment = Attachment::factory()->create([
         'storage_profile_id' => $profile->id,
         'disk' => 'local',
-        'object_key' => 'workspaces/'.$this->workspace->id.'/avatar/screenshot.png',
+        'object_key' => 'systems/'.$this->systemContext->id.'/avatar/screenshot.png',
         'original_name' => '截图2026-04-29.png',
         'mime_type' => 'image/png',
         'extension' => 'png',
@@ -467,7 +467,7 @@ test('清理会删除过期代理上传对象并使上传意图过期', function
     $attachment = Attachment::factory()->create([
         'storage_profile_id' => $profile->id,
         'status' => AttachmentStatus::Pending,
-        'object_key' => 'workspaces/'.$this->workspace->id.'/conversation_file/stale.txt',
+        'object_key' => 'systems/'.$this->systemContext->id.'/conversation_file/stale.txt',
     ]);
     $upload = AttachmentUpload::factory()->create([
         'attachment_id' => $attachment->id,
@@ -493,7 +493,7 @@ test('清理删除过期公开孤立附件', function () {
         'storage_profile_id' => $profile->id,
         'status' => AttachmentStatus::Uploaded,
         'visibility' => 'public',
-        'object_key' => 'workspaces/'.$this->workspace->id.'/avatar/orphan.png',
+        'object_key' => 'systems/'.$this->systemContext->id.'/avatar/orphan.png',
         'uploaded_at' => now()->subDays(2),
         'expires_at' => now()->subMinute(),
         'attachable_id' => null,

@@ -117,7 +117,7 @@ class GenerateContactAiSummaryAction
     }
 
     /**
-     * 按最近会话接待模型或工作区首个可用模型生成联系人摘要。
+     * 按最近会话接待模型或系统首个可用模型生成联系人摘要。
      *
      * @param  list<array<string, mixed>>  $digests
      */
@@ -152,7 +152,7 @@ class GenerateContactAiSummaryAction
     }
 
     /**
-     * 从最近会话版本或工作区模型中解析候选模型。
+     * 从最近会话版本或系统模型中解析候选模型。
      *
      * @return list<AiModel>
      */

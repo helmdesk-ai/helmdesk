@@ -4,14 +4,14 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxMessageTranslationsData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Jobs\Inbox\TranslateInboxConversationMessageJob;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Support\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,7 +38,7 @@ class QueueInboxConversationMessageTranslationsAction
      *
      * @param  list<string>  $messageIds
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, array $messageIds): int
+    public function handle(SystemContext $systemContext, User $user, string $conversationId, array $messageIds): int
     {
         $conversation = Conversation::query()
             ->with(['channel'])
@@ -69,13 +69,13 @@ class QueueInboxConversationMessageTranslationsAction
      */
     public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
         $data = FormQueueInboxMessageTranslationsData::from($request);
 
         return response()->json([
             'queued_count' => $this->handle(
-                workspace: $ctx->workspace(),
+                systemContext: $ctx->systemContext(),
                 user: $user,
                 conversationId: $conversationId,
                 messageIds: $data->message_ids,

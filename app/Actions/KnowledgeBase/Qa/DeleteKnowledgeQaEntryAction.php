@@ -2,7 +2,7 @@
 
 namespace App\Actions\KnowledgeBase\Qa;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeQaEntry;
 use App\Services\KnowledgeBase\KnowledgeFullTextRepository;
@@ -48,8 +48,8 @@ class DeleteKnowledgeQaEntryAction
      */
     public function asController(Request $request, string $knowledgeBase, string $entry): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
@@ -61,7 +61,7 @@ class DeleteKnowledgeQaEntryAction
 
         $this->handle($entryModel);
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             'kb' => $kb->id,
             'group' => $groupId,
         ]);

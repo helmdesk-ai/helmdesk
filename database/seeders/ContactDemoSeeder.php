@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\DemoData\ContactDemoGenerator;
 use Illuminate\Database\Seeder;
 
@@ -15,9 +15,9 @@ class ContactDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $workspace = Workspace::current();
+        $systemContext = SystemContext::current();
 
-        $count = app(ContactDemoGenerator::class)->generatePreset($workspace);
+        $count = app(ContactDemoGenerator::class)->generatePreset($systemContext);
 
         $this->command?->info("Seeded {$count} contacts.");
     }

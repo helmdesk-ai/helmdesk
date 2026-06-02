@@ -3,10 +3,10 @@
 namespace App\Actions\Inbox;
 
 use App\Actions\Reception\RecallTeammateMessageAction;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -29,7 +29,7 @@ class RecallInboxConversationMessageAction
     /**
      * 校验会话归属并触发撤回。
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, string $messageId): void
+    public function handle(SystemContext $systemContext, User $user, string $conversationId, string $messageId): void
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -50,17 +50,17 @@ class RecallInboxConversationMessageAction
      */
     public function asController(Request $request, string $conversationId, string $messageId): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
 
         $this->handle(
-            workspace: $ctx->workspace(),
+            systemContext: $ctx->systemContext(),
             user: $user,
             conversationId: $conversationId,
             messageId: $messageId,
         );
 
-        return redirect()->route('workspace.inbox.show', [
+        return redirect()->route('admin.inbox.show', [
             'conversation_id' => $conversationId,
         ]);
     }

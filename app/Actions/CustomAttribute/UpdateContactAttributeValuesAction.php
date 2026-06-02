@@ -3,14 +3,14 @@
 namespace App\Actions\CustomAttribute;
 
 use App\Data\CustomAttribute\FormUpdateContactAttributeValuesData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\AttributeValueSource;
 use App\Models\AttributeDefinition;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,12 +24,12 @@ class UpdateContactAttributeValuesAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, array $attributes, int|string|null $userId = null): void
+    public function handle(SystemContext $systemContext, string $contactId, array $attributes, int|string|null $userId = null): void
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
 
-        $definitions = $workspace->attributeDefinitions()
+        $definitions = $systemContext->attributeDefinitions()
             ->withTrashed()
             ->get()
             ->keyBy('key');
@@ -104,11 +104,11 @@ class UpdateContactAttributeValuesAction
 
     public function asController(Request $request, string $id): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $data = FormUpdateContactAttributeValuesData::from($request);
 
-        $this->handle($workspace, $id, $data->attributes, $request->user()?->id);
+        $this->handle($systemContext, $id, $data->attributes, $request->user()?->id);
 
         return back();
     }

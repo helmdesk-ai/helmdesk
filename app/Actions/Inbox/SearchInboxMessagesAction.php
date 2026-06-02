@@ -3,12 +3,12 @@
 namespace App\Actions\Inbox;
 
 use App\Data\Inbox\InboxMessageSearchResultData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\MessageRole;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Search\ConversationMessageSearch;
 use App\Services\Search\ConversationMessageVisibleTextResolver;
 use Illuminate\Http\JsonResponse;
@@ -37,7 +37,7 @@ class SearchInboxMessagesAction
      *
      * @return InboxMessageSearchResultData[]
      */
-    public function handle(Workspace $workspace, User $viewer, string $contactId, string $search): array
+    public function handle(SystemContext $systemContext, User $viewer, string $contactId, string $search): array
     {
         $conversationIds = Conversation::query()
             ->where('contact_id', $contactId)
@@ -97,15 +97,15 @@ class SearchInboxMessagesAction
      */
     public function asController(Request $request, string $contactId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $viewer = User::query()->findOrFail($ctx->user_id);
 
         $validated = $request->validate([
             'search' => ['required', 'string', 'min:1', 'max:200'],
         ]);
 
-        $results = $this->handle($workspace, $viewer, $contactId, $validated['search']);
+        $results = $this->handle($systemContext, $viewer, $contactId, $validated['search']);
 
         return response()->json(['results' => $results]);
     }

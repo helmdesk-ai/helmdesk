@@ -4,8 +4,8 @@ namespace App\Actions\Channel\Telegram;
 
 use App\Actions\Reception\Plan\ListReceptionPlansForChannelSelectionAction;
 use App\Data\Channel\Telegram\ShowCreateTelegramChannelPagePropsData;
-use App\Data\WorkspaceUserContextData;
-use App\Models\Workspace;
+use App\Data\SystemUserContextData;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -29,10 +29,10 @@ class ShowCreateTelegramChannelPageAction
     /**
      * 组装创建 Telegram 渠道页面需要的表单选项。
      */
-    public function handle(Workspace $workspace): ShowCreateTelegramChannelPagePropsData
+    public function handle(SystemContext $systemContext): ShowCreateTelegramChannelPagePropsData
     {
         return new ShowCreateTelegramChannelPagePropsData(
-            reception_plan_options: $this->listReceptionPlans->handle($workspace),
+            reception_plan_options: $this->listReceptionPlans->handle($systemContext),
         );
     }
 
@@ -41,9 +41,9 @@ class ShowCreateTelegramChannelPageAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        return Inertia::render('channel/telegram/Create', $this->handle($workspace)->toArray());
+        return Inertia::render('channel/telegram/Create', $this->handle($systemContext)->toArray());
     }
 }

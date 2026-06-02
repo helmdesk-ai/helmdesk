@@ -4,11 +4,11 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Reception\TransferConversationToTeammateAction;
 use App\Data\Inbox\FormTransferInboxConversationData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\InboxView;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -30,10 +30,10 @@ class TransferInboxConversationAction
     ) {}
 
     /**
-     * 转接当前工作区内的指定会话。
+     * 转接当前系统内的指定会话。
      */
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         User $user,
         string $conversationId,
         FormTransferInboxConversationData $data,
@@ -45,7 +45,7 @@ class TransferInboxConversationAction
             throw new NotFoundHttpException;
         }
 
-        $target = $workspace->users()
+        $target = $systemContext->users()
             ->whereKey($data->target_user_id)
             ->first();
 
@@ -63,16 +63,16 @@ class TransferInboxConversationAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormTransferInboxConversationData::from($request);
         $conversation = $this->handle(
-            workspace: $ctx->workspace(),
+            systemContext: $ctx->systemContext(),
             user: User::query()->findOrFail($ctx->user_id),
             conversationId: $conversationId,
             data: $data,
         );
 
-        return redirect()->route('workspace.inbox.show', [
+        return redirect()->route('admin.inbox.show', [
             'view' => InboxView::Teammates,
             'conversation_id' => $conversation->id,
         ]);

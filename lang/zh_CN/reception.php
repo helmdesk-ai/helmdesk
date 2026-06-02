@@ -86,7 +86,7 @@ return [
         ],
     ],
     'messages' => [
-        'plan_name_exists' => '当前工作区已存在同名接待方案',
+        'plan_name_exists' => '当前系统已存在同名接待方案',
         'invalid_reception_model' => '所选接待智能体模型不可用，请重新选择',
         'invalid_task_model' => '所选任务智能体默认模型不可用，请重新选择',
         'plan_in_use_channel' => '当前接待方案有 :count 个版本仍被渠道部署引用，请先调整相关渠道后再删除',

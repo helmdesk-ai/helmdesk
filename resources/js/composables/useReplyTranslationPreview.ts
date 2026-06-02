@@ -6,7 +6,7 @@
  */
 import { useI18n } from '@/composables/useI18n';
 import { localeMatches } from '@/lib/locale';
-import inboxActions from '@/routes/workspace/inbox';
+import inboxActions from '@/routes/admin/inbox';
 import type { InboxSelectionData } from '@/types/generated';
 import axios from 'axios';
 import {

@@ -8,7 +8,7 @@ import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
 import { getAvatarInitial } from '@/lib/initials';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ConversationDetailData,
   ListConversationItemData,
@@ -112,7 +112,7 @@ const fetchDetail = async (append = false) => {
 
   try {
     const response = await fetch(
-      workspace.conversations.show.url(
+      admin.conversations.show.url(
         {
           id: requestedConversationId,
         },

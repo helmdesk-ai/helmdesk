@@ -2,7 +2,7 @@
 
 namespace App\Actions\Channel\Web;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelResolutionService;
 use Illuminate\Http\RedirectResponse;
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 软删除工作区中的网站渠道。
+ * 软删除系统中的网站渠道。
  */
 class DeleteWebChannelAction
 {
@@ -31,13 +31,13 @@ class DeleteWebChannelAction
 
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 
         $this->handle($channelModel);
 
-        return redirect()->route('workspace.manage.channels.web.index');
+        return redirect()->route('admin.manage.channels.web.index');
     }
 }

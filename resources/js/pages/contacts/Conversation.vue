@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ListConversationItemData,
   ShowConversationListPagePropsData,
@@ -88,7 +88,7 @@ const buildQuery = (page?: number) => ({
 
 const navigate = (page?: number) => {
   router.get(
-    workspace.conversations.index.url({
+    admin.conversations.index.url({
       query: buildQuery(page),
     }),
     {},
@@ -97,7 +97,7 @@ const navigate = (page?: number) => {
 };
 
 const buildConversationPageUrl = (page: number): string =>
-  workspace.conversations.index.url({
+  admin.conversations.index.url({
     query: buildQuery(page),
   });
 

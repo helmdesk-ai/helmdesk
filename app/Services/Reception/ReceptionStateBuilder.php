@@ -57,17 +57,17 @@ class ReceptionStateBuilder
                 ['id', 'asc'],
             ])
             ->values();
-        $workspaceNicknames = self::workspaceNicknames($conversation, $messages);
+        $systemNicknames = self::systemNicknames($conversation, $messages);
 
         $entries = $messages
-            ->map(function (ConversationMessage $message) use ($visitorIdentityMode, $assistantName, $assistantAvatarUrl, $workspaceNicknames): ReceptionMessageData {
+            ->map(function (ConversationMessage $message) use ($visitorIdentityMode, $assistantName, $assistantAvatarUrl, $systemNicknames): ReceptionMessageData {
                 $quotedMessage = self::quotedMessageData($message);
                 [$senderName, $senderAvatarUrl] = self::senderMessageIdentity(
                     $visitorIdentityMode,
                     $message,
                     $assistantName,
                     $assistantAvatarUrl,
-                    $workspaceNicknames,
+                    $systemNicknames,
                 );
 
                 return match ($message->role) {
@@ -187,7 +187,7 @@ class ReceptionStateBuilder
     /**
      * 解析单条消息在访客侧展示的发送者身份。
      *
-     * @param  array<string, string>  $workspaceNicknames
+     * @param  array<string, string>  $systemNicknames
      * @return array{0: ?string, 1: ?string}
      */
     private static function senderMessageIdentity(
@@ -195,7 +195,7 @@ class ReceptionStateBuilder
         ConversationMessage $message,
         string $assistantName,
         ?string $assistantAvatarUrl,
-        array $workspaceNicknames,
+        array $systemNicknames,
     ): array {
         if ($mode === WebChannelVisitorIdentityMode::UnifiedService) {
             return [$assistantName, $assistantAvatarUrl];
@@ -207,7 +207,7 @@ class ReceptionStateBuilder
 
         if ($message->role === MessageRole::Teammate) {
             $senderUserId = filled($message->sender_user_id) ? (string) $message->sender_user_id : null;
-            $nickname = $senderUserId ? ($workspaceNicknames[$senderUserId] ?? null) : null;
+            $nickname = $senderUserId ? ($systemNicknames[$senderUserId] ?? null) : null;
 
             return [
                 filled($nickname) ? $nickname : $message->senderUser?->name,
@@ -249,7 +249,7 @@ class ReceptionStateBuilder
      * @param  Collection<int, ConversationMessage>  $messages
      * @return array<string, string>
      */
-    private static function workspaceNicknames(Conversation $conversation, Collection $messages): array
+    private static function systemNicknames(Conversation $conversation, Collection $messages): array
     {
         $userIds = $messages
             ->flatMap(fn (ConversationMessage $message): array => [

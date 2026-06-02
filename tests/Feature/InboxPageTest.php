@@ -3,7 +3,7 @@
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -13,12 +13,12 @@ beforeEach(function (): void {
     $this->withoutVite();
 });
 
-function createWorkspaceAiProvider(Workspace $workspace, array $attributes = []): AiProvider
+function createSystemAiProvider(SystemContext $systemContext, array $attributes = []): AiProvider
 {
     return AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
-        'slug' => 'workspace-ai-provider',
-        'name' => 'Workspace Provider',
+        'slug' => 'system-ai-provider',
+        'name' => 'System Provider',
         'protocol' => 'openai',
         'credentials' => ['key' => 'test-key'],
         'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
@@ -27,11 +27,11 @@ function createWorkspaceAiProvider(Workspace $workspace, array $attributes = [])
     ], $attributes));
 }
 
-function createWorkspaceAiModel(AiProvider $provider, array $attributes = []): AiModel
+function createSystemAiModel(AiProvider $provider, array $attributes = []): AiModel
 {
     return AiModel::query()->create(array_merge([
         'ai_provider_id' => $provider->id,
-        'name' => 'Workspace Model',
+        'name' => 'System Model',
         'model_id' => 'gpt-4o',
         'type' => 'llm',
         'is_active' => true,
@@ -46,54 +46,54 @@ test('访客用户会被重定向到登录页面', function () {
 });
 
 test('已认证管理员进入仪表盘和可以打开收件箱', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $provider = createWorkspaceAiProvider($workspace);
-    $model = createWorkspaceAiModel($provider);
+    [$systemContext, $user] = createSystemWithOwner();
+    $provider = createSystemAiProvider($systemContext);
+    $model = createSystemAiModel($provider);
 
     $this->actingAs($user, 'admin');
 
     $this->get(route('dashboard'))
-        ->assertRedirect(route('workspace.dashboard'));
+        ->assertRedirect(route('admin.dashboard'));
 
-    $this->get(route('workspace.home'))
-        ->assertRedirect(route('workspace.dashboard'));
+    $this->get(route('admin.home'))
+        ->assertRedirect(route('admin.dashboard'));
 
-    $this->get(route('workspace.dashboard'))
+    $this->get(route('admin.dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Dashboard')
-            ->has('workspaceUserContext')
+            ->has('systemUserContext')
             ->has('aiAssistantLlmModelOptions', 1)
             ->where('aiAssistantLlmModelOptions.0.value', (string) $model->id)
-            ->where('workspaceUserContext.workspace_slug', 'admin')
-            ->missing('currentWorkspace')
+            ->where('systemUserContext.system_slug', 'admin')
+            ->missing('currentSystem')
         );
 
     $this->get(route('inbox'))
-        ->assertRedirect(route('workspace.inbox.show'));
+        ->assertRedirect(route('admin.inbox.show'));
 
-    $this->get(route('workspace.inbox.show'))
+    $this->get(route('admin.inbox.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Inbox')
             ->has('enabled_web_channels', 0)
             ->has('reply_assistant_mode_options', 2)
             ->has('reply_polish_tone_options', 4)
-            ->has('workspaceUserContext')
+            ->has('systemUserContext')
             ->has('aiAssistantLlmModelOptions', 1)
             ->where('aiAssistantLlmModelOptions.0.value', (string) $model->id)
-            ->where('workspaceUserContext.workspace_slug', 'admin')
-            ->missing('currentWorkspace')
+            ->where('systemUserContext.system_slug', 'admin')
+            ->missing('currentSystem')
         );
 });
 
 test('访问仪表盘刷新用户最后活跃时间戳', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
     $previousLastActiveAt = now()->subDay();
     $user->forceFill(['last_active_at' => $previousLastActiveAt])->save();
 
     $this->actingAs($user, 'admin')
-        ->get(route('workspace.dashboard'))
+        ->get(route('admin.dashboard'))
         ->assertOk();
 
     $updatedLastActiveAt = $user->fresh()->last_active_at;
@@ -103,14 +103,14 @@ test('访问仪表盘刷新用户最后活跃时间戳', function () {
 });
 
 test('管理员在收件箱接收 AI 助手模型选项', function () {
-    [$workspace] = createWorkspaceWithOwner();
-    $provider = createWorkspaceAiProvider($workspace);
-    $model = createWorkspaceAiModel($provider);
+    [$systemContext] = createSystemWithOwner();
+    $provider = createSystemAiProvider($systemContext);
+    $model = createSystemAiModel($provider);
 
     $admin = createSuperAdmin();
 
     $this->actingAs($admin, 'admin')
-        ->get(route('workspace.inbox.show'))
+        ->get(route('admin.inbox.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Inbox')
@@ -121,7 +121,7 @@ test('管理员在收件箱接收 AI 助手模型选项', function () {
 });
 
 test('收件箱只显示非已删除网页频道', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $enabledChannel = Channel::factory()->create([
         'name' => '官网主站',
@@ -132,7 +132,7 @@ test('收件箱只显示非已删除网页频道', function () {
     ]);
 
     Channel::factory()->create([
-        'name' => '其他工作区网站',
+        'name' => '其他系统网站',
     ]);
 
     $deletedChannel = Channel::factory()->create([
@@ -141,7 +141,7 @@ test('收件箱只显示非已删除网页频道', function () {
     $deletedChannel->delete();
 
     $this->actingAs($user, 'admin')
-        ->get(route('workspace.inbox.show'))
+        ->get(route('admin.inbox.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Inbox')

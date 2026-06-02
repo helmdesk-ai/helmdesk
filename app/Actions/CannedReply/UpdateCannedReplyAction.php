@@ -3,11 +3,11 @@
 namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\FormUpdateCannedReplyData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +16,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * 更新快捷回复模版，支持在个人 <-> 工作区共享之间切换归属。
+ * 更新快捷回复模版，支持在个人 <-> 系统共享之间切换归属。
  */
 class UpdateCannedReplyAction
 {
@@ -28,9 +28,9 @@ class UpdateCannedReplyAction
 
     /**
      * 写入更新字段；权限不足或 shortcut 冲突会抛业务异常 / 校验异常。
-     * 切换归属（个人 <-> 共享）需要工作区共享管理权限。
+     * 切换归属（个人 <-> 共享）需要系统共享管理权限。
      */
-    public function handle(Workspace $workspace, User $user, string $cannedReplyId, FormUpdateCannedReplyData $data): CannedReply
+    public function handle(SystemContext $systemContext, User $user, string $cannedReplyId, FormUpdateCannedReplyData $data): CannedReply
     {
         $reply = CannedReply::query()
             ->find($cannedReplyId);
@@ -39,7 +39,7 @@ class UpdateCannedReplyAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->policy->canEdit($reply, $workspace, $user)) {
+        if (! $this->policy->canEdit($reply, $systemContext, $user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
@@ -47,14 +47,14 @@ class UpdateCannedReplyAction
         $willBeShared = ! $data->is_personal;
         $isScopeChange = $wasShared !== $willBeShared;
 
-        if ($isScopeChange && ! $this->policy->canManageWorkspaceShared($workspace, $user)) {
+        if ($isScopeChange && ! $this->policy->canManageSystemShared($systemContext, $user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
         $targetUserId = $willBeShared ? null : ($wasShared ? $user->id : $reply->user_id);
 
         $shortcut = $this->normalizeShortcut($data->shortcut);
-        $this->guardShortcutUnique($workspace, $reply, $shortcut, $targetUserId);
+        $this->guardShortcutUnique($systemContext, $reply, $shortcut, $targetUserId);
 
         $reply->fill([
             'name' => trim($data->name),
@@ -72,13 +72,13 @@ class UpdateCannedReplyAction
      */
     public function asController(Request $request, string $cannedReply): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($workspace, $user, $cannedReply, FormUpdateCannedReplyData::from($request));
+        $this->handle($systemContext, $user, $cannedReply, FormUpdateCannedReplyData::from($request));
 
-        return redirect()->route('workspace.canned-replies.index');
+        return redirect()->route('admin.canned-replies.index');
     }
 
     /**
@@ -97,9 +97,9 @@ class UpdateCannedReplyAction
 
     /**
      * 排除自身后检查目标归属（targetUserId）下 shortcut 唯一。
-     * targetUserId 为 null 表示工作区共享范围。
+     * targetUserId 为 null 表示系统共享范围。
      */
-    private function guardShortcutUnique(Workspace $workspace, CannedReply $current, ?string $shortcut, ?string $targetUserId): void
+    private function guardShortcutUnique(SystemContext $systemContext, CannedReply $current, ?string $shortcut, ?string $targetUserId): void
     {
         if ($shortcut === null) {
             return;

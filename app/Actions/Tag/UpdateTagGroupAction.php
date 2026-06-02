@@ -2,11 +2,11 @@
 
 namespace App\Actions\Tag;
 
+use App\Data\SystemUserContextData;
 use App\Data\Tag\FormUpdateTagGroupData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\SystemContext;
 use App\Models\TagGroup;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,7 +21,7 @@ class UpdateTagGroupAction
     /**
      * 校验新组名唯一后重命名标签组。
      */
-    public function handle(Workspace $workspace, string $id, FormUpdateTagGroupData $data, ?User $actor = null): TagGroup
+    public function handle(SystemContext $systemContext, string $id, FormUpdateTagGroupData $data, ?User $actor = null): TagGroup
     {
         $group = TagGroup::query()
             ->findOrFail($id);
@@ -54,9 +54,9 @@ class UpdateTagGroupAction
      */
     public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormUpdateTagGroupData::from($request);
-        $this->handle($ctx->workspace(), $id, $data, $request->user());
+        $this->handle($ctx->systemContext(), $id, $data, $request->user());
 
         return back();
     }

@@ -8,7 +8,7 @@ use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -36,7 +36,7 @@ class CompileReceptionPlanAction
      *
      * @return array{snapshot_config: array<string, mixed>, compiled_config: array<string, mixed>}
      */
-    public function handle(Workspace $workspace, ReceptionPlan $plan): array
+    public function handle(SystemContext $systemContext, ReceptionPlan $plan): array
     {
         $receptionConfig = $plan->reception_config ?? [];
         $taskConfig = $plan->task_config ?? [];
@@ -47,10 +47,10 @@ class CompileReceptionPlanAction
             ? $taskConfig['default_model']
             : [];
 
-        $this->resolver->assertActiveLlmModelOrFail($workspace, $receptionDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_reception_model');
-        $this->resolver->assertActiveLlmModelOrFail($workspace, $taskDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_task_model');
-        $receptionModelCandidates = $this->resolveModelCandidates($workspace, $receptionConfig, $receptionDefaultModel, 'reception.messages.invalid_reception_model');
-        $taskModelCandidates = $this->resolveModelCandidates($workspace, $taskConfig, $taskDefaultModel, 'reception.messages.invalid_task_model');
+        $this->resolver->assertActiveLlmModelOrFail($systemContext, $receptionDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_reception_model');
+        $this->resolver->assertActiveLlmModelOrFail($systemContext, $taskDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_task_model');
+        $receptionModelCandidates = $this->resolveModelCandidates($systemContext, $receptionConfig, $receptionDefaultModel, 'reception.messages.invalid_reception_model');
+        $taskModelCandidates = $this->resolveModelCandidates($systemContext, $taskConfig, $taskDefaultModel, 'reception.messages.invalid_task_model');
 
         $personaConfig = $plan->persona_config ?? [];
         $capabilities = $plan->capabilities;
@@ -60,8 +60,8 @@ class CompileReceptionPlanAction
         $autoMessagesConfig = $plan->auto_messages_config;
         $translationConfig = ReceptionMessageTranslationConfigData::fromArray($plan->translation_config)->toConfigArray();
 
-        $kbSnapshots = $this->loadKnowledgeBaseSnapshots($workspace, $knowledgeBaseIds);
-        $mcpToolSnapshots = $this->loadMcpToolSnapshots($workspace, $mcpToolIds);
+        $kbSnapshots = $this->loadKnowledgeBaseSnapshots($systemContext, $knowledgeBaseIds);
+        $mcpToolSnapshots = $this->loadMcpToolSnapshots($systemContext, $mcpToolIds);
 
         $snapshotConfig = [
             'name' => $plan->name,
@@ -134,7 +134,7 @@ class CompileReceptionPlanAction
      * @param  array<string, mixed>  $defaultModel
      * @return list<array{ai_model_id: string, priority: int}>
      */
-    private function resolveModelCandidates(Workspace $workspace, array $modelConfig, array $defaultModel, string $messageKey): array
+    private function resolveModelCandidates(SystemContext $systemContext, array $modelConfig, array $defaultModel, string $messageKey): array
     {
         $primaryModelId = isset($defaultModel['ai_model_id']) && is_string($defaultModel['ai_model_id'])
             ? $defaultModel['ai_model_id']
@@ -167,7 +167,7 @@ class CompileReceptionPlanAction
                 continue;
             }
 
-            $this->resolver->assertActiveLlmModelOrFail($workspace, $modelId, $messageKey);
+            $this->resolver->assertActiveLlmModelOrFail($systemContext, $modelId, $messageKey);
 
             $seen[$modelId] = true;
             $candidates[] = [
@@ -203,7 +203,7 @@ class CompileReceptionPlanAction
      * @param  list<string>  $knowledgeBaseIds
      * @return list<array{id: string, name: string, description: string|null, category: string|null}>
      */
-    private function loadKnowledgeBaseSnapshots(Workspace $workspace, array $knowledgeBaseIds): array
+    private function loadKnowledgeBaseSnapshots(SystemContext $systemContext, array $knowledgeBaseIds): array
     {
         $ids = array_filter(array_unique($knowledgeBaseIds), static fn ($id) => is_string($id) && filled($id));
         if ($ids === []) {
@@ -238,7 +238,7 @@ class CompileReceptionPlanAction
      * @param  list<string>  $mcpToolIds
      * @return list<array{id: string, name: string, description: string|null, server_id: string, server_slug: string, server_name: string}>
      */
-    private function loadMcpToolSnapshots(Workspace $workspace, array $mcpToolIds): array
+    private function loadMcpToolSnapshots(SystemContext $systemContext, array $mcpToolIds): array
     {
         $ids = array_filter(array_unique($mcpToolIds), static fn ($id) => is_string($id) && filled($id));
         if ($ids === []) {

@@ -45,7 +45,7 @@ import { useInboxSummaryAutoTranslate } from '@/composables/useInboxSummaryAutoT
 import { useReplyTranslationPreview } from '@/composables/useReplyTranslationPreview';
 import { useToast } from '@/composables/useToast';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
+import { useRequiredSystem } from '@/composables/useSystemContext';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { COMPOSER_EMOJIS } from '@/lib/composerEmojis';
 import { formatFileSize } from '@/lib/format';
@@ -57,11 +57,8 @@ import InboxContextPanel from '@/pages/inbox/InboxContextPanel.vue';
 import InboxMessageSearchResults from '@/pages/inbox/InboxMessageSearchResults.vue';
 import InboxStitchedTimeline from '@/pages/inbox/InboxStitchedTimeline.vue';
 import InboxToolbar from '@/pages/inbox/InboxToolbar.vue';
-import {
-  default as workspace,
-  default as workspaceRoutes,
-} from '@/routes/workspace';
-import inboxActions from '@/routes/workspace/inbox';
+import systemRoutes from '@/routes/admin';
+import inboxActions from '@/routes/admin/inbox';
 import type { AppPageProps } from '@/types';
 import type {
   AiModelOptionData,
@@ -107,16 +104,16 @@ const { toast } = useToast();
 const { upload } = useAttachmentUploader();
 const { formatRelativeShortWithTooltip } = useDateTime();
 const { formatVisitorName } = useVisitorDisplay();
-const currentWorkspace = useRequiredWorkspace();
+const currentSystem = useRequiredSystem();
 const page = usePage<AppPageProps>();
 const currentUserId = computed<string | null>(() => {
   const id = page.props.auth.user?.id;
   return id ? String(id) : null;
 });
 const currentUserLocale = computed(() => page.props.auth.user.locale);
-const workspaceUserContext = computed(() => page.props.workspaceUserContext);
+const systemUserContext = computed(() => page.props.systemUserContext);
 const isCurrentUserOffline = computed(
-  () => Number(workspaceUserContext.value?.user_online_status?.value) === 0,
+  () => Number(systemUserContext.value?.user_online_status?.value) === 0,
 );
 interface StoredAiModelSelection {
   id: string;
@@ -132,7 +129,7 @@ type StringEnumOptionData = {
 };
 
 const aiAssistantModelStorageKey = computed(
-  () => `ai-assistant:selected-model:${currentWorkspace.value.id}`,
+  () => `ai-assistant:selected-model:${currentSystem.value.id}`,
 );
 const aiModelOptions = computed<AiModelOptionData[]>(() => {
   if (!Array.isArray(page.props.aiAssistantLlmModelOptions)) {
@@ -155,7 +152,7 @@ const groupedAiModelOptions = computed(() => {
   }));
 });
 const replyPolishToneStorageKey = computed(
-  () => `helmdesk.inbox.reply-polish-tone:${currentWorkspace.value.id}`,
+  () => `helmdesk.inbox.reply-polish-tone:${currentSystem.value.id}`,
 );
 const replyPolishToneOptions = computed<StringEnumOptionData[]>(
   () => props.reply_polish_tone_options as StringEnumOptionData[],
@@ -171,8 +168,8 @@ const replyImageInputRef = ref<HTMLInputElement | null>(null);
 const replyAttachmentUploading = ref(false);
 const importanceProcessing = ref(false);
 const SHOW_TIMELINE_EVENTS_STORAGE_KEY = 'helmdesk.inbox.show_timeline_events';
-const AUTO_TRANSLATE_VISIBLE_STORAGE_KEY = `helmdesk.inbox.auto_translate_visible.${currentWorkspace.value.id}`;
-const AUTO_TRANSLATE_REPLY_STORAGE_KEY = `helmdesk.inbox.auto_translate_reply.${currentWorkspace.value.id}`;
+const AUTO_TRANSLATE_VISIBLE_STORAGE_KEY = `helmdesk.inbox.auto_translate_visible.${currentSystem.value.id}`;
+const AUTO_TRANSLATE_REPLY_STORAGE_KEY = `helmdesk.inbox.auto_translate_reply.${currentSystem.value.id}`;
 
 function getStoredShowTimelineEvents(): boolean {
   if (typeof window === 'undefined') {
@@ -899,7 +896,7 @@ function buildInboxUrl(
       query[key] = value;
     }
   }
-  return workspaceRoutes.inbox.show.url({ query });
+  return systemRoutes.inbox.show.url({ query });
 }
 
 function displayedUnreadCount(conversation: ListConversationItemData): number {
@@ -2222,7 +2219,7 @@ function switchCurrentUserOnline(): void {
 
   updatingOnlineStatus.value = true;
   router.put(
-    workspace.onlineStatus.update.url(),
+    admin.onlineStatus.update.url(),
     { online_status: 1 },
     {
       preserveScroll: true,
@@ -2257,7 +2254,7 @@ async function toggleSelectionImportance(): Promise<void> {
   importanceProcessing.value = true;
   try {
     await axios.put(
-      workspace.contacts.importance.update.url({
+      admin.contacts.importance.update.url({
         id: profile.id,
       }),
       { is_important: !profile.is_important },

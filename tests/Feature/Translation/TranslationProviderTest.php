@@ -5,12 +5,12 @@ use App\Models\TranslationProvider;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->createUserWithWorkspace();
+    $this->createUserWithSystem();
 });
 
 it('加密持久化凭据并转换 protocol 枚举', function () {
@@ -57,7 +57,7 @@ it('mergeCredentials 在输入为空时清除非 secret 字段', function () {
     expect($merged)->toBe([]);
 });
 
-it('强制同一工作区内 slug 唯一', function () {
+it('强制同一系统内 slug 唯一', function () {
     TranslationProvider::factory()->create([
         'slug' => 'gtranslate',
     ]);

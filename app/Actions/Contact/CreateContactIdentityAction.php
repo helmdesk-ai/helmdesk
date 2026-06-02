@@ -3,14 +3,14 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormCreateContactIdentityData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ContactType;
 use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Http\Request;
@@ -27,7 +27,7 @@ class CreateContactIdentityAction
     use AsAction;
 
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         string $contactId,
         FormCreateContactIdentityData $data,
         ?User $actor = null,
@@ -114,11 +114,11 @@ class CreateContactIdentityAction
 
     public function asController(Request $request, string $contactId): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $data = FormCreateContactIdentityData::from($request);
 
-        $this->handle($workspace, $contactId, $data, $request->user());
+        $this->handle($systemContext, $contactId, $data, $request->user());
 
         return back();
     }

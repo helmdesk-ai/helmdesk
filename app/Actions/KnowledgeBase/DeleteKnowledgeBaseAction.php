@@ -2,7 +2,7 @@
 
 namespace App\Actions\KnowledgeBase;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaAnswer;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除工作区下的知识库：清理主库的文档 / 问答 / 分组等关联记录，
+ * 删除系统下的知识库：清理主库的文档 / 问答 / 分组等关联记录，
  * 并同步清空 sqlite_rag 上对应的全文索引、向量节点和大纲，避免出现孤儿数据。
  */
 class DeleteKnowledgeBaseAction
@@ -72,14 +72,14 @@ class DeleteKnowledgeBaseAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $knowledgeBaseModel = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
 
         $this->handle($knowledgeBaseModel);
 
-        return redirect()->route('workspace.manage.knowledge-bases.index');
+        return redirect()->route('admin.manage.knowledge-bases.index');
     }
 }

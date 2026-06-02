@@ -4,7 +4,7 @@
  * 通过 IntersectionObserver 追踪当前会话摘要和历史会话摘要块，按客服当前语言补翻摘要文本。
  */
 import { localeMatches } from '@/lib/locale';
-import inboxActions from '@/routes/workspace/inbox';
+import inboxActions from '@/routes/admin/inbox';
 import type {
   ContactStitchedTimelineData,
   ConversationSummaryData,

@@ -4,9 +4,9 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 test('双因素设置页面可以渲染', function () {
     if (! Features::canManageTwoFactorAuthentication()) {
@@ -19,11 +19,11 @@ test('双因素设置页面可以渲染', function () {
     ]);
 
     $user = User::factory()->withoutTwoFactor()->create();
-    $this->attachWorkspace($user);
+    $this->attachSystem($user);
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('settings.two-factor.show', ['from_workspace' => $this->workspaceSlug()]))
+        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/TwoFactor')
             ->where('two_factor_enabled', false)
@@ -35,7 +35,7 @@ test('双因素设置页面需要密码确认当已启用', function () {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }
 
-    $user = $this->createUserWithWorkspace();
+    $user = $this->createUserWithSystem();
 
     Features::twoFactorAuthentication([
         'confirm' => true,
@@ -43,7 +43,7 @@ test('双因素设置页面需要密码确认当已启用', function () {
     ]);
 
     $response = $this->actingAs($user)
-        ->get(route('settings.two-factor.show', ['from_workspace' => $this->workspaceSlug()]));
+        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]));
 
     $response->assertRedirect(route('password.confirm'));
 });
@@ -53,7 +53,7 @@ test('双因素设置页面不需要密码确认当已禁用', function () {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }
 
-    $user = $this->createUserWithWorkspace();
+    $user = $this->createUserWithSystem();
 
     Features::twoFactorAuthentication([
         'confirm' => true,
@@ -61,7 +61,7 @@ test('双因素设置页面不需要密码确认当已禁用', function () {
     ]);
 
     $this->actingAs($user)
-        ->get(route('settings.two-factor.show', ['from_workspace' => $this->workspaceSlug()]))
+        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/TwoFactor')
@@ -75,10 +75,10 @@ test('双因素设置页面返回禁止响应当双因素认证禁用时', funct
 
     config(['fortify.features' => []]);
 
-    $user = $this->createUserWithWorkspace();
+    $user = $this->createUserWithSystem();
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('settings.two-factor.show', ['from_workspace' => $this->workspaceSlug()]))
+        ->get(route('settings.two-factor.show', ['from_system' => $this->systemSlug()]))
         ->assertForbidden();
 });

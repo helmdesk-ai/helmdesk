@@ -11,7 +11,7 @@ use App\Models\AiModel;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
@@ -34,7 +34,7 @@ use Throwable;
  * 后续如需严格语义聚类（UMAP + GMM），替换 buildClusters() 即可。
  *
  * 本 Action 不会为 canonical text 叶子额外挂向量；那是 IndexKnowledgeDocumentVectorAction 的职责。
- * 这保证 Vector / Raptor 两个 toggle 在工作区配置上完全正交。
+ * 这保证 Vector / Raptor 两个 toggle 在系统配置上完全正交。
  */
 class IndexKnowledgeDocumentRaptorAction
 {
@@ -66,18 +66,18 @@ class IndexKnowledgeDocumentRaptorAction
         if ($kb === null) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
-        $workspace = Workspace::current();
+        $systemContext = SystemContext::current();
         if (! $kb->hasIndexingStrategy(KnowledgeIndexingStrategy::Raptor)) {
             $document->updateStageStatus(KnowledgeIndexingStrategy::Raptor, KnowledgeDocumentIndexingStatus::Idle, knowledgeBase: $kb);
 
             return;
         }
 
-        $summaryModel = $workspace->knowledgeSummaryModel;
+        $summaryModel = $systemContext->knowledgeSummaryModel;
         if ($summaryModel === null || $summaryModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_summary_model'));
         }
-        $embeddingModel = $workspace->knowledgeEmbeddingModel;
+        $embeddingModel = $systemContext->knowledgeEmbeddingModel;
         if ($embeddingModel === null || $embeddingModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_embedding_model'));
         }

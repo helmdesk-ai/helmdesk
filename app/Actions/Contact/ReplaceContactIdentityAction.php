@@ -3,13 +3,13 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormReplaceContactIdentityData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ class ReplaceContactIdentityAction
     use AsAction;
 
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         string $contactId,
         string $identityId,
         FormReplaceContactIdentityData $data,
@@ -124,11 +124,11 @@ class ReplaceContactIdentityAction
         string $contactId,
         string $identityId,
     ): Response {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $data = FormReplaceContactIdentityData::from($request);
 
-        $this->handle($workspace, $contactId, $identityId, $data, $request->user());
+        $this->handle($systemContext, $contactId, $identityId, $data, $request->user());
 
         return back();
     }

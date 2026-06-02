@@ -3,7 +3,7 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormMergeContactsData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\AttributeValueSource;
 use App\Enums\ContactType;
@@ -13,9 +13,9 @@ use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
 use App\Models\ContactIdentity;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactAiContext;
 use App\Services\Contact\ContactIdentityNormalizer;
@@ -33,7 +33,7 @@ class MergeContactsAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $targetContactId, string $mergedContactId, ?User $actor = null): Contact
+    public function handle(SystemContext $systemContext, string $targetContactId, string $mergedContactId, ?User $actor = null): Contact
     {
         if ($targetContactId === $mergedContactId) {
             throw new InvalidArgumentException('Cannot merge a contact with itself.');
@@ -45,11 +45,11 @@ class MergeContactsAction
         $merged = Contact::query()
             ->findOrFail($mergedContactId);
 
-        return DB::transaction(function () use ($workspace, $target, $merged, $actor) {
+        return DB::transaction(function () use ($systemContext, $target, $merged, $actor) {
             $mergedIdentities = $merged->identities()->get();
             $this->mergeAttributes($target, $merged, $mergedIdentities);
 
-            $mergedCustomAttributes = $this->mergeCustomAttributes($workspace, $target, $merged);
+            $mergedCustomAttributes = $this->mergeCustomAttributes($systemContext, $target, $merged);
 
             $identitySnapshots = $mergedIdentities->map(fn (ContactIdentity $i) => [
                 'id' => $i->id,
@@ -178,7 +178,7 @@ class MergeContactsAction
     /**
      * @return array<int, array{key: string, value: mixed}>
      */
-    private function mergeCustomAttributes(Workspace $workspace, Contact $target, Contact $merged): array
+    private function mergeCustomAttributes(SystemContext $systemContext, Contact $target, Contact $merged): array
     {
         $targetValues = ContactAttributeValue::query()
             ->where('contact_id', $target->id)
@@ -293,12 +293,12 @@ class MergeContactsAction
 
     public function asController(Request $request): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $data = FormMergeContactsData::from($request);
 
         $this->handle(
-            $workspace,
+            $systemContext,
             $data->target_contact_id,
             $data->merged_contact_id,
             $request->user(),

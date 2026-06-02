@@ -11,10 +11,10 @@ beforeEach(function () {
 });
 
 test('用户可以查看默认通知设置', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $this->actingAs($user)
-        ->get(route('settings.notifications.edit', ['from_workspace' => $workspace->slug]))
+        ->get(route('settings.notifications.edit', ['from_system' => $systemContext->slug]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('settings/Notifications')
@@ -28,10 +28,10 @@ test('用户可以查看默认通知设置', function () {
 });
 
 test('用户可以更新通知设置', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $this->actingAs($user)
-        ->put(route('settings.notifications.update', ['from_workspace' => $workspace->slug]), [
+        ->put(route('settings.notifications.update', ['from_system' => $systemContext->slug]), [
             'browser_notifications_enabled' => true,
             'sound_enabled' => true,
             'sound' => NotificationSound::Pop->value,
@@ -53,10 +53,10 @@ test('用户可以更新通知设置', function () {
 });
 
 test('通知设置校验布尔开关', function (array $payload, string $field) {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $this->actingAs($user)
-        ->put(route('settings.notifications.update', ['from_workspace' => $workspace->slug]), $payload)
+        ->put(route('settings.notifications.update', ['from_system' => $systemContext->slug]), $payload)
         ->assertSessionHasErrors($field);
 })->with([
     'browser notification flag' => [[

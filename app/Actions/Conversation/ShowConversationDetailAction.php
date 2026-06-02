@@ -9,8 +9,8 @@ use App\Data\Conversation\ConversationReceptionPlanVersionSummaryData;
 use App\Data\Conversation\ConversationSummaryData;
 use App\Data\Conversation\ConversationTimelineData;
 use App\Data\Conversation\TimelineEntryData;
+use App\Data\SystemUserContextData;
 use App\Data\User\UserOptionData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ConversationEventType;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
@@ -51,8 +51,8 @@ class ShowConversationDetailAction
      */
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $conversation = Conversation::query()
             ->findOrFail($id);
         $viewer = User::query()->find($ctx->user_id);

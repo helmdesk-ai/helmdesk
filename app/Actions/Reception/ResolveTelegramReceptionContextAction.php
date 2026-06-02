@@ -15,7 +15,7 @@ use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\Conversation;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Storage\AttachmentPathGenerator;
 use App\Services\Storage\StorageProfileDisk;
 use App\Services\Storage\StorageProfileResolver;
@@ -57,7 +57,7 @@ class ResolveTelegramReceptionContextAction
         $channel = $this->findActiveChannel($channelCode);
 
         $contact = $this->resolveContactIdentityAction->handle(
-            Workspace::current(),
+            SystemContext::current(),
             [
                 'type' => IdentityType::ExternalId,
                 'value' => $telegramUserId,

@@ -4,11 +4,11 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxConversationSummaryTranslationsData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Jobs\Inbox\TranslateInboxConversationSummaryJob;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Support\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,7 +35,7 @@ class QueueInboxConversationSummaryTranslationsAction
      *
      * @param  list<string>  $conversationIds
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, array $conversationIds): int
+    public function handle(SystemContext $systemContext, User $user, string $conversationId, array $conversationIds): int
     {
         $anchor = Conversation::query()
             ->find($conversationId);
@@ -48,7 +48,7 @@ class QueueInboxConversationSummaryTranslationsAction
             return 0;
         }
 
-        $conversations = $this->conversationsNeedingTranslation($workspace, $user, (string) $anchor->contact_id, $conversationIds);
+        $conversations = $this->conversationsNeedingTranslation($systemContext, $user, (string) $anchor->contact_id, $conversationIds);
 
         foreach ($conversations as $conversation) {
             TranslateInboxConversationSummaryJob::dispatch(
@@ -65,13 +65,13 @@ class QueueInboxConversationSummaryTranslationsAction
      */
     public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
         $data = FormQueueInboxConversationSummaryTranslationsData::from($request);
 
         return response()->json([
             'queued_count' => $this->handle(
-                workspace: $ctx->workspace(),
+                systemContext: $ctx->systemContext(),
                 user: $user,
                 conversationId: $conversationId,
                 conversationIds: $data->conversation_ids,
@@ -85,7 +85,7 @@ class QueueInboxConversationSummaryTranslationsAction
      * @param  list<string>  $conversationIds
      * @return Collection<int, Conversation>
      */
-    private function conversationsNeedingTranslation(Workspace $workspace, User $user, string $contactId, array $conversationIds): Collection
+    private function conversationsNeedingTranslation(SystemContext $systemContext, User $user, string $contactId, array $conversationIds): Collection
     {
         return Conversation::query()
             ->where('contact_id', $contactId)

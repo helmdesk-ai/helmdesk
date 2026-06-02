@@ -11,8 +11,8 @@ export default {
     'Manage system basics, data fields, message templates, storage, mail, and AI capabilities',
   基础设置: 'General Settings',
   用户管理: 'Users',
-  '管理系统中所有可登录的账号；将其加入工作区后即可作为客服参与会话。':
-    'Manage all login accounts in the system. Add them to a workspace so they can serve as customer service.',
+  '管理系统中所有可登录的账号；将其加入系统后即可作为客服参与会话。':
+    'Manage all login accounts in the system. Add them to a system so they can serve as customer service.',
   新增用户: 'New user',
   编辑用户: 'Edit user',
   暂无用户: 'No users',
@@ -190,8 +190,8 @@ export default {
   默认模型: 'Default Model',
   这里决定系统在未指定自定义模型时默认使用哪个大语言模型:
     'Choose which LLM the system should use when no custom model is specified',
-  '工作区选择继承系统默认时，会使用这里选中的模型。':
-    'Workspaces using system defaults will use the model selected here',
+  '系统选择继承系统默认时，会使用这里选中的模型。':
+    'Systems using system defaults will use the model selected here',
   并发控制: 'Concurrency Control',
   '控制系统同一时间最多处理多少 AI 请求。':
     'Control how many AI requests the system may handle at the same time',

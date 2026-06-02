@@ -5,7 +5,7 @@ namespace App\Data\Reception;
 use App\Data\AiRuntime\ModelSelectionStatusData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioData;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Spatie\LaravelData\Data;
 
@@ -54,21 +54,21 @@ class ReceptionPlanData extends Data
     {
         $receptionConfig = $plan->reception_config ?? [];
         $taskConfig = $plan->task_config ?? [];
-        $workspace = Workspace::current();
+        $systemContext = SystemContext::current();
 
         $receptionModel = ModelInvocationData::fromArray($receptionConfig['default_model'] ?? null);
-        $receptionModelStatus = $resolver->resolveModelStatus($workspace, $receptionModel?->ai_model_id);
+        $receptionModelStatus = $resolver->resolveModelStatus($systemContext, $receptionModel?->ai_model_id);
         $receptionModel = $receptionModel !== null
             ? new ModelInvocationData(
                 ai_model_id: $receptionModel->ai_model_id,
                 label: $receptionModelStatus->label,
             )
             : null;
-        $receptionModelCandidates = self::resolveModelCandidates($workspace, $resolver, $receptionConfig, $receptionModel);
+        $receptionModelCandidates = self::resolveModelCandidates($systemContext, $resolver, $receptionConfig, $receptionModel);
 
         $taskModel = ModelInvocationData::fromArray($taskConfig['default_model'] ?? null);
         $taskModelStatus = $taskModel !== null
-            ? $resolver->resolveModelStatus($workspace, $taskModel->ai_model_id)
+            ? $resolver->resolveModelStatus($systemContext, $taskModel->ai_model_id)
             : null;
         $taskModel = $taskModel !== null
             ? new ModelInvocationData(
@@ -76,7 +76,7 @@ class ReceptionPlanData extends Data
                 label: $taskModelStatus?->label,
             )
             : null;
-        $taskModelCandidates = self::resolveModelCandidates($workspace, $resolver, $taskConfig, $taskModel);
+        $taskModelCandidates = self::resolveModelCandidates($systemContext, $resolver, $taskConfig, $taskModel);
 
         return new self(
             id: (string) $plan->id,
@@ -105,7 +105,7 @@ class ReceptionPlanData extends Data
      */
     public static function fromModelDetailed(
         ReceptionPlan $plan,
-        Workspace $workspace,
+        SystemContext $systemContext,
         AiModelResolver $resolver,
     ): self {
         $base = self::fromModel($plan, $resolver);
@@ -129,7 +129,7 @@ class ReceptionPlanData extends Data
      * @return list<ModelCandidateData>
      */
     private static function resolveModelCandidates(
-        Workspace $workspace,
+        SystemContext $systemContext,
         AiModelResolver $resolver,
         array $modelConfig,
         ?ModelInvocationData $defaultModel,
@@ -153,7 +153,7 @@ class ReceptionPlanData extends Data
                 continue;
             }
 
-            $status = $resolver->resolveModelStatus($workspace, $raw['ai_model_id']);
+            $status = $resolver->resolveModelStatus($systemContext, $raw['ai_model_id']);
             $candidates[] = new ModelCandidateData(
                 ai_model_id: $raw['ai_model_id'],
                 priority: isset($raw['priority']) && is_numeric($raw['priority'])

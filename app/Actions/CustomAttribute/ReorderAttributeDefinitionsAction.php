@@ -2,8 +2,8 @@
 
 namespace App\Actions\CustomAttribute;
 
-use App\Data\WorkspaceUserContextData;
-use App\Models\Workspace;
+use App\Data\SystemUserContextData;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,9 +20,9 @@ class ReorderAttributeDefinitionsAction
     /**
      * @param  string[]  $orderedIds
      */
-    public function handle(Workspace $workspace, array $orderedIds): void
+    public function handle(SystemContext $systemContext, array $orderedIds): void
     {
-        $existingIds = $workspace->attributeDefinitions()
+        $existingIds = $systemContext->attributeDefinitions()
             ->active()
             ->ordered()
             ->pluck('id')
@@ -42,9 +42,9 @@ class ReorderAttributeDefinitionsAction
             ]);
         }
 
-        DB::transaction(function () use ($workspace, $orderedIds) {
+        DB::transaction(function () use ($systemContext, $orderedIds) {
             foreach ($orderedIds as $index => $id) {
-                $workspace->attributeDefinitions()
+                $systemContext->attributeDefinitions()
                     ->active()
                     ->where('id', $id)
                     ->update(['display_order' => $index]);
@@ -59,9 +59,9 @@ class ReorderAttributeDefinitionsAction
             'ordered_ids.*' => ['required', 'string'],
         ]);
 
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
 
-        $this->handle($workspace, $validated['ordered_ids']);
+        $this->handle($systemContext, $validated['ordered_ids']);
 
         return back();
     }

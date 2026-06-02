@@ -3,18 +3,18 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormUpdateContactImportanceData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 标记或取消标记工作区联系人为重点客户。
+ * 标记或取消标记系统联系人为重点客户。
  */
 class UpdateContactImportanceAction
 {
@@ -23,7 +23,7 @@ class UpdateContactImportanceAction
     /**
      * 更新重点客户标记并写入联系人活动日志。
      */
-    public function handle(Workspace $workspace, string $contactId, FormUpdateContactImportanceData $data, ?User $actor = null): Contact
+    public function handle(SystemContext $systemContext, string $contactId, FormUpdateContactImportanceData $data, ?User $actor = null): Contact
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
@@ -62,9 +62,9 @@ class UpdateContactImportanceAction
      */
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $contact = $this->handle(
-            $ctx->workspace(),
+            $ctx->systemContext(),
             $id,
             FormUpdateContactImportanceData::from($request),
             $request->user(),

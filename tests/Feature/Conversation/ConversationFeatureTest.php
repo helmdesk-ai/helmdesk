@@ -23,12 +23,12 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 test('已认证用户可以查看会话列表页面', function () {
@@ -54,7 +54,7 @@ test('已认证用户可以查看会话列表页面', function () {
         ]);
 
     $props = ShowConversationListAction::run(
-        workspace: $this->workspace,
+        systemContext: $this->systemContext,
         currentUserId: $this->user->id,
     );
 
@@ -90,7 +90,7 @@ test('会话列表支持已分配用户筛选', function () {
     ]);
 
     $mineProps = ShowConversationListAction::run(
-        workspace: $this->workspace,
+        systemContext: $this->systemContext,
         assignedUserId: 'mine',
         currentUserId: $this->user->id,
     );
@@ -100,7 +100,7 @@ test('会话列表支持已分配用户筛选', function () {
         ->and($mineProps->current_assigned_user_id)->toBe('mine');
 
     $unassignedProps = ShowConversationListAction::run(
-        workspace: $this->workspace,
+        systemContext: $this->systemContext,
         assignedUserId: 'unassigned',
         currentUserId: $this->user->id,
     );
@@ -121,7 +121,7 @@ test('已关闭会话列表项展示关闭状态并保留收件箱状态', funct
         ]);
 
     $props = ShowConversationListAction::run(
-        workspace: $this->workspace,
+        systemContext: $this->systemContext,
         status: ConversationStatus::Closed,
         currentUserId: $this->user->id,
     );
@@ -154,7 +154,7 @@ test('会话列表项按当前用户语言展示访客消息译文摘要', funct
     ]);
 
     $props = ShowConversationListAction::run(
-        workspace: $this->workspace,
+        systemContext: $this->systemContext,
         currentUserId: $this->user->id,
     );
 
@@ -224,7 +224,7 @@ test('会话详情返回已合并时间线在升序顺序', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('workspace.conversations.show', ['id' => $conversation->id]));
+        ->getJson(route('admin.conversations.show', ['id' => $conversation->id]));
 
     $response->assertOk()
         ->assertJsonPath('conversation.id', $conversation->id)

@@ -4,12 +4,12 @@ namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\CannedReplyRenderContextData;
 use App\Data\CannedReply\RenderedCannedReplyData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\CannedReply\CannedReplyPermission;
 use App\Services\CannedReply\CannedReplyVariableResolver;
 use Illuminate\Http\JsonResponse;
@@ -40,7 +40,7 @@ class UseAndRenderCannedReplyAction
      * 渲染并记录使用一次。
      */
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         User $user,
         string $cannedReplyId,
         ?string $conversationId,
@@ -52,13 +52,13 @@ class UseAndRenderCannedReplyAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->policy->canView($reply, $workspace, $user)) {
+        if (! $this->policy->canView($reply, $systemContext, $user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
-        $conversation = $this->resolveConversation($workspace, $conversationId);
+        $conversation = $this->resolveConversation($systemContext, $conversationId);
         $context = CannedReplyRenderContextData::build(
-            workspace: $workspace,
+            systemContext: $systemContext,
             teammate: $user,
             contact: $conversation?->contact,
             conversation: $conversation,
@@ -93,14 +93,14 @@ class UseAndRenderCannedReplyAction
      */
     public function asController(Request $request, string $cannedReply): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
 
         $conversationId = $request->input('conversation_id');
 
         $rendered = $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             user: $user,
             cannedReplyId: $cannedReply,
             conversationId: is_string($conversationId) && $conversationId !== '' ? $conversationId : null,
@@ -112,7 +112,7 @@ class UseAndRenderCannedReplyAction
     /**
      * 解析 conversation_id 并加载渲染所需的上下文关联。
      */
-    private function resolveConversation(Workspace $workspace, ?string $conversationId): ?Conversation
+    private function resolveConversation(SystemContext $systemContext, ?string $conversationId): ?Conversation
     {
         if ($conversationId === null) {
             return null;

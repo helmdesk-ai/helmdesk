@@ -1,5 +1,5 @@
 <!--
-  文件说明：后台应用布局片段，承接侧边栏、顶部状态和工作区上下文。
+  文件说明：后台应用布局片段，承接侧边栏、顶部状态和系统上下文。
 -->
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +14,7 @@ import {
 import { SidebarMenuButton } from '@/components/ui/sidebar';
 import { useI18n } from '@/composables/useI18n';
 import { getInitials } from '@/composables/useInitials';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type { AppPageProps } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronsUpDown, LogOut, Settings } from 'lucide-vue-next';
@@ -37,13 +37,13 @@ const showAvatar = computed(
   () => user.value?.avatar && user.value.avatar !== '',
 );
 
-const workspaceUserContext = computed(() => page.props.workspaceUserContext);
+const systemUserContext = computed(() => page.props.systemUserContext);
 
-const hasWorkspaceOnlineStatus = computed(
-  () => !!workspaceUserContext.value?.user_online_status,
+const hasSystemOnlineStatus = computed(
+  () => !!systemUserContext.value?.user_online_status,
 );
 const isOnline = computed(
-  () => Number(workspaceUserContext.value?.user_online_status?.value) === 1,
+  () => Number(systemUserContext.value?.user_online_status?.value) === 1,
 );
 const updatingOnlineStatus = ref(false);
 
@@ -62,7 +62,7 @@ const dropdownSide = computed(() => {
 const updateOnlineStatus = (status: number) => {
   updatingOnlineStatus.value = true;
   router.put(
-    workspace.onlineStatus.update.url(),
+    admin.onlineStatus.update.url(),
     { online_status: Number(status) },
     {
       preserveScroll: true,
@@ -95,7 +95,7 @@ const updateOnlineStatus = (status: number) => {
             </AvatarFallback>
           </Avatar>
           <span
-            v-if="hasWorkspaceOnlineStatus"
+            v-if="hasSystemOnlineStatus"
             :title="isOnline ? t('在线') : t('离线')"
             class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-background"
             :class="isOnline ? 'bg-foreground' : 'bg-muted-foreground/30'"
@@ -130,7 +130,7 @@ const updateOnlineStatus = (status: number) => {
               </AvatarFallback>
             </Avatar>
             <span
-              v-if="hasWorkspaceOnlineStatus"
+              v-if="hasSystemOnlineStatus"
               :title="isOnline ? t('在线') : t('离线')"
               class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-background"
               :class="isOnline ? 'bg-foreground' : 'bg-muted-foreground/30'"
@@ -148,7 +148,7 @@ const updateOnlineStatus = (status: number) => {
 
       <DropdownMenuSeparator />
 
-      <template v-if="hasWorkspaceOnlineStatus">
+      <template v-if="hasSystemOnlineStatus">
         <DropdownMenuItem
           :disabled="updatingOnlineStatus"
           @click="updateOnlineStatus(1)"

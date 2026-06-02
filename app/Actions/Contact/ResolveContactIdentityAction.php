@@ -8,7 +8,7 @@ use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +26,7 @@ class ResolveContactIdentityAction
      * @param  array{type: IdentityType, value: string, namespace?: string}  $identityData
      */
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         array $identityData,
         ContactSource $source = ContactSource::Web,
         ?string $name = null,

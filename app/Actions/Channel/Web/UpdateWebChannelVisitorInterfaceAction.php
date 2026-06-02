@@ -4,7 +4,7 @@ namespace App\Actions\Channel\Web;
 
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelVisitorInterfaceData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\Channel\Web\WebChannelVisitorIdentityMode;
 use App\Models\Channel;
@@ -85,14 +85,14 @@ class UpdateWebChannelVisitorInterfaceAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 
         $this->handle($channelModel, FormUpdateWebChannelVisitorInterfaceData::from($request));
 
-        return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
+        return redirect()->back(302, [], route('admin.manage.channels.web.show', [
             'channel' => $channelModel->id,
         ]));
     }

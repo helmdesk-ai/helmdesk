@@ -7,7 +7,7 @@ import type {
   AiModelOptionData,
   GeneralSettingsData,
   UserNotificationPreferencesData,
-  WorkspaceUserContextData,
+  SystemUserContextData,
 } from './generated';
 
 export interface Auth {
@@ -30,7 +30,7 @@ export type AppPageProps<T extends object = Record<string, never>> = T & {
   canAccessManageCenter?: boolean;
   canManageAi?: boolean;
   aiAssistantLlmModelOptions?: AiModelOptionData[];
-  workspaceUserContext?: WorkspaceUserContextData;
+  systemUserContext?: SystemUserContextData;
 };
 
 export interface User {

@@ -3,10 +3,10 @@
 namespace App\Actions\CustomAttribute;
 
 use App\Data\CustomAttribute\FormCreateAttributeDefinitionData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Models\AttributeDefinition;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,15 +19,15 @@ class CreateAttributeDefinitionAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, FormCreateAttributeDefinitionData $data): AttributeDefinition
+    public function handle(SystemContext $systemContext, FormCreateAttributeDefinitionData $data): AttributeDefinition
     {
-        $this->validateKey($workspace, $data->key);
+        $this->validateKey($systemContext, $data->key);
 
         $type = AttributeType::from($data->type);
         $this->validateFilterable($type, $data->is_filterable);
         $this->validateConfig($type, $data->config);
 
-        $maxOrder = $workspace->attributeDefinitions()
+        $maxOrder = $systemContext->attributeDefinitions()
             ->max('display_order') ?? -1;
 
         return AttributeDefinition::query()->create([
@@ -43,15 +43,15 @@ class CreateAttributeDefinitionAction
 
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         $data = FormCreateAttributeDefinitionData::from($request);
 
-        $this->handle($workspace, $data);
+        $this->handle($systemContext, $data);
 
         return back();
     }
 
-    private function validateKey(Workspace $workspace, string $key): void
+    private function validateKey(SystemContext $systemContext, string $key): void
     {
         if (in_array($key, AttributeDefinition::RESERVED_KEYS, true)) {
             throw ValidationException::withMessages([
@@ -59,7 +59,7 @@ class CreateAttributeDefinitionAction
             ]);
         }
 
-        $exists = $workspace->attributeDefinitions()
+        $exists = $systemContext->attributeDefinitions()
             ->withTrashed()
             ->where('key', $key)
             ->exists();

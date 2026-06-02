@@ -12,9 +12,9 @@ use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Services\Conversation\GoConversationSummaryBridge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 /**
  * 构造记录入参并返回固定建议的假桥接，用于在不调真实 LLM 的前提下测试编排逻辑。
@@ -53,7 +53,7 @@ function fakeConversationTagsBridge(): object
 }
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     $this->contact = Contact::factory()->create([]);
     $this->conversation = Conversation::factory()->create([
         'contact_id' => $this->contact->id,

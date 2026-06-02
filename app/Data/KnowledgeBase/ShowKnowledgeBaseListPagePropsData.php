@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 知识库列表页 props。
- * 由 ListKnowledgeBasesAction 返回，承载知识库列表、工作区检索配置、模型选项、分组树和当前选中状态。
+ * 由 ListKnowledgeBasesAction 返回，承载知识库列表、系统检索配置、模型选项、分组树和当前选中状态。
  * 对应 resources/js/pages/knowledgeBase/List.vue。
  */
 class ShowKnowledgeBaseListPagePropsData extends Data
@@ -38,7 +38,7 @@ class ShowKnowledgeBaseListPagePropsData extends Data
         public SimplePaginationData $document_list_pagination,
         public array $qa_entry_list,
         public SimplePaginationData $qa_entry_list_pagination,
-        public WorkspaceKnowledgeSettingsData $workspace_knowledge_settings,
+        public SystemKnowledgeSettingsData $system_knowledge_settings,
         public array $embedding_model_options,
         public array $rerank_model_options,
         public array $summary_model_options,

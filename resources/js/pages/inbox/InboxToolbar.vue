@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
-import workspaceRoutes from '@/routes/workspace';
+import systemRoutes from '@/routes/admin';
 import type { AppPageProps } from '@/types';
 import type {
   EnabledWebChannelData,
@@ -151,7 +151,7 @@ function buildUrl(overrides: Record<string, string | null>): string {
     }
   }
 
-  return workspaceRoutes.inbox.show.url({ query });
+  return systemRoutes.inbox.show.url({ query });
 }
 
 function navigatePartial(url: string, replace = false): void {

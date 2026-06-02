@@ -4,9 +4,9 @@ namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormCreateMcpServerData;
 use App\Data\Mcp\FormUpdateMcpServerData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\McpServer;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Mcp\GoMcpRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,11 +34,11 @@ class CheckMcpServerAction
      *
      * @return array{success: bool, code: string, message: string, supported: bool, warnings: array<int, string>}
      */
-    public function handle(Workspace $workspace, ?string $slug, FormCreateMcpServerData|FormUpdateMcpServerData|null $data): array
+    public function handle(SystemContext $systemContext, ?string $slug, FormCreateMcpServerData|FormUpdateMcpServerData|null $data): array
     {
         $server = $slug === null
             ? null
-            : $workspace->mcpServers()->where('slug', $slug)->firstOrFail();
+            : $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
         $runtimeServer = $data === null ? $server : $this->serverForRuntimeCheck($server, $data);
 
         $result = $this->bridge->checkServerConnection(
@@ -61,8 +61,8 @@ class CheckMcpServerAction
      */
     public function asController(Request $request, ?string $server = null): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         try {
             $data = match (true) {
@@ -70,7 +70,7 @@ class CheckMcpServerAction
                 $request->input() === [] => null,
                 default => FormUpdateMcpServerData::from($request),
             };
-            $this->handle($workspace, $server, $data);
+            $this->handle($systemContext, $server, $data);
         } catch (ValidationException $e) {
             $message = (string) collect($e->errors())
                 ->flatten()

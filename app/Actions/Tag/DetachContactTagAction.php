@@ -2,12 +2,12 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +21,7 @@ class DetachContactTagAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, string $tagId, ?User $actor = null): void
+    public function handle(SystemContext $systemContext, string $contactId, string $tagId, ?User $actor = null): void
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
@@ -53,8 +53,8 @@ class DetachContactTagAction
 
     public function asController(Request $request, string $id, string $tagId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $this->handle($ctx->workspace(), $id, $tagId, $request->user());
+        $ctx = SystemUserContextData::fromRequest($request);
+        $this->handle($ctx->systemContext(), $id, $tagId, $request->user());
 
         return response()->json(['success' => true]);
     }

@@ -11,12 +11,12 @@ use App\Services\Translation\Exceptions\TranslationProviderException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->createUserWithWorkspace();
+    $this->createUserWithSystem();
 });
 
 function translationProviderFor(TranslationProviderType $protocol, string $slug, array $credentials): TranslationProvider

@@ -2,11 +2,11 @@
 
 namespace App\Actions\Mcp;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\McpServer;
 use App\Models\McpTool;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -23,10 +23,10 @@ class ToggleMcpToolAction
     /**
      * 翻转 is_enabled，下线工具拒绝启用。
      */
-    public function handle(Workspace $workspace, string $serverSlug, string $toolId): McpTool
+    public function handle(SystemContext $systemContext, string $serverSlug, string $toolId): McpTool
     {
         /** @var McpServer $server */
-        $server = $workspace->mcpServers()->where('slug', $serverSlug)->firstOrFail();
+        $server = $systemContext->mcpServers()->where('slug', $serverSlug)->firstOrFail();
         /** @var McpTool $tool */
         $tool = $server->tools()->where('id', $toolId)->firstOrFail();
 
@@ -45,10 +45,10 @@ class ToggleMcpToolAction
      */
     public function asController(Request $request, string $server, string $tool): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $this->handle($workspace, $server, $tool);
+        $this->handle($systemContext, $server, $tool);
 
         return back();
     }

@@ -6,7 +6,7 @@ import KnowledgeBase from '@/actions/App/Actions/KnowledgeBase';
 import Plan from '@/actions/App/Actions/Reception/Plan';
 import AiAssistantWidget from '@/components/common/AiAssistantWidget.vue';
 import { useI18n } from '@/composables/useI18n';
-import { useWorkspaceNotificationAlerts } from '@/composables/useWorkspaceNotificationAlerts';
+import { useSystemNotificationAlerts } from '@/composables/useSystemNotificationAlerts';
 import SidebarShell, {
   type SidebarShellNavItem,
 } from '@/layouts/app/SidebarShell.vue';
@@ -14,7 +14,6 @@ import SidebarUserMenuWithOnlineStatus from '@/layouts/app/SidebarUserMenuWithOn
 import admin from '@/routes/admin';
 import logout from '@/routes/logout';
 import { edit } from '@/routes/settings/profile';
-import workspace from '@/routes/workspace';
 import type { AppPageProps } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import {
@@ -54,38 +53,38 @@ const routePath = (url: string) => {
 };
 
 const contactsBaseUrl = computed(() => {
-  const sample = routePath(workspace.contacts.index.url({ type: '__type__' }));
+  const sample = routePath(admin.contacts.index.url({ type: '__type__' }));
   return sample.replace('/__type__/index', '');
 });
 
 const manageBaseUrl = computed(() => {
-  return routePath(workspace.manage.tags.index.url()).replace(/\/tags$/, '');
+  return routePath(admin.manage.tags.index.url()).replace(/\/tags$/, '');
 });
 
 const mainNavItems = computed<SidebarShellNavItem[]>(() => [
   {
     title: t('仪表板'),
-    href: workspace.dashboard.url(),
+    href: admin.dashboard.url(),
     icon: LayoutGrid,
-    activeUrls: [routePath(workspace.dashboard.url())],
+    activeUrls: [routePath(admin.dashboard.url())],
   },
   {
     title: t('收件箱'),
-    href: workspace.inbox.show.url(),
+    href: admin.inbox.show.url(),
     icon: Inbox,
-    activeUrls: [routePath(workspace.inbox.show.url())],
+    activeUrls: [routePath(admin.inbox.show.url())],
   },
   {
     title: t('联系人'),
-    href: workspace.contacts.index.url({ type: 'all' }),
+    href: admin.contacts.index.url({ type: 'all' }),
     icon: Users,
     activeUrls: [contactsBaseUrl.value],
   },
   {
     title: t('会话记录'),
-    href: workspace.conversations.index.url(),
+    href: admin.conversations.index.url(),
     icon: MessagesSquare,
-    activeUrls: [routePath(workspace.conversations.index.url())],
+    activeUrls: [routePath(admin.conversations.index.url())],
   },
   {
     title: t('知识库'),
@@ -101,7 +100,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => [
   },
   {
     title: t('渠道管理'),
-    href: workspace.manage.channels.web.index.url(),
+    href: admin.manage.channels.web.index.url(),
     icon: Globe,
     activeUrls: [`${manageBaseUrl.value}/channels`],
   },
@@ -128,7 +127,7 @@ const footerNavItems = computed<SidebarShellNavItem[]>(() => [
       routePath(admin.mail.show.url()),
       `${manageBaseUrl.value}/tags`,
       `${manageBaseUrl.value}/attributes`,
-      routePath(workspace.cannedReplies.index.url()),
+      routePath(admin.cannedReplies.index.url()),
       `${manageBaseUrl.value}/ai`,
       `${manageBaseUrl.value}/mcp-servers`,
       `${manageBaseUrl.value}/translation`,
@@ -139,7 +138,7 @@ const footerNavItems = computed<SidebarShellNavItem[]>(() => [
 const profileHref = computed(() => edit().url);
 const logoutHref = computed(() => logout.admin.url());
 
-useWorkspaceNotificationAlerts({
+useSystemNotificationAlerts({
   userId: computed(() => user.value.id),
   preferences: notificationPreferences,
 });
@@ -148,7 +147,7 @@ useWorkspaceNotificationAlerts({
 <template>
   <SidebarShell
     :hide-header="hideHeader"
-    :header-href="workspace.dashboard.url()"
+    :header-href="admin.dashboard.url()"
     :header-subtitle="t('总管理后台')"
     :main-nav-items="mainNavItems"
     :footer-nav-items="footerNavItems"

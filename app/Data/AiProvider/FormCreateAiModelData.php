@@ -8,8 +8,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * 创建AI模型表单数据。
- * 来自 resources/js/pages/workspaceSettings/aiProviders/ModelFormDialog.vue 的提交，
- * 后端用它校验并写入工作区供应商下的模型配置。
+ * 来自 resources/js/pages/systemSettings/aiProviders/ModelFormDialog.vue 的提交，
+ * 后端用它校验并写入系统供应商下的模型配置。
  */
 class FormCreateAiModelData extends Data
 {

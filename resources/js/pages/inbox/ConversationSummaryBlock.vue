@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ConversationSummaryData,
   ConversationTagData,
@@ -122,7 +122,7 @@ async function attachTag(tagId: string): Promise<void> {
   ];
   try {
     await axios.post(
-      workspace.inbox.conversations.tags.attach.url({
+      admin.inbox.conversations.tags.attach.url({
         conversation: props.conversation.id,
       }),
       { tag_id: tagId },
@@ -144,7 +144,7 @@ async function detachTag(tagId: string): Promise<void> {
   localTags.value = localTags.value.filter((tag) => tag.id !== tagId);
   try {
     await axios.delete(
-      workspace.inbox.conversations.tags.detach.url({
+      admin.inbox.conversations.tags.detach.url({
         conversation: props.conversation.id,
         tagId,
       }),

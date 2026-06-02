@@ -9,7 +9,7 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 
 /**
  * 创建 AI 供应商表单数据。
- * 来自 resources/js/pages/workspaceSettings/aiProviders/AddProviderDialog.vue 的提交：
+ * 来自 resources/js/pages/systemSettings/aiProviders/AddProviderDialog.vue 的提交：
  * 用户从品牌目录选 brand、填展示名称和凭据 configuration，后端据此一步创建供应商。
  *
  * @property array<string, mixed> $configuration

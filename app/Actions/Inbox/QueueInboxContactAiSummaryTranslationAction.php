@@ -4,10 +4,10 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxContactAiSummaryTranslationData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Jobs\Inbox\TranslateInboxContactAiSummaryJob;
 use App\Models\Contact;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Support\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +31,7 @@ class QueueInboxContactAiSummaryTranslationAction
     /**
      * 校验联系人归属和摘要状态后派发补翻任务。
      */
-    public function handle(Workspace $workspace, string $contactId, string $targetLocale): int
+    public function handle(SystemContext $systemContext, string $contactId, string $targetLocale): int
     {
         $contact = Contact::query()
             ->find($contactId);
@@ -72,12 +72,12 @@ class QueueInboxContactAiSummaryTranslationAction
      */
     public function asController(Request $request, string $contactId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormQueueInboxContactAiSummaryTranslationData::from($request);
 
         return response()->json([
             'queued_count' => $this->handle(
-                workspace: $ctx->workspace(),
+                systemContext: $ctx->systemContext(),
                 contactId: $contactId,
                 targetLocale: $data->target_locale,
             ),

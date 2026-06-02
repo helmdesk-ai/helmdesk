@@ -6,7 +6,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 更新联系人属性Values表单数据。
- * 来自 resources/js/pages/workspaceSettings/datas/Attribute.vue 的编辑表单提交，后端用它校验并保存自定义属性配置。
+ * 来自 resources/js/pages/systemSettings/datas/Attribute.vue 的编辑表单提交，后端用它校验并保存自定义属性配置。
  */
 class FormUpdateContactAttributeValuesData extends Data
 {

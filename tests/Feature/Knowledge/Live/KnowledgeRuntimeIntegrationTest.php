@@ -17,9 +17,9 @@ use App\Models\KnowledgeNode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function (): void {
     if ((string) env('KNOWLEDGE_RUNTIME_LIVE') !== '1') {
@@ -32,11 +32,11 @@ beforeEach(function (): void {
         }
     }
 
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 test('真实运行时完成 canonical 段 + 向量索引', function (): void {
-    $provider = createLiveOpenRouterProvider((string) $this->workspace->id);
+    $provider = createLiveOpenRouterProvider((string) $this->systemContext->id);
     $embeddingModel = AiModel::query()->create([
         'ai_provider_id' => $provider->id,
         'model_id' => (string) env('OPENROUTER_EMBEDDING_MODEL', 'openai/text-embedding-3-small'),
@@ -47,7 +47,7 @@ test('真实运行时完成 canonical 段 + 向量索引', function (): void {
         'sort_order' => 0,
     ]);
 
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_embedding_model_id' => $embeddingModel->id,
         'knowledge_vector_index_enabled' => true,
         'knowledge_raptor_index_enabled' => false,
@@ -86,7 +86,7 @@ test('真实运行时完成 canonical 段 + 向量索引', function (): void {
 });
 
 test('真实运行时完成 RAPTOR 摘要树', function (): void {
-    $provider = createLiveOpenRouterProvider((string) $this->workspace->id);
+    $provider = createLiveOpenRouterProvider((string) $this->systemContext->id);
     $summaryModel = AiModel::query()->create([
         'ai_provider_id' => $provider->id,
         'model_id' => (string) env('OPENROUTER_LLM_MODEL', 'deepseek/deepseek-v4-flash'),
@@ -106,7 +106,7 @@ test('真实运行时完成 RAPTOR 摘要树', function (): void {
         'sort_order' => 0,
     ]);
 
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_summary_model_id' => $summaryModel->id,
         'knowledge_embedding_model_id' => $embeddingModel->id,
         'knowledge_vector_index_enabled' => false,
@@ -122,7 +122,7 @@ test('真实运行时完成 RAPTOR 摘要树', function (): void {
         'knowledge_base_id' => $knowledgeBase->id,
         'parse_status' => KnowledgeDocumentParseStatus::Succeeded,
         'parsed_content' => "# 产品说明\n\nHelmdesk 支持访客会话与工单流转。会话可被一键转工单，工单负责人需在服务等级协议时间内首响。"
-            ."\n\n升级流程允许客服把工单转给主管，主管再转给值班经理。值班经理拥有跨工作区调度权限。"
+            ."\n\n升级流程允许客服把工单转给主管，主管再转给值班经理。值班经理拥有跨系统调度权限。"
             ."\n\nNPS 调查会在会话结束后自动发起。低于 4 分的评分会触发主管回访流程。"
             ."\n\n知识库支持向量、全文与 RAPTOR 三种索引。RAPTOR 适合长文档摘要式问答，向量适合语义相似匹配。"
             ."\n\n全文索引使用 SQLite FTS5，自带的中文分词器会对停用词做剔除。grep 检索则面向字面定位。"
@@ -146,7 +146,7 @@ test('真实运行时完成 RAPTOR 摘要树', function (): void {
         ->and(mb_strlen(trim((string) $summaryNodes->first()->content)))->toBeGreaterThan(0);
 });
 
-function createLiveOpenRouterProvider(string $workspaceId): AiProvider
+function createLiveOpenRouterProvider(string $systemId): AiProvider
 {
     return AiProvider::query()->create([
         'brand' => 'custom-openai',

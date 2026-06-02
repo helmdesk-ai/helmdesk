@@ -7,7 +7,7 @@ use App\Data\KnowledgeBase\KnowledgeSearchResultData;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\Search\ContextExpander;
 use App\Services\KnowledgeBase\Search\FullTextRetriever;
 use App\Services\KnowledgeBase\Search\GrepRetriever;
@@ -37,7 +37,7 @@ class SearchKnowledgeBaseAction
     use AsAction;
 
     /**
-     * 单次工具调用返回给 Agent 的语义命中条数上限。先固定，后续可加为工作区配置项。
+     * 单次工具调用返回给 Agent 的语义命中条数上限。先固定，后续可加为系统配置项。
      */
     private const SEMANTIC_TOP_K = 8;
 
@@ -64,14 +64,14 @@ class SearchKnowledgeBaseAction
     /**
      * 对外接口。返回 Agent / 调用方使用的统一结构体。
      */
-    public function handle(Workspace $workspace, FormKnowledgeSearchData $input): KnowledgeSearchResultData
+    public function handle(SystemContext $systemContext, FormKnowledgeSearchData $input): KnowledgeSearchResultData
     {
         $queries = $input->normalizedQueries();
         if ($queries === []) {
             throw new BusinessException(__('knowledge_search.errors.query_required'));
         }
 
-        $knowledgeBases = $this->resolveAccessibleKnowledgeBases($workspace, $input->knowledge_base_ids);
+        $knowledgeBases = $this->resolveAccessibleKnowledgeBases($systemContext, $input->knowledge_base_ids);
         if ($knowledgeBases === []) {
             throw new BusinessException(__('knowledge_search.errors.knowledge_base_inaccessible'));
         }
@@ -85,7 +85,7 @@ class SearchKnowledgeBaseAction
         ];
 
         if ($input->mode->needsSemantic()) {
-            [$semanticHits, $semanticDebug] = $this->runSemantic($workspace, $knowledgeBaseIds, $queries);
+            [$semanticHits, $semanticDebug] = $this->runSemantic($systemContext, $knowledgeBaseIds, $queries);
             $debug['semantic'] = $semanticDebug;
         }
 
@@ -109,7 +109,7 @@ class SearchKnowledgeBaseAction
      * @param  list<string>  $queries
      * @return array{0: list<KnowledgeSearchHit>, 1: array<string, mixed>}
      */
-    private function runSemantic(Workspace $workspace, array $knowledgeBaseIds, array $queries): array
+    private function runSemantic(SystemContext $systemContext, array $knowledgeBaseIds, array $queries): array
     {
         $debug = [
             'vector_enabled' => false,
@@ -125,8 +125,8 @@ class SearchKnowledgeBaseAction
             self::RETRIEVER_TOP_K,
         );
 
-        $vectorEnabled = $workspace->knowledge_vector_index_enabled;
-        $raptorEnabled = $workspace->knowledge_raptor_index_enabled;
+        $vectorEnabled = $systemContext->knowledge_vector_index_enabled;
+        $raptorEnabled = $systemContext->knowledge_raptor_index_enabled;
 
         $vectorHits = [];
         $raptorHits = [];
@@ -134,7 +134,7 @@ class SearchKnowledgeBaseAction
             $dimension = 0;
             $embeddings = [];
             try {
-                [$dimension, $embeddings] = $this->queryEmbedder->embed($workspace, $queries);
+                [$dimension, $embeddings] = $this->queryEmbedder->embed($systemContext, $queries);
             } catch (Throwable $exception) {
                 // 单点 embedding 失败时只回退到全文检索；debug 给稳定错误码，详细异常仅落服务端日志。
                 $debug['embedding_error'] = 'embedding_unavailable';
@@ -142,8 +142,8 @@ class SearchKnowledgeBaseAction
                     'exception' => $exception->getMessage(),
                 ]);
             }
-            $workspace->loadMissing('knowledgeEmbeddingModel');
-            $embeddingModelId = $workspace->knowledgeEmbeddingModel?->id;
+            $systemContext->loadMissing('knowledgeEmbeddingModel');
+            $embeddingModelId = $systemContext->knowledgeEmbeddingModel?->id;
             if ($dimension > 0 && $embeddings !== []) {
                 if ($vectorEnabled) {
                     $vectorHits = $this->vectorRetriever->retrieve(
@@ -180,10 +180,10 @@ class SearchKnowledgeBaseAction
             self::RETRIEVER_TOP_K,
         );
 
-        $rerankModel = $workspace->knowledgeRerankModel;
+        $rerankModel = $systemContext->knowledgeRerankModel;
         if ($rerankModel !== null && $rerankModel->provider !== null) {
             $debug['rerank_enabled'] = true;
-            $rerankResult = $this->reranker->rerank($workspace, $queries[0], $fused, self::SEMANTIC_TOP_K);
+            $rerankResult = $this->reranker->rerank($systemContext, $queries[0], $fused, self::SEMANTIC_TOP_K);
             $debug['rerank_applied'] = $rerankResult->applied;
             if ($rerankResult->errorCode !== null) {
                 $debug['rerank_error'] = $rerankResult->errorCode;
@@ -206,7 +206,7 @@ class SearchKnowledgeBaseAction
      * @param  list<string>  $candidateIds
      * @return array<string, KnowledgeBase>
      */
-    private function resolveAccessibleKnowledgeBases(Workspace $workspace, array $candidateIds): array
+    private function resolveAccessibleKnowledgeBases(SystemContext $systemContext, array $candidateIds): array
     {
         $cleanIds = [];
         foreach ($candidateIds as $id) {

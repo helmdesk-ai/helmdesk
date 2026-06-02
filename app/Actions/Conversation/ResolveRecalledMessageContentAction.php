@@ -9,7 +9,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 /**
  * 决定是否给已撤回消息下发原文。
  *
- * 客服自己发的 teammate 消息或工作区 AI 消息可被重新编辑，访客消息永不下发。
+ * 客服自己发的 teammate 消息或系统 AI 消息可被重新编辑，访客消息永不下发。
  * 会话详情和联系人时间线两个 Action 都基于这套规则下发 recalled_content。
  */
 class ResolveRecalledMessageContentAction

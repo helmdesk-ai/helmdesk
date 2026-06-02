@@ -13,7 +13,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { getAvatarInitial } from '@/lib/initials';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ShowContactTrashPagePropsData,
   TrashContactItemData,
@@ -30,7 +30,7 @@ const restoreForm = useForm({});
 const restoringContactId = ref<string | null>(null);
 
 const buildContactTrashPageUrl = (page: number): string => {
-  return workspace.contacts.trash.url({
+  return admin.contacts.trash.url({
     query: { page },
   });
 };
@@ -60,7 +60,7 @@ const submitRestore = (contactItem: TrashContactItemData) => {
   restoreForm.clearErrors();
 
   restoreForm.put(
-    workspace.contacts.restore.url({
+    admin.contacts.restore.url({
       id: contactItem.id,
     }),
     {
@@ -91,7 +91,7 @@ const submitRestore = (contactItem: TrashContactItemData) => {
           <Button variant="outline" class="shrink-0" as-child>
             <Link
               :href="
-                workspace.contacts.index.url({
+                admin.contacts.index.url({
                   type: 'all',
                 })
               "

@@ -7,7 +7,7 @@ use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
 use App\Enums\KnowledgeSearchMode;
 use App\Exceptions\BusinessException;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -46,7 +46,7 @@ class KnowledgeSearchBridgeAction
             throw new BusinessException(__('knowledge_search.errors.mode_required'));
         }
 
-        $workspace = Workspace::current();
+        $systemContext = SystemContext::current();
 
         // 仅接受字符串数组成员，过滤其他类型；FormKnowledgeSearchData::normalizedQueries 会再 trim 一道。
         $cleanedQueries = is_array($queries)
@@ -63,6 +63,6 @@ class KnowledgeSearchBridgeAction
             'query' => $cleanedQueries,
         ]);
 
-        return $this->searchAction->handle($workspace, $data);
+        return $this->searchAction->handle($systemContext, $data);
     }
 }

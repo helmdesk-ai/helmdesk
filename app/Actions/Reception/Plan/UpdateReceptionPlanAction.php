@@ -6,11 +6,11 @@ use App\Data\Reception\AutoMessagesConfigData;
 use App\Data\Reception\FormUpdateReceptionPlanData;
 use App\Data\Reception\ReceptionMessageTranslationConfigData;
 use App\Data\Reception\ReceptionStrategyConfigData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\AutoMessageTemplateRenderer;
 use Illuminate\Http\RedirectResponse;
@@ -38,38 +38,38 @@ class UpdateReceptionPlanAction
     ) {}
 
     /**
-     * 更新方案配置；所选模型必须仍在当前工作区可用，名称在工作区内保持唯一。
+     * 更新方案配置；所选模型必须仍在当前系统可用，名称在系统内保持唯一。
      */
-    public function handle(Workspace $workspace, ReceptionPlan $plan, FormUpdateReceptionPlanData $data): void
+    public function handle(SystemContext $systemContext, ReceptionPlan $plan, FormUpdateReceptionPlanData $data): void
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($workspace, $plan, $name);
+        $this->ensureNameIsAvailable($systemContext, $plan, $name);
 
-        $this->resolver->assertActiveLlmModelOrFail($workspace, $data->reception_ai_model_id, 'reception.messages.invalid_reception_model');
-        $this->resolver->assertActiveLlmModelOrFail($workspace, $data->task_ai_model_id, 'reception.messages.invalid_task_model');
+        $this->resolver->assertActiveLlmModelOrFail($systemContext, $data->reception_ai_model_id, 'reception.messages.invalid_reception_model');
+        $this->resolver->assertActiveLlmModelOrFail($systemContext, $data->task_ai_model_id, 'reception.messages.invalid_task_model');
 
         $knowledgeBaseIds = self::uniqueStringIds($data->knowledge_base_ids);
-        $this->assertKnowledgeBaseIdsBelongToWorkspace($workspace, $knowledgeBaseIds);
+        $this->assertKnowledgeBaseIdsBelongToSystem($systemContext, $knowledgeBaseIds);
 
         $mcpToolIds = self::uniqueStringIds($data->mcp_tool_ids);
-        $this->assertMcpToolIdsBelongToWorkspace($workspace, $mcpToolIds);
+        $this->assertMcpToolIdsBelongToSystem($systemContext, $mcpToolIds);
 
         $serviceScenarios = $this->buildServiceScenarios($data->service_scenarios);
         $receptionModelCandidates = $this->buildModelCandidates(
-            $workspace,
+            $systemContext,
             $data->reception_ai_model_id,
             $data->reception_model_candidates,
             'reception_model_candidates',
         );
         $taskModelCandidates = $this->buildModelCandidates(
-            $workspace,
+            $systemContext,
             $data->task_ai_model_id,
             $data->task_model_candidates,
             'task_model_candidates',
         );
         $autoMessagesConfig = $this->buildAutoMessagesConfig($data->auto_messages_config);
         $translationSettings = ReceptionMessageTranslationConfigData::fromArray($data->translation_config);
-        $this->assertTranslationProviderValid($workspace, $translationSettings);
+        $this->assertTranslationProviderValid($systemContext, $translationSettings);
         $translationConfig = $translationSettings->toConfigArray();
         $strategyConfig = ReceptionStrategyConfigData::fromArray($data->strategy_config)->toConfigArray();
 
@@ -97,7 +97,7 @@ class UpdateReceptionPlanAction
             'translation_config' => $translationConfig,
         ]);
 
-        $this->ensureReceptionPlanVersion->handle($workspace, $plan->refresh(), Auth::user());
+        $this->ensureReceptionPlanVersion->handle($systemContext, $plan->refresh(), Auth::user());
     }
 
     /**
@@ -126,16 +126,16 @@ class UpdateReceptionPlanAction
     }
 
     /**
-     * 校验方案选用的翻译供应商：必须属于本工作区且必填凭据齐全。
+     * 校验方案选用的翻译供应商：必须属于本系统且必填凭据齐全。
      * provider_id 为空（未启用翻译）时跳过。
      */
-    private function assertTranslationProviderValid(Workspace $workspace, ReceptionMessageTranslationConfigData $settings): void
+    private function assertTranslationProviderValid(SystemContext $systemContext, ReceptionMessageTranslationConfigData $settings): void
     {
         if ($settings->provider_id === null) {
             return;
         }
 
-        $provider = $workspace->translationProviders()->whereKey($settings->provider_id)->first();
+        $provider = $systemContext->translationProviders()->whereKey($settings->provider_id)->first();
 
         if ($provider === null || ! $provider->hasCompleteCredentials()) {
             throw ValidationException::withMessages([
@@ -149,23 +149,23 @@ class UpdateReceptionPlanAction
      */
     public function asController(Request $request, string $plan): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $planModel = ReceptionPlan::query()
             ->findOrFail($plan);
 
-        $this->handle($workspace, $planModel, FormUpdateReceptionPlanData::from($request));
+        $this->handle($systemContext, $planModel, FormUpdateReceptionPlanData::from($request));
 
-        return redirect()->route('workspace.manage.reception.plans.show', [
+        return redirect()->route('admin.manage.reception.plans.show', [
             'plan' => $planModel->id,
         ]);
     }
 
     /**
-     * 同一工作区内方案名称唯一（排除当前 plan 自身）。
+     * 同一系统内方案名称唯一（排除当前 plan 自身）。
      */
-    private function ensureNameIsAvailable(Workspace $workspace, ReceptionPlan $plan, string $name): void
+    private function ensureNameIsAvailable(SystemContext $systemContext, ReceptionPlan $plan, string $name): void
     {
         $exists = ReceptionPlan::query()
             ->where('name', $name)
@@ -185,7 +185,7 @@ class UpdateReceptionPlanAction
      * @param  list<array<string, mixed>>  $rawCandidates
      * @return list<array{ai_model_id: string, priority: int}>
      */
-    private function buildModelCandidates(Workspace $workspace, string $primaryModelId, array $rawCandidates, string $field): array
+    private function buildModelCandidates(SystemContext $systemContext, string $primaryModelId, array $rawCandidates, string $field): array
     {
         $seen = [$primaryModelId => true];
         $backups = [];
@@ -201,7 +201,7 @@ class UpdateReceptionPlanAction
                 ]);
             }
 
-            if (! $this->resolver->isValidActiveLlmModel($workspace, $modelId)) {
+            if (! $this->resolver->isValidActiveLlmModel($systemContext, $modelId)) {
                 throw ValidationException::withMessages([
                     "{$field}.{$index}.ai_model_id" => __('reception.messages.invalid_reception_model'),
                 ]);
@@ -253,11 +253,11 @@ class UpdateReceptionPlanAction
     }
 
     /**
-     * 校验方案级知识库 ID 必须存在于当前工作区。
+     * 校验方案级知识库 ID 必须存在于当前系统。
      *
      * @param  list<string>  $knowledgeBaseIds
      */
-    private function assertKnowledgeBaseIdsBelongToWorkspace(Workspace $workspace, array $knowledgeBaseIds): void
+    private function assertKnowledgeBaseIdsBelongToSystem(SystemContext $systemContext, array $knowledgeBaseIds): void
     {
         $unique = array_values(array_unique($knowledgeBaseIds));
         if ($unique === []) {
@@ -276,11 +276,11 @@ class UpdateReceptionPlanAction
     }
 
     /**
-     * 校验方案级 MCP 工具 ID 必须属于当前工作区下启用的 server。
+     * 校验方案级 MCP 工具 ID 必须属于当前系统下启用的 server。
      *
      * @param  list<string>  $mcpToolIds
      */
-    private function assertMcpToolIdsBelongToWorkspace(Workspace $workspace, array $mcpToolIds): void
+    private function assertMcpToolIdsBelongToSystem(SystemContext $systemContext, array $mcpToolIds): void
     {
         $unique = array_values(array_unique($mcpToolIds));
         if ($unique === []) {

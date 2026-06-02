@@ -15,7 +15,7 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -27,7 +27,7 @@ uses(RefreshDatabase::class);
 
 function createConversationSubjectTestContext(?string $subject = null, ?ConversationInboxStatus $inboxStatus = null): array
 {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
     $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
         'slug' => 'subject-test-'.Str::lower((string) Str::ulid()),
@@ -66,7 +66,7 @@ function createConversationSubjectTestContext(?string $subject = null, ?Conversa
         'subject' => $subject,
     ]);
 
-    return [$workspace, $channel, $contact, $conversation, $model];
+    return [$systemContext, $channel, $contact, $conversation, $model];
 }
 
 test('会话主题生成会调用 Go 运行时并写入清理后的主题', function () {

@@ -3,18 +3,18 @@
 use App\Models\Tag;
 use App\Models\TagGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 test('可以创建标签组并指定适用维度', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.tags.index'))
-        ->post(route('workspace.manage.tags.groups.store'), [
+        ->from(route('admin.manage.tags.index'))
+        ->post(route('admin.manage.tags.groups.store'), [
             'name' => '  咨询意图  ',
             'scope' => 'conversation',
         ])
@@ -34,7 +34,7 @@ test('不能创建重复名称的标签组', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.groups.store'), [
+        ->post(route('admin.manage.tags.groups.store'), [
             'name' => '咨询意图',
             'scope' => 'conversation',
         ])
@@ -43,7 +43,7 @@ test('不能创建重复名称的标签组', function () {
 
 test('创建标签组拒绝非法维度', function () {
     $this->actingAs($this->user)
-        ->post(route('workspace.manage.tags.groups.store'), [
+        ->post(route('admin.manage.tags.groups.store'), [
             'name' => '非法维度组',
             'scope' => 'invalid_scope',
         ])
@@ -56,7 +56,7 @@ test('可以重命名标签组', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.groups.update', ['id' => $group->id]), [
+        ->put(route('admin.manage.tags.groups.update', ['id' => $group->id]), [
             'name' => '新组名',
         ])
         ->assertRedirect();
@@ -69,7 +69,7 @@ test('空标签组可以删除', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.tags.groups.destroy', ['id' => $group->id]))
+        ->delete(route('admin.manage.tags.groups.destroy', ['id' => $group->id]))
         ->assertRedirect();
 
     $this->assertSoftDeleted('tag_groups', ['id' => $group->id]);
@@ -81,7 +81,7 @@ test('非空标签组不能删除', function () {
     Tag::factory()->forGroup($group)->create();
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.tags.groups.destroy', ['id' => $group->id]))
+        ->delete(route('admin.manage.tags.groups.destroy', ['id' => $group->id]))
         ->assertUnprocessable();
 
     expect(TagGroup::query()->find($group->id))->not()->toBeNull();
@@ -96,7 +96,7 @@ test('恢复标签时连带恢复已被删除的标签组', function () {
     $group->delete();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.restore', ['id' => $tag->id]))
+        ->put(route('admin.manage.tags.restore', ['id' => $tag->id]))
         ->assertRedirect();
 
     expect($tag->fresh()->deleted_at)->toBeNull();
@@ -110,7 +110,7 @@ test('标签只能在同维度的组之间移动', function () {
     $tag = Tag::factory()->forGroup($conversationGroup)->create(['name' => '退款']);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.tags.update', ['id' => $tag->id]), [
+        ->put(route('admin.manage.tags.update', ['id' => $tag->id]), [
             'tag_group_id' => $contactGroup->id,
             'name' => '退款',
         ])

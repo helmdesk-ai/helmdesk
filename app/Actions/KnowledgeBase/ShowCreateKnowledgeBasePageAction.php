@@ -2,7 +2,7 @@
 
 namespace App\Actions\KnowledgeBase;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -22,8 +22,8 @@ class ShowCreateKnowledgeBasePageAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         return Inertia::render('knowledgeBase/Create');
     }

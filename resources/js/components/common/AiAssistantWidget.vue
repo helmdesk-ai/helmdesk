@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
+import { useRequiredSystem } from '@/composables/useSystemContext';
 import { renderMarkdownToSafeHtml } from '@/lib/markdown';
 import type { AppPageProps } from '@/types';
 import type { AiModelOptionData } from '@/types/generated';
@@ -85,7 +85,7 @@ interface StoredPosition {
 }
 
 const { t } = useI18n();
-const workspace = useRequiredWorkspace();
+const system = useRequiredSystem();
 const page = usePage<AppPageProps>();
 
 const isOpen = ref(false);
@@ -120,7 +120,7 @@ const DRAG_THRESHOLD = 5;
 const EDGE_MARGIN = 8;
 
 const positionStorageKey = computed(
-  () => `ai-assistant:position:${workspace.value.id}`,
+  () => `ai-assistant:position:${system.value.id}`,
 );
 
 // 当前正在接收 delta 的 assistant 气泡。
@@ -140,7 +140,7 @@ const modelOptions = computed<AiModelOptionData[]>(() => {
 const hasAvailableModels = computed(() => modelOptions.value.length > 0);
 const hasSelectedModel = computed(() => selectedModelId.value.trim() !== '');
 const modelStorageKey = computed(
-  () => `ai-assistant:selected-model:${workspace.value.id}`,
+  () => `ai-assistant:selected-model:${system.value.id}`,
 );
 
 const groupedModelOptions = computed(() => {

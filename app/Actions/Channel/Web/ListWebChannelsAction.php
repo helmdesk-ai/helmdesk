@@ -5,10 +5,10 @@ namespace App\Actions\Channel\Web;
 use App\Data\Channel\Web\ShowWebChannelListPagePropsData;
 use App\Data\Channel\Web\WebChannelData;
 use App\Data\SimplePaginationData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Channel\WebChannelWidgetEntryIconResolver;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
 use Illuminate\Http\Request;
@@ -33,9 +33,9 @@ class ListWebChannelsAction
     ) {}
 
     /**
-     * 查询当前工作区的网站渠道列表。
+     * 查询当前系统的网站渠道列表。
      */
-    public function handle(Workspace $workspace, int $page = 1, int $perPage = 12): ShowWebChannelListPagePropsData
+    public function handle(SystemContext $systemContext, int $page = 1, int $perPage = 12): ShowWebChannelListPagePropsData
     {
         $page = max(1, $page);
         $perPage = max(1, min($perPage, 24));
@@ -53,7 +53,7 @@ class ListWebChannelsAction
             channel_list: $channels
                 ->map(fn (Channel $channel) => WebChannelData::fromModel(
                     $channel,
-                    $this->planVersionResolver->resolveChannelStatus($workspace, $channel),
+                    $this->planVersionResolver->resolveChannelStatus($systemContext, $channel),
                     $entryIconUrls,
                 ))
                 ->all(),
@@ -66,11 +66,11 @@ class ListWebChannelsAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         return Inertia::render('channel/web/List', $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             page: (int) $request->query('page', 1),
         )->toArray());
     }

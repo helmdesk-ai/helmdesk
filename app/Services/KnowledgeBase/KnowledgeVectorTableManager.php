@@ -86,7 +86,7 @@ class KnowledgeVectorTableManager
      * 对指定维度做向量 KNN 检索。
      *
      * sqlite-vec 的 vec0 表只能在 `WHERE embedding MATCH ?` 这条单一谓词上做 KNN，不支持
-     * 把 workspace / kb / strategy 这类元信息谓词下推。调用方需要自己控制 k：传"本次允许
+     * 把 systemContext / kb / strategy 这类元信息谓词下推。调用方需要自己控制 k：传"本次允许
      * 参与召回的节点数 + 适当余量"，再在结果上做元信息交集（VectorRetriever 就是这么做的）。
      *
      * @param  list<float>  $embedding
@@ -163,9 +163,9 @@ class KnowledgeVectorTableManager
     /**
      * 把所有 vec0 虚表与维度注册表一次性 drop，等下一轮索引按需重建。
      *
-     * 用于工作区维度变更等"全量重建"场景，让向量存储与新维度一同从零开始，
-     * 不再需要按 node_id 一条条清理。当前部署是单工作区，按维度共享 vec0 虚表足够安全；
-     * 后续若开启真正多工作区，需要改成"按工作区 / dim 隔离 vec0 表"再调用。
+     * 用于系统维度变更等"全量重建"场景，让向量存储与新维度一同从零开始，
+     * 不再需要按 node_id 一条条清理。当前部署是单系统，按维度共享 vec0 虚表足够安全；
+     * 后续若开启真正多系统，需要改成"按系统 / dim 隔离 vec0 表"再调用。
      */
     public function resetAllTables(): void
     {

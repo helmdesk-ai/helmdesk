@@ -10,6 +10,6 @@ return [
         'mode_required' => 'Please specify a search mode.',
         'query_required' => 'Please provide at least one query.',
         'knowledge_base_required' => 'Please specify at least one knowledge base.',
-        'knowledge_base_inaccessible' => 'The specified knowledge bases are invalid; please check workspace and IDs.',
+        'knowledge_base_inaccessible' => 'The specified knowledge bases are invalid; please check system and IDs.',
     ],
 ];

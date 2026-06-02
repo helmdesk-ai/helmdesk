@@ -45,17 +45,17 @@ test('未验证用户可以认证，但仅在邮件服务器启用时被拦截',
     $response->assertRedirect(route('dashboard', absolute: false));
 
     $this->get(route('dashboard'))
-        ->assertRedirect(route('workspace.dashboard', absolute: false));
+        ->assertRedirect(route('admin.dashboard', absolute: false));
 });
 
 test('未验证超级管理员可以进入后台当邮件服务器禁用时', function () {
-    [$workspace, $user] = createWorkspaceWithOwner([
+    [$systemContext, $user] = createSystemWithOwner([
         'email_verified_at' => null,
     ]);
 
     $this->actingAs($user, 'admin')
         ->get(route('dashboard'))
-        ->assertRedirect(route('workspace.dashboard', absolute: false));
+        ->assertRedirect(route('admin.dashboard', absolute: false));
 });
 
 test('普通用户登录会忽略预期重定向并进入仪表盘', function () {

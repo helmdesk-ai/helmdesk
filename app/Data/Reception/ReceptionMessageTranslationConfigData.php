@@ -20,7 +20,7 @@ class ReceptionMessageTranslationConfigData extends Data
     /**
      * 创建访客侧预设文案翻译策略。
      *
-     * provider_id 指向本工作区的翻译供应商；为 null 时该方案不做任何翻译。
+     * provider_id 指向本系统的翻译供应商；为 null 时该方案不做任何翻译。
      * 启用访客侧文案翻译（enabled）前必须先选定 provider_id。
      */
     public function __construct(

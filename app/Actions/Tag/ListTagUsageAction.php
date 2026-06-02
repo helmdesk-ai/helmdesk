@@ -2,10 +2,10 @@
 
 namespace App\Actions\Tag;
 
+use App\Data\SystemUserContextData;
 use App\Data\Tag\TagUsageData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\SystemContext;
 use App\Models\Tag;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -16,7 +16,7 @@ class ListTagUsageAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $id): TagUsageData
+    public function handle(SystemContext $systemContext, string $id): TagUsageData
     {
         $tag = Tag::query()
             ->withTrashed()
@@ -33,8 +33,8 @@ class ListTagUsageAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
 
-        return $this->handle($ctx->workspace(), $id)->toArray();
+        return $this->handle($ctx->systemContext(), $id)->toArray();
     }
 }

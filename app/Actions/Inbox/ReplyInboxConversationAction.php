@@ -4,13 +4,13 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Reception\AppendTeammateMessageAction;
 use App\Data\Inbox\FormReplyInboxConversationData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\InboxView;
 use App\Exceptions\BusinessException;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Support\LocalePreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +34,7 @@ class ReplyInboxConversationAction
     /**
      * 向指定会话追加客服回复并返回刷新后的会话。
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, FormReplyInboxConversationData $data): Conversation
+    public function handle(SystemContext $systemContext, User $user, string $conversationId, FormReplyInboxConversationData $data): Conversation
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -66,18 +66,18 @@ class ReplyInboxConversationAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $user = User::query()->findOrFail($ctx->user_id);
 
         $conversation = $this->handle(
-            workspace: $ctx->workspace(),
+            systemContext: $ctx->systemContext(),
             user: $user,
             conversationId: $conversationId,
             data: FormReplyInboxConversationData::from($request),
         );
         $view = $this->resolveViewFor($conversation, $user);
 
-        return redirect()->route('workspace.inbox.show', [
+        return redirect()->route('admin.inbox.show', [
             'view' => $view,
             'conversation_id' => $conversation->id,
         ]);

@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * MCP 服务详情数据。
- * 同时承担左侧列表行 + 右侧详情面板的数据来源，由 ShowWorkspaceMcpServersAction 装配。
+ * 同时承担左侧列表行 + 右侧详情面板的数据来源，由 ShowSystemMcpServersAction 装配。
  * 认证 header 的 name 明文下发（前端反推 Bearer / Custom preset 需要），value 不下发（敏感）。
  */
 class McpServerData extends Data

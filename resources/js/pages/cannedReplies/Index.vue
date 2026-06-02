@@ -32,8 +32,8 @@ import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import CannedReplyForm from '@/pages/cannedReplies/CannedReplyForm.vue';
-import workspaceRoutes from '@/routes/workspace';
-import cannedReplyRoutes from '@/routes/workspace/canned-replies';
+import systemRoutes from '@/routes/admin';
+import cannedReplyRoutes from '@/routes/admin/canned-replies';
 import type { AppPageProps } from '@/types';
 import type {
   ListCannedReplyItemData,
@@ -67,14 +67,14 @@ const ownerLabel = (reply: ListCannedReplyItemData): string => {
 const visibilityOptions = [
   { value: 'all' as const, label: t('全部') },
   { value: 'personal' as const, label: t('仅自己') },
-  { value: 'workspace' as const, label: t('系统共享') },
+  { value: 'system' as const, label: t('系统共享') },
 ];
 
 type Visibility = (typeof visibilityOptions)[number]['value'];
 
 const currentVisibility = computed<Visibility>(() => {
   const value = props.current_visibility;
-  if (value === 'personal' || value === 'workspace') {
+  if (value === 'personal' || value === 'system') {
     return value;
   }
   return 'all';
@@ -82,7 +82,7 @@ const currentVisibility = computed<Visibility>(() => {
 
 const switchVisibility = (visibility: Visibility) => {
   router.get(
-    workspaceRoutes.cannedReplies.index.url(),
+    systemRoutes.cannedReplies.index.url(),
     visibility === 'all' ? {} : { visibility },
     {
       preserveScroll: true,
@@ -195,8 +195,8 @@ watch(editOpen, (open) => {
                     mode="create"
                     variant="dialog"
                     :available-tokens="props.available_tokens"
-                    :can-manage-workspace-shared="
-                      props.can_manage_workspace_replies
+                    :can-manage-system-shared="
+                      props.can_manage_system_replies
                     "
                     :default-is-personal="true"
                     @saved="createOpen = false"
@@ -366,7 +366,7 @@ watch(editOpen, (open) => {
           variant="dialog"
           :canned-reply="editingReply"
           :available-tokens="props.available_tokens"
-          :can-manage-workspace-shared="props.can_manage_workspace_replies"
+          :can-manage-system-shared="props.can_manage_system_replies"
           @saved="editOpen = false"
           @cancel="editOpen = false"
         />

@@ -2,9 +2,9 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\AiProvider;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 保存工作区内 AI 供应商凭据。
+ * 保存系统内 AI 供应商凭据。
  */
 class UpdateAiProviderCredentialsAction
 {
@@ -22,9 +22,9 @@ class UpdateAiProviderCredentialsAction
     /**
      * @param  array<string, mixed>  $configuration
      */
-    public function handle(Workspace $workspace, string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
+    public function handle(SystemContext $systemContext, string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
     {
-        $provider = $this->findProvider($workspace, $providerSlug);
+        $provider = $this->findProvider($systemContext, $providerSlug);
         $configuration = $this->withoutLockedEndpointConfiguration($provider, $configuration, $allowEndpointUpdate);
         $this->validateConfiguration($provider, $configuration);
 
@@ -38,18 +38,18 @@ class UpdateAiProviderCredentialsAction
 
     public function asController(Request $request, string $provider)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $configuration = $request->input('configuration');
-        $this->handle($workspace, $provider, is_array($configuration) ? $configuration : []);
+        $this->handle($systemContext, $provider, is_array($configuration) ? $configuration : []);
 
         return back();
     }
 
-    private function findProvider(Workspace $workspace, string $slug): AiProvider
+    private function findProvider(SystemContext $systemContext, string $slug): AiProvider
     {
-        return $workspace->aiProviders()->where('slug', $slug)->firstOrFail();
+        return $systemContext->aiProviders()->where('slug', $slug)->firstOrFail();
     }
 
     /**

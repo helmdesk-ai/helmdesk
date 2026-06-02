@@ -36,7 +36,7 @@ class KnowledgeIndexingStrategyOptionData extends Data
     }
 
     /**
-     * 工作区可勾选启用的索引策略选项；Text 始终启用，不在前端表单中暴露。
+     * 系统可勾选启用的索引策略选项；Text 始终启用，不在前端表单中暴露。
      *
      * @return list<self>
      */

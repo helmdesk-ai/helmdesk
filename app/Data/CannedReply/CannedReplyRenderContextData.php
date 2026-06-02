@@ -4,8 +4,8 @@ namespace App\Data\CannedReply;
 
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Spatie\LaravelData\Data;
 
 /**
@@ -16,7 +16,7 @@ use Spatie\LaravelData\Data;
 class CannedReplyRenderContextData extends Data
 {
     public function __construct(
-        public ?string $workspace_name,
+        public ?string $system_name,
         public ?string $teammate_name,
         public ?string $contact_name,
         public ?string $contact_email,
@@ -29,13 +29,13 @@ class CannedReplyRenderContextData extends Data
      * 从模型组装一个渲染上下文。
      */
     public static function build(
-        Workspace $workspace,
+        SystemContext $systemContext,
         ?User $teammate = null,
         ?Contact $contact = null,
         ?Conversation $conversation = null,
     ): self {
         return new self(
-            workspace_name: $workspace->name,
+            system_name: $systemContext->name,
             teammate_name: $teammate?->name,
             contact_name: $contact?->name,
             contact_email: $contact?->primary_email,

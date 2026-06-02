@@ -2,11 +2,11 @@
 
 namespace App\Actions\Tag;
 
+use App\Data\SystemUserContextData;
 use App\Data\Tag\FormMergeTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
+use App\Models\SystemContext;
 use App\Models\Tag;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +19,7 @@ class MergeTagsAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, FormMergeTagData $data): Tag
+    public function handle(SystemContext $systemContext, FormMergeTagData $data): Tag
     {
         return DB::transaction(function () use ($data): Tag {
             if ($data->target_tag_id === $data->merged_tag_id) {
@@ -73,9 +73,9 @@ class MergeTagsAction
 
     public function asController(Request $request)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
+        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormMergeTagData::from($request);
-        $this->handle($ctx->workspace(), $data);
+        $this->handle($ctx->systemContext(), $data);
 
         return back();
     }

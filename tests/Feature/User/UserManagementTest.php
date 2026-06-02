@@ -2,17 +2,17 @@
 
 use App\Enums\UserOnlineStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 test('后台用户可以从侧边栏更新自己的在线状态', function () {
     $this->actingAs($this->user)
-        ->put(route('workspace.online-status.update'), [
+        ->put(route('admin.online-status.update'), [
             'online_status' => UserOnlineStatus::Online->value,
         ])
         ->assertRedirect();
@@ -22,7 +22,7 @@ test('后台用户可以从侧边栏更新自己的在线状态', function () {
 
 test('后台用户在线状态拒绝无效枚举值', function () {
     $this->actingAs($this->user)
-        ->put(route('workspace.online-status.update'), [
+        ->put(route('admin.online-status.update'), [
             'online_status' => 2,
         ])
         ->assertSessionHasErrors('online_status');

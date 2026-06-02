@@ -50,7 +50,7 @@ import {
   isLikelyValidLocalPhone,
   isLikelyValidPhone,
 } from '@/lib/phone';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ContactListType,
   FormCreateContactData,
@@ -438,7 +438,7 @@ const buildTagQueryParams = (): Record<string, unknown> => {
 };
 
 const buildContactListPageUrl = (page: number): string => {
-  return workspace.contacts.index.url(
+  return admin.contacts.index.url(
     {
       type: selectedType.value,
     },
@@ -459,7 +459,7 @@ const navigateWithFilters = (overrides?: Record<string, unknown>) => {
   const normalizedAttributeFilters = buildAttributeFilterQuery();
 
   router.get(
-    workspace.contacts.index.url({
+    admin.contacts.index.url({
       type: selectedType.value,
     }),
     {
@@ -603,7 +603,7 @@ const submitCreate = () => {
   }
 
   createForm.clearErrors('phone', 'email');
-  createForm.post(workspace.contacts.store.url(), {
+  createForm.post(admin.contacts.store.url(), {
     preserveScroll: true,
     onSuccess: () => {
       createForm.reset();
@@ -630,7 +630,7 @@ const submitDelete = () => {
     return;
   }
   deleteForm.delete(
-    workspace.contacts.destroy.url({
+    admin.contacts.destroy.url({
       id: deletingContact.value.id,
     }),
     {
@@ -675,7 +675,7 @@ const submitMerge = () => {
   }
 
   mergeForm.target_contact_id = selectedContactId.value;
-  mergeForm.post(workspace.contacts.merge.url(), {
+  mergeForm.post(admin.contacts.merge.url(), {
     preserveScroll: true,
     onSuccess: () => {
       mergeForm.reset();
@@ -805,7 +805,7 @@ const onDetailOpenChange = (open: boolean) => {
             </Dialog>
 
             <Button variant="outline" as-child>
-              <Link :href="workspace.contacts.trash.url()">
+              <Link :href="admin.contacts.trash.url()">
                 {{ t('回收站') }}
               </Link>
             </Button>

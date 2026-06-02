@@ -3,11 +3,11 @@
 namespace App\Actions\Tag;
 
 use App\Data\SimplePaginationData;
+use App\Data\SystemUserContextData;
 use App\Data\Tag\ListTagItemData;
 use App\Data\Tag\ShowTagTrashPagePropsData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\SystemContext;
 use App\Models\Tag;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,10 +21,10 @@ class ShowTagTrashAction
     use AsAction;
 
     /**
-     * 查询当前工作区已删除标签列表。
+     * 查询当前系统已删除标签列表。
      */
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         int $page = 1,
         int $perPage = 15,
     ): ShowTagTrashPagePropsData {
@@ -56,10 +56,10 @@ class ShowTagTrashAction
      */
     public function asController(Request $request): Response
     {
-        $currentWorkspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $currentSystem = SystemUserContextData::fromRequest($request)->systemContext();
 
         return Inertia::render('tags/Trash', $this->handle(
-            workspace: $currentWorkspace,
+            systemContext: $currentSystem,
             page: (int) $request->query('page', 1),
             perPage: (int) $request->query('per_page', 15),
         )->toArray());

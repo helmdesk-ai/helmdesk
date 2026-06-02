@@ -15,15 +15,15 @@ use App\Models\ReceptionPlanVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     $this->runList = function (array $overrides = []): array {
         $props = ShowConversationListAction::run(...array_merge([
-            'workspace' => $this->workspace,
+            'systemContext' => $this->systemContext,
             'currentUserId' => $this->user->id,
         ], $overrides));
 
@@ -108,7 +108,7 @@ test('会话列表筛选按状态inbox_status和访客回复状态独立', funct
 
 test('会话列表序列化当前枚举筛选作为标量值', function () {
     $props = ShowConversationListAction::run(
-        workspace: $this->workspace,
+        systemContext: $this->systemContext,
         status: ConversationStatus::Open,
         inboxStatus: ConversationInboxStatus::TeammateHandling,
         visitorReplyStatus: ConversationVisitorReplyStatus::Waiting,
@@ -125,10 +125,10 @@ test('会话列表序列化当前枚举筛选作为标量值', function () {
 
 test('会话列表拒绝无效枚举筛选查询', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.conversations.index'))
-        ->get(route('workspace.conversations.index', ['status' => 'unknown',
+        ->from(route('admin.conversations.index'))
+        ->get(route('admin.conversations.index', ['status' => 'unknown',
         ]))
-        ->assertRedirect(route('workspace.conversations.index'))
+        ->assertRedirect(route('admin.conversations.index'))
         ->assertSessionHasErrors('status');
 });
 

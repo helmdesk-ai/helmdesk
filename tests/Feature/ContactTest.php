@@ -24,7 +24,7 @@ use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Contact\ContactAiContext;
 use Database\Seeders\ContactDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,14 +37,14 @@ uses(RefreshDatabase::class);
 // === Contact List ===
 
 test('联系人列表页面需要认证', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
-    $this->get(route('workspace.contacts.index', ['type' => 'all']))
+    $this->get(route('admin.contacts.index', ['type' => 'all']))
         ->assertRedirect(route('login'));
 });
 
 test('联系人列表页面渲染并包含数据', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     Contact::factory()
         ->count(3)
@@ -52,7 +52,7 @@ test('联系人列表页面渲染并包含数据', function () {
         ->create();
 
     $props = ShowContactListAction::run(
-        workspace: $workspace,
+        systemContext: $systemContext,
         type: ContactListType::All,
     );
 
@@ -62,7 +62,7 @@ test('联系人列表页面渲染并包含数据', function () {
 });
 
 test('联系人列表拒绝无效列表类型', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $this->actingAs($user)
         ->get('/admin/contacts/unknown/index')
@@ -70,13 +70,13 @@ test('联系人列表拒绝无效列表类型', function () {
 });
 
 test('联系人列表筛选按类型', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     Contact::factory()->count(2)->visitor()->create();
     Contact::factory()->count(3)->contact()->create();
 
     $visitorProps = ShowContactListAction::run(
-        workspace: $workspace,
+        systemContext: $systemContext,
         type: ContactListType::Visitors,
     );
 
@@ -84,7 +84,7 @@ test('联系人列表筛选按类型', function () {
         ->and($visitorProps->current_type)->toBe(ContactListType::Visitors);
 
     $contactProps = ShowContactListAction::run(
-        workspace: $workspace,
+        systemContext: $systemContext,
         type: ContactListType::Contacts,
     );
 
@@ -93,7 +93,7 @@ test('联系人列表筛选按类型', function () {
 });
 
 test('联系人列表支持重点客户筛选并优先显示重点客户', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $important = Contact::factory()->create([
         'name' => '重点客户',
@@ -108,7 +108,7 @@ test('联系人列表支持重点客户筛选并优先显示重点客户', funct
     ]);
 
     $allProps = ShowContactListAction::run(
-        workspace: $workspace,
+        systemContext: $systemContext,
         type: ContactListType::All,
     );
 
@@ -116,7 +116,7 @@ test('联系人列表支持重点客户筛选并优先显示重点客户', funct
         ->and($allProps->contact_list[1]->id)->toBe($normal->id);
 
     $importantProps = ShowContactListAction::run(
-        workspace: $workspace,
+        systemContext: $systemContext,
         type: ContactListType::All,
         importantOnly: true,
     );
@@ -128,7 +128,7 @@ test('联系人列表支持重点客户筛选并优先显示重点客户', funct
 });
 
 test('联系人列表支持分页参数', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     Contact::factory()
         ->count(12)
@@ -136,7 +136,7 @@ test('联系人列表支持分页参数', function () {
         ->create();
 
     $props = ShowContactListAction::run(
-        workspace: $workspace,
+        systemContext: $systemContext,
         type: ContactListType::All,
         page: 2,
         perPage: 15,
@@ -148,21 +148,21 @@ test('联系人列表支持分页参数', function () {
 });
 
 test('联系人回收站页面渲染软删除联系人', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $trashedContact = Contact::factory()
         ->create([
             'name' => '已删除联系人',
         ]);
 
-    DeleteContactAction::run($workspace, $trashedContact->id);
+    DeleteContactAction::run($systemContext, $trashedContact->id);
 
     Contact::factory()
         ->create([
             'name' => '活跃联系人',
         ]);
 
-    $props = GetContactTrashListAction::run(workspace: $workspace);
+    $props = GetContactTrashListAction::run(systemContext: $systemContext);
 
     expect($props->contact_trash_list)->toHaveCount(1)
         ->and($props->contact_trash_list[0]->name)->toBe('已删除联系人')
@@ -170,7 +170,7 @@ test('联系人回收站页面渲染软删除联系人', function () {
 });
 
 test('联系人搜索不会模糊匹配不同邮箱词元', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $scoutStorage = storage_path('framework/testing/scout-'.Str::random(8));
     File::ensureDirectoryExists($scoutStorage);
@@ -179,7 +179,7 @@ test('联系人搜索不会模糊匹配不同邮箱词元', function () {
     config()->set('scout.tntsearch.storage', $scoutStorage);
     config()->set('scout.tntsearch.fuzziness', false);
 
-    $contact = CreateContactAction::run($workspace, new FormCreateContactData(
+    $contact = CreateContactAction::run($systemContext, new FormCreateContactData(
         email: 't1@test.com',
     ));
 
@@ -194,7 +194,7 @@ test('联系人搜索不会模糊匹配不同邮箱词元', function () {
 // === Create Contact ===
 
 test('可以创建联系人并带邮箱', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $data = new FormCreateContactData(
         name: '张三',
@@ -202,7 +202,7 @@ test('可以创建联系人并带邮箱', function () {
         phone: null,
     );
 
-    $contact = CreateContactAction::run($workspace, $data);
+    $contact = CreateContactAction::run($systemContext, $data);
 
     expect($contact)->toBeInstanceOf(Contact::class)
         ->and($contact->name)->toBe('张三')
@@ -217,7 +217,7 @@ test('可以创建联系人并带邮箱', function () {
 });
 
 test('可以创建联系人并带电话', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $data = new FormCreateContactData(
         name: null,
@@ -225,7 +225,7 @@ test('可以创建联系人并带电话', function () {
         phone: '+8613800138000',
     );
 
-    $contact = CreateContactAction::run($workspace, $data);
+    $contact = CreateContactAction::run($systemContext, $data);
 
     expect($contact->primary_phone)->toBe('+8613800138000')
         ->and($contact->name)->toBeNull()
@@ -233,7 +233,7 @@ test('可以创建联系人并带电话', function () {
 });
 
 test('创建联系人会拒绝无效身份载荷', function (string $case) {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $data = match ($case) {
         'missing identity' => new FormCreateContactData(name: '张三'),
@@ -256,7 +256,7 @@ test('创建联系人会拒绝无效身份载荷', function (string $case) {
         'phone without country code' => new FormCreateContactData(phone: '18995543120'),
     };
 
-    expect(fn () => CreateContactAction::run($workspace, $data))
+    expect(fn () => CreateContactAction::run($systemContext, $data))
         ->toThrow(ValidationException::class);
 })->with([
     'missing identity',
@@ -267,28 +267,28 @@ test('创建联系人会拒绝无效身份载荷', function (string $case) {
 ]);
 
 test('创建联系人将邮箱标准化为小写', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $data = new FormCreateContactData(email: 'Zhang@Example.COM');
-    $contact = CreateContactAction::run($workspace, $data);
+    $contact = CreateContactAction::run($systemContext, $data);
 
     expect($contact->identities->first()->value)->toBe('zhang@example.com');
 });
 
 test('创建联系人将电话号码标准化为E.164', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $data = new FormCreateContactData(phone: '+86 138 0013 8000');
-    $contact = CreateContactAction::run($workspace, $data);
+    $contact = CreateContactAction::run($systemContext, $data);
 
     expect($contact->primary_phone)->toBe('+8613800138000')
         ->and($contact->identities->first()->value)->toBe('+8613800138000');
 });
 
 test('解析并创建联系人并带默认头像URL', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
-    $contact = ResolveContactIdentityAction::run($workspace, [
+    $contact = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Session,
         'value' => 'sess-default-avatar',
     ]);
@@ -299,7 +299,7 @@ test('解析并创建联系人并带默认头像URL', function () {
 // === Update Contact ===
 
 test('可以更新联系人名称和类型', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->visitor()->create(['name' => '旧名字']);
 
@@ -310,7 +310,7 @@ test('可以更新联系人名称和类型', function () {
         country: '中国',
         city: '上海',
     );
-    $updated = UpdateContactAction::run($workspace, $contact->id, $data);
+    $updated = UpdateContactAction::run($systemContext, $contact->id, $data);
 
     expect($updated->name)->toBe('新名字')
         ->and($updated->type)->toBe(ContactType::Contact)
@@ -323,14 +323,14 @@ test('可以更新联系人名称和类型', function () {
 });
 
 test('可以标记和取消标记重点客户', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create([
         'is_important' => false,
     ]);
 
     $this->actingAs($user)
-        ->putJson(route('workspace.contacts.importance.update', ['id' => $contact->id,
+        ->putJson(route('admin.contacts.importance.update', ['id' => $contact->id,
         ]), [
             'is_important' => true,
         ])
@@ -345,7 +345,7 @@ test('可以标记和取消标记重点客户', function () {
         ->and($contact->activityLogs()->latest('created_at')->value('action'))->toBe(ContactActivityLog::ACTION_IMPORTANT_MARKED);
 
     $this->actingAs($user)
-        ->putJson(route('workspace.contacts.importance.update', ['id' => $contact->id,
+        ->putJson(route('admin.contacts.importance.update', ['id' => $contact->id,
         ]), [
             'is_important' => false,
         ])
@@ -362,7 +362,7 @@ test('可以标记和取消标记重点客户', function () {
 });
 
 test('重复提交相同重点客户状态不重复写活动日志', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create([
         'is_important' => true,
@@ -372,7 +372,7 @@ test('重复提交相同重点客户状态不重复写活动日志', function ()
     ]);
 
     UpdateContactImportanceAction::run(
-        $workspace,
+        $systemContext,
         $contact->id,
         new FormUpdateContactImportanceData(is_important: true),
         $user,
@@ -384,14 +384,14 @@ test('重复提交相同重点客户状态不重复写活动日志', function ()
 // === Delete Contact ===
 
 test('删除联系人软删除联系人和身份', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->email()->create([
         'contact_id' => $contact->id,
     ]);
 
-    DeleteContactAction::run($workspace, $contact->id);
+    DeleteContactAction::run($systemContext, $contact->id);
 
     expect(Contact::find($contact->id))->toBeNull();
     expect(Contact::withTrashed()->find($contact->id))->not->toBeNull();
@@ -402,7 +402,7 @@ test('删除联系人软删除联系人和身份', function () {
 });
 
 test('软删除身份会为新联系人释放唯一键', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact1 = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -410,10 +410,10 @@ test('软删除身份会为新联系人释放唯一键', function () {
         'value' => 'release@example.com',
     ]);
 
-    DeleteContactAction::run($workspace, $contact1->id);
+    DeleteContactAction::run($systemContext, $contact1->id);
 
     $data = new FormCreateContactData(email: 'release@example.com');
-    $contact2 = CreateContactAction::run($workspace, $data);
+    $contact2 = CreateContactAction::run($systemContext, $data);
 
     expect($contact2->primary_email)->toBe('release@example.com')
         ->and($contact2->id)->not->toBe($contact1->id);
@@ -422,7 +422,7 @@ test('软删除身份会为新联系人释放唯一键', function () {
 // === Restore Contact ===
 
 test('可以恢复软已删除联系人并带身份', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -430,8 +430,8 @@ test('可以恢复软已删除联系人并带身份', function () {
         'value' => 'restore@example.com',
     ]);
 
-    DeleteContactAction::run($workspace, $contact->id);
-    $restored = RestoreContactAction::run($workspace, $contact->id);
+    DeleteContactAction::run($systemContext, $contact->id);
+    $restored = RestoreContactAction::run($systemContext, $contact->id);
 
     expect($restored->trashed())->toBeFalse();
     expect($restored->identities()->count())->toBe(1);
@@ -440,7 +440,7 @@ test('可以恢复软已删除联系人并带身份', function () {
 });
 
 test('恢复联系人拒绝当身份冲突并带活跃记录', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact1 = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -448,7 +448,7 @@ test('恢复联系人拒绝当身份冲突并带活跃记录', function () {
         'value' => 'conflict@example.com',
     ]);
 
-    DeleteContactAction::run($workspace, $contact1->id);
+    DeleteContactAction::run($systemContext, $contact1->id);
 
     $contact2 = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -456,18 +456,18 @@ test('恢复联系人拒绝当身份冲突并带活跃记录', function () {
         'value' => 'conflict@example.com',
     ]);
 
-    RestoreContactAction::run($workspace, $contact1->id);
+    RestoreContactAction::run($systemContext, $contact1->id);
 })->throws(ValidationException::class);
 
 // === Create Contact Identity ===
 
 test('可以添加身份到现有联系人', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'email', value: 'new@example.com');
 
-    $identity = CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    $identity = CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 
     expect($identity->type)->toBe(IdentityType::Email)
         ->and($identity->value)->toBe('new@example.com');
@@ -478,19 +478,19 @@ test('可以添加身份到现有联系人', function () {
 });
 
 test('可以添加电话身份并带标准化值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'phone', value: '+86 13800138000');
 
-    $identity = CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    $identity = CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 
     expect($identity->value)->toBe('+8613800138000')
         ->and($identity->display_value)->toBe('+8613800138000');
 });
 
 test('添加身份检测到重复', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact1 = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -501,75 +501,75 @@ test('添加身份检测到重复', function () {
     $contact2 = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'email', value: 'taken@example.com');
 
-    CreateContactIdentityAction::run($workspace, $contact2->id, $data);
+    CreateContactIdentityAction::run($systemContext, $contact2->id, $data);
 })->throws(ValidationException::class);
 
 test('添加电话身份拒绝无效电话输入', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'phone', value: 'invalid-phone');
 
-    CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 })->throws(ValidationException::class);
 
 test('添加电话身份拒绝电话且没有国家代码', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'phone', value: '18995543120');
 
-    CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 })->throws(ValidationException::class);
 
 test('external_id需要命名空间', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'external_id', value: '12345');
 
-    CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 })->throws(ValidationException::class);
 
 test('带命名空间的external_id可以工作', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $data = new FormCreateContactIdentityData(type: 'external_id', value: '12345', namespace: 'api:default');
 
-    $identity = CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    $identity = CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 
     expect($identity->type)->toBe(IdentityType::ExternalId)
         ->and($identity->namespace)->toBe('api:default');
 });
 
 test('添加邮箱身份将访客提升为联系人', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->visitor()->create();
     expect($contact->type)->toBe(ContactType::Visitor);
 
     $data = new FormCreateContactIdentityData(type: 'email', value: 'upgrade@example.com');
-    CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 
     $contact->refresh();
     expect($contact->type)->toBe(ContactType::Contact);
 });
 
 test('添加邮箱身份不会降级联系人类型', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->contact()->create();
 
     $data = new FormCreateContactIdentityData(type: 'email', value: 'stay@example.com');
-    CreateContactIdentityAction::run($workspace, $contact->id, $data);
+    CreateContactIdentityAction::run($systemContext, $contact->id, $data);
 
     $contact->refresh();
     expect($contact->type)->toBe(ContactType::Contact);
 });
 
 test('可以删除邮箱身份和同步主字段', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $primaryIdentity = ContactIdentity::factory()->email()->create([
@@ -586,7 +586,7 @@ test('可以删除邮箱身份和同步主字段', function () {
 
     $contact->syncPrimaryFields();
 
-    DeleteContactIdentityAction::run($workspace, $contact->id, $primaryIdentity->id);
+    DeleteContactIdentityAction::run($systemContext, $contact->id, $primaryIdentity->id);
 
     expect(ContactIdentity::find($primaryIdentity->id))->toBeNull()
         ->and($contact->fresh()->primary_email)->toBe('second@example.com');
@@ -594,7 +594,7 @@ test('可以删除邮箱身份和同步主字段', function () {
 });
 
 test('替换身份会软删除旧身份并保留主身份排序', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->phone()->create([
@@ -605,7 +605,7 @@ test('替换身份会软删除旧身份并保留主身份排序', function () {
     ]);
 
     $replacement = ReplaceContactIdentityAction::run(
-        $workspace,
+        $systemContext,
         $contact->id,
         $identity->id,
         new FormReplaceContactIdentityData(value: '+852 5123 4567'),
@@ -622,7 +622,7 @@ test('替换身份会软删除旧身份并保留主身份排序', function () {
 });
 
 test('不能手动删除外部身份', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->create([
@@ -633,15 +633,15 @@ test('不能手动删除外部身份', function () {
         'display_value' => 'crm-123',
     ]);
 
-    DeleteContactIdentityAction::run($workspace, $contact->id, $identity->id);
+    DeleteContactIdentityAction::run($systemContext, $contact->id, $identity->id);
 })->throws(ValidationException::class);
 
 // === Resolve Contact Identity ===
 
 test('解析并创建新联系人当没有匹配', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
-    $contact = ResolveContactIdentityAction::run($workspace, [
+    $contact = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Email,
         'value' => 'new@example.com',
     ]);
@@ -653,7 +653,7 @@ test('解析并创建新联系人当没有匹配', function () {
 });
 
 test('解析并返回现有联系人当身份匹配', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $existing = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -661,7 +661,7 @@ test('解析并返回现有联系人当身份匹配', function () {
         'value' => 'existing@example.com',
     ]);
 
-    $resolved = ResolveContactIdentityAction::run($workspace, [
+    $resolved = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Email,
         'value' => 'existing@example.com',
     ]);
@@ -671,7 +671,7 @@ test('解析并返回现有联系人当身份匹配', function () {
 });
 
 test('解析并匹配现有联系人当电话标准化到同一值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $existing = Contact::factory()->create();
     ContactIdentity::factory()->phone()->create([
@@ -680,7 +680,7 @@ test('解析并匹配现有联系人当电话标准化到同一值', function ()
         'display_value' => '+8613800138000',
     ]);
 
-    $resolved = ResolveContactIdentityAction::run($workspace, [
+    $resolved = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Phone,
         'value' => '+86 13800138000',
     ]);
@@ -690,18 +690,18 @@ test('解析并匹配现有联系人当电话标准化到同一值', function ()
 });
 
 test('解析拒绝没有命名空间的external_id', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
-    ResolveContactIdentityAction::run($workspace, [
+    ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::ExternalId,
         'value' => 'ext-123',
     ]);
 })->throws(ValidationException::class);
 
 test('解析会创建联系人类型用于邮箱', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
-    $contact = ResolveContactIdentityAction::run($workspace, [
+    $contact = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Email,
         'value' => 'known@example.com',
     ]);
@@ -710,9 +710,9 @@ test('解析会创建联系人类型用于邮箱', function () {
 });
 
 test('解析会创建访客类型用于会话', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
-    $contact = ResolveContactIdentityAction::run($workspace, [
+    $contact = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Session,
         'value' => 'sess-abc-123-def',
     ]);
@@ -721,7 +721,7 @@ test('解析会创建访客类型用于会话', function () {
 });
 
 test('解析会将访客提升为联系人当匹配按邮箱', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $visitor = Contact::factory()->visitor()->create();
     ContactIdentity::factory()->email()->create([
@@ -731,7 +731,7 @@ test('解析会将访客提升为联系人当匹配按邮箱', function () {
 
     expect($visitor->type)->toBe(ContactType::Visitor);
 
-    $resolved = ResolveContactIdentityAction::run($workspace, [
+    $resolved = ResolveContactIdentityAction::run($systemContext, [
         'type' => IdentityType::Email,
         'value' => 'promote@example.com',
     ]);
@@ -744,18 +744,18 @@ test('解析会将访客提升为联系人当匹配按邮箱', function () {
 // === Merge Contacts ===
 
 test('合并拒绝联系人与自身合并', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
         'contact_id' => $contact->id,
     ]);
 
-    MergeContactsAction::run($workspace, $contact->id, $contact->id);
+    MergeContactsAction::run($systemContext, $contact->id, $contact->id);
 })->throws(InvalidArgumentException::class);
 
 test('合并转移身份和删除已合并联系人', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create(['name' => '目标']);
     ContactIdentity::factory()->email()->create([
@@ -769,7 +769,7 @@ test('合并转移身份和删除已合并联系人', function () {
         'value' => '+8613800138000',
     ]);
 
-    $result = MergeContactsAction::run($workspace, $target->id, $merged->id);
+    $result = MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     expect($result->id)->toBe($target->id)
         ->and($result->name)->toBe('目标');
@@ -789,7 +789,7 @@ test('合并转移身份和删除已合并联系人', function () {
 });
 
 test('合并填充null属性来自已合并联系人', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create([
         'name' => '目标',
@@ -809,7 +809,7 @@ test('合并填充null属性来自已合并联系人', function () {
         'contact_id' => $merged->id,
     ]);
 
-    $result = MergeContactsAction::run($workspace, $target->id, $merged->id);
+    $result = MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     expect($result->name)->toBe('目标')
         ->and($result->locale)->toBe('zh_CN')
@@ -817,7 +817,7 @@ test('合并填充null属性来自已合并联系人', function () {
 });
 
 test('合并提升目标到联系人类型当已合并是联系人类型', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->visitor()->create();
     ContactIdentity::factory()->session()->create([
@@ -831,13 +831,13 @@ test('合并提升目标到联系人类型当已合并是联系人类型', funct
         'display_value' => 'merge@example.com',
     ]);
 
-    $result = MergeContactsAction::run($workspace, $target->id, $merged->id);
+    $result = MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     expect($result->type)->toBe(ContactType::Contact);
 });
 
 test('合并保留较晚last_seen_at', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create([
         'last_seen_at' => now()->subDays(2),
@@ -854,13 +854,13 @@ test('合并保留较晚last_seen_at', function () {
         'contact_id' => $merged->id,
     ]);
 
-    $result = MergeContactsAction::run($workspace, $target->id, $merged->id);
+    $result = MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     expect($result->last_seen_at->toDateTimeString())->toBe($later->toDateTimeString());
 });
 
 test('合并会保留重点客户标记', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create([
         'is_important' => false,
@@ -880,7 +880,7 @@ test('合并会保留重点客户标记', function () {
         'contact_id' => $merged->id,
     ]);
 
-    $result = MergeContactsAction::run($workspace, $target->id, $merged->id);
+    $result = MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     expect($result->is_important)->toBeTrue()
         ->and($result->important_at?->toDateTimeString())->toBe($markedAt->toDateTimeString())
@@ -889,7 +889,7 @@ test('合并会保留重点客户标记', function () {
 });
 
 test('合并会保留目标ai_context值、填充缺失键并刷新更新时间戳', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create([
         'ai_context' => [
@@ -914,7 +914,7 @@ test('合并会保留目标ai_context值、填充缺失键并刷新更新时间�
 
     $beforeMerge = now()->subSecond();
 
-    $result = MergeContactsAction::run($workspace, $target->id, $merged->id);
+    $result = MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     expect($result->ai_context)->toBeArray()
         ->and($result->ai_context['preferences'])->toBe('偏好中文')
@@ -928,7 +928,7 @@ test('合并会保留目标ai_context值、填充缺失键并刷新更新时间�
 });
 
 test('合并拒绝过大的ai_context载荷', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create([
         'ai_context' => [
@@ -944,16 +944,16 @@ test('合并拒绝过大的ai_context载荷', function () {
         'contact_id' => $merged->id,
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id);
 })->throws(ValidationException::class);
 
 // === HTTP endpoints ===
 
 test('可以创建联系人通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $this->actingAs($user)
-        ->post(route('workspace.contacts.store'), [
+        ->post(route('admin.contacts.store'), [
             'email' => 'http@example.com',
         ])
         ->assertRedirect();
@@ -962,7 +962,7 @@ test('可以创建联系人通过HTTP', function () {
 });
 
 test('可以获取联系人详情通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     ContactIdentity::factory()->email()->create([
@@ -970,13 +970,13 @@ test('可以获取联系人详情通过HTTP', function () {
     ]);
 
     $this->actingAs($user)
-        ->getJson(route('workspace.contacts.show', ['id' => $contact->id]))
+        ->getJson(route('admin.contacts.show', ['id' => $contact->id]))
         ->assertOk()
         ->assertJsonStructure(['id', 'name', 'type', 'source', 'identities']);
 });
 
 test('联系人详情包含命名空间用于外部身份', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     ContactIdentity::factory()->externalId('ext-123', 'api:shopify')->create([
@@ -984,13 +984,13 @@ test('联系人详情包含命名空间用于外部身份', function () {
     ]);
 
     $this->actingAs($user)
-        ->getJson(route('workspace.contacts.show', ['id' => $contact->id]))
+        ->getJson(route('admin.contacts.show', ['id' => $contact->id]))
         ->assertOk()
         ->assertJsonPath('identities.0.namespace', 'api:shopify');
 });
 
 test('请求包含已删除数据时可以通过HTTP获取已删除联系人详情', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->email()->create([
@@ -999,10 +999,10 @@ test('请求包含已删除数据时可以通过HTTP获取已删除联系人详�
         'display_value' => 'trashed@example.com',
     ]);
 
-    DeleteContactAction::run($workspace, $contact->id);
+    DeleteContactAction::run($systemContext, $contact->id);
 
     $this->actingAs($user)
-        ->getJson(route('workspace.contacts.show', ['id' => $contact->id,
+        ->getJson(route('admin.contacts.show', ['id' => $contact->id,
             'include_trashed' => 1,
         ]))
         ->assertOk()
@@ -1011,7 +1011,7 @@ test('请求包含已删除数据时可以通过HTTP获取已删除联系人详�
 });
 
 test('联系人详情包含合并日志用于活跃和已合并联系人', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create(['name' => '目标联系人']);
     ContactIdentity::factory()->email()->create([
@@ -1027,17 +1027,17 @@ test('联系人详情包含合并日志用于活跃和已合并联系人', funct
         'display_value' => '+8618995543120',
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id);
 
     $this->actingAs($user)
-        ->getJson(route('workspace.contacts.show', ['id' => $target->id]))
+        ->getJson(route('admin.contacts.show', ['id' => $target->id]))
         ->assertOk()
         ->assertJsonPath('activity_logs.0.action', 'merged_into_current')
         ->assertJsonPath('activity_logs.0.related_contact_name', '被合并联系人')
         ->assertJsonPath('activity_logs.0.identity_values.0', '+8618995543120');
 
     $this->actingAs($user)
-        ->getJson(route('workspace.contacts.show', ['id' => $merged->id,
+        ->getJson(route('admin.contacts.show', ['id' => $merged->id,
             'include_trashed' => 1,
         ]))
         ->assertOk()
@@ -1046,12 +1046,12 @@ test('联系人详情包含合并日志用于活跃和已合并联系人', funct
 });
 
 test('可以更新联系人通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
 
     $this->actingAs($user)
-        ->put(route('workspace.contacts.update', ['id' => $contact->id]), [
+        ->put(route('admin.contacts.update', ['id' => $contact->id]), [
             'name' => '更新后',
             'type' => 'contact',
             'note' => '这个联系人需要优先处理',
@@ -1064,40 +1064,40 @@ test('可以更新联系人通过HTTP', function () {
         ->and($contact->note)->toBe('这个联系人需要优先处理');
 
     $this->actingAs($user)
-        ->getJson(route('workspace.contacts.show', ['id' => $contact->id]))
+        ->getJson(route('admin.contacts.show', ['id' => $contact->id]))
         ->assertOk()
         ->assertJsonPath('activity_logs.0.action', 'updated')
         ->assertJsonPath('activity_logs.0.actor_name', $user->name);
 });
 
 test('可以删除联系人通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
 
     $this->actingAs($user)
-        ->delete(route('workspace.contacts.destroy', ['id' => $contact->id]))
+        ->delete(route('admin.contacts.destroy', ['id' => $contact->id]))
         ->assertRedirect();
 
     expect(Contact::find($contact->id))->toBeNull();
 });
 
 test('可以恢复联系人通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
 
-    DeleteContactAction::run($workspace, $contact->id);
+    DeleteContactAction::run($systemContext, $contact->id);
 
     $this->actingAs($user)
-        ->put(route('workspace.contacts.restore', ['id' => $contact->id]))
+        ->put(route('admin.contacts.restore', ['id' => $contact->id]))
         ->assertRedirect();
 
     expect(Contact::find($contact->id))->not->toBeNull();
 });
 
 test('可以合并联系人通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create(['name' => '目标']);
     ContactIdentity::factory()->email()->create([
@@ -1112,7 +1112,7 @@ test('可以合并联系人通过HTTP', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('workspace.contacts.merge'), [
+        ->post(route('admin.contacts.merge'), [
             'target_contact_id' => $target->id,
             'merged_contact_id' => $merged->id,
         ])
@@ -1122,7 +1122,7 @@ test('可以合并联系人通过HTTP', function () {
 });
 
 test('可以替换联系人身份通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->email()->create([
@@ -1132,7 +1132,7 @@ test('可以替换联系人身份通过HTTP', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('workspace.contacts.identities.replace', ['contactId' => $contact->id,
+        ->put(route('admin.contacts.identities.replace', ['contactId' => $contact->id,
             'identityId' => $identity->id,
         ]), [
             'value' => 'new@example.com',
@@ -1144,7 +1144,7 @@ test('可以替换联系人身份通过HTTP', function () {
 });
 
 test('可以删除联系人身份通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->email()->create([
@@ -1156,7 +1156,7 @@ test('可以删除联系人身份通过HTTP', function () {
     $contact->syncPrimaryFields();
 
     $this->actingAs($user)
-        ->delete(route('workspace.contacts.identities.destroy', ['contactId' => $contact->id,
+        ->delete(route('admin.contacts.identities.destroy', ['contactId' => $contact->id,
             'identityId' => $identity->id,
         ]))
         ->assertRedirect();
@@ -1166,12 +1166,12 @@ test('可以删除联系人身份通过HTTP', function () {
 });
 
 test('可以添加身份通过HTTP', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
 
     $this->actingAs($user)
-        ->post(route('workspace.contacts.identities.store', ['contactId' => $contact->id]), [
+        ->post(route('admin.contacts.identities.store', ['contactId' => $contact->id]), [
             'type' => 'email',
             'value' => 'added@example.com',
         ])
@@ -1181,12 +1181,12 @@ test('可以添加身份通过HTTP', function () {
 });
 
 test('拒绝创建邮箱身份且无效格式', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
 
     $this->actingAs($user)
-        ->post(route('workspace.contacts.identities.store', ['contactId' => $contact->id]), [
+        ->post(route('admin.contacts.identities.store', ['contactId' => $contact->id]), [
             'type' => 'email',
             'value' => 'not-a-valid-email',
         ])
@@ -1196,7 +1196,7 @@ test('拒绝创建邮箱身份且无效格式', function () {
 });
 
 test('拒绝替换邮箱身份且无效格式', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $contact = Contact::factory()->create();
     $identity = ContactIdentity::factory()->email()->create([
@@ -1206,7 +1206,7 @@ test('拒绝替换邮箱身份且无效格式', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('workspace.contacts.identities.replace', ['contactId' => $contact->id,
+        ->put(route('admin.contacts.identities.replace', ['contactId' => $contact->id,
             'identityId' => $identity->id,
         ]), [
             'value' => 'not-a-valid-email',
@@ -1217,7 +1217,7 @@ test('拒绝替换邮箱身份且无效格式', function () {
 });
 
 test('ContactDemoSeeder 会为单租户后台填充联系人', function () {
-    [$workspace] = createWorkspaceWithOwner();
+    [$systemContext] = createSystemWithOwner();
 
     $this->artisan('db:seed', ['--class' => ContactDemoSeeder::class])
         ->assertSuccessful();

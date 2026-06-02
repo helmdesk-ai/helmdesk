@@ -2,11 +2,11 @@
 
 namespace App\Actions\CannedReply;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,7 +27,7 @@ class DeleteCannedReplyAction
     /**
      * 软删模版；找不到 -> 404；权限不足 -> 业务异常 toast。
      */
-    public function handle(Workspace $workspace, User $user, string $cannedReplyId): void
+    public function handle(SystemContext $systemContext, User $user, string $cannedReplyId): void
     {
         $reply = CannedReply::query()
             ->find($cannedReplyId);
@@ -36,7 +36,7 @@ class DeleteCannedReplyAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->policy->canDelete($reply, $workspace, $user)) {
+        if (! $this->policy->canDelete($reply, $systemContext, $user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
@@ -48,12 +48,12 @@ class DeleteCannedReplyAction
      */
     public function asController(Request $request, string $cannedReply): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($workspace, $user, $cannedReply);
+        $this->handle($systemContext, $user, $cannedReply);
 
-        return redirect()->route('workspace.canned-replies.index');
+        return redirect()->route('admin.canned-replies.index');
     }
 }

@@ -15,7 +15,7 @@ test('无用户时注册页面可以渲染', function () {
         ->assertOk();
 });
 
-test('第一个注册用户是超级管理员且不创建工作区', function () {
+test('第一个注册用户是超级管理员且不创建系统', function () {
     Notification::fake();
 
     $response = post(route('register.store'), [

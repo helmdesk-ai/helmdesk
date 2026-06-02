@@ -12,7 +12,7 @@ use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactIdentity;
 use App\Models\Conversation;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Channel\WebChannelUserTokenVerifier;
 use App\Services\Contact\ContactIdentityNormalizer;
 use App\Services\Reception\ReceptionSession;
@@ -78,7 +78,7 @@ class ResolveReceptionContextAction
         $contact = $signedIdentity !== null
             ? $this->resolveSignedContact($channel, $signedIdentity)
             : $this->resolveContactIdentityAction->handle(
-                Workspace::current(),
+                SystemContext::current(),
                 ['type' => IdentityType::Session, 'value' => $token],
                 ContactSource::Web,
             );
@@ -156,7 +156,7 @@ class ResolveReceptionContextAction
         $namespace = $this->userTokenVerifier->identityNamespace($channel);
 
         $contact = $this->resolveContactIdentityAction->handle(
-            Workspace::current(),
+            SystemContext::current(),
             [
                 'type' => IdentityType::ExternalId,
                 'value' => $signedIdentity['external_id'],
@@ -179,7 +179,7 @@ class ResolveReceptionContextAction
     }
 
     /**
-     * 把 token 携带的邮箱挂到联系人上：仅在邮箱在本工作区未被占用、且联系人尚无该邮箱时追加。
+     * 把 token 携带的邮箱挂到联系人上：仅在邮箱在本系统未被占用、且联系人尚无该邮箱时追加。
      * 冲突时不写入，保留给客服显式合并。
      */
     private function attachEmailIdentityIfMissing(Channel $channel, Contact $contact, string $email): void

@@ -21,8 +21,8 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Reception\ReceptionStateBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -47,7 +47,7 @@ beforeEach(function () {
  */
 function imProtocolCreateChannel(): Channel
 {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
     $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
         'slug' => 'im-provider-'.Str::lower(Str::random(6)),
@@ -175,8 +175,8 @@ test('未带 client_msg_id 的访客消息允许同内容多次发送', function
 
 test('客服回复也支持 client_msg_id 幂等', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create();
 
     /** @var Conversation $conversation */
@@ -303,8 +303,8 @@ test('访客状态会下发引用消息快照', function () {
 
 test('客服时间线会下发引用消息快照', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create(['name' => 'Reply Agent']);
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor original');
@@ -397,8 +397,8 @@ test('撤回不存在的消息抛 404', function () {
 test('客服可以撤回自己发出的消息但不能撤回访客消息', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
 
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create();
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor msg');
@@ -435,8 +435,8 @@ test('客服可以撤回自己发出的消息但不能撤回访客消息', funct
 
 test('客服可以撤回当前接管会话内的 AI 消息', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create();
 
     app(AppendAiMessageAction::class)->handle(Conversation::query()->firstOrFail(), 'ai answer');
@@ -484,8 +484,8 @@ test('访客端只看到自己撤回消息的原文用于重新编辑', function
     );
 
     // 客服接管并撤回 AI 消息
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create();
     /** @var Conversation $conversation */
     $conversation = Conversation::query()->firstOrFail();
@@ -516,8 +516,8 @@ test('访客端只看到自己撤回消息的原文用于重新编辑', function
 
 test('客服端时间线只对操作者本人下发 recalled_content', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammateA = User::factory()->create();
     $teammateB = User::factory()->create();
 
@@ -573,7 +573,7 @@ test('客服端时间线只对操作者本人下发 recalled_content', function 
     expect($teammateEntryA->recalled_content)->toBe('agent reply by A')
         // teammateB 看 teammateA 的撤回消息：没原文
         ->and($teammateEntryB->recalled_content)->toBeNull()
-        // 任意客服看 AI 撤回消息：都有原文（工作区内部）
+        // 任意客服看 AI 撤回消息：都有原文（系统内部）
         ->and($aiEntryA->recalled_content)->toBe('ai answer')
         ->and($aiEntryB->recalled_content)->toBe('ai answer')
         // 客服永远看不到访客撤回原文
@@ -603,8 +603,8 @@ test('未传 viewer 时时间线不下发任何 recalled_content', function () {
 
 test('对工具消息禁止撤回', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
-    /** @var Workspace $workspace */
-    $workspace = Workspace::current();
+    /** @var SystemContext $systemContext */
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create();
 
     /** @var Conversation $conversation */
@@ -632,7 +632,7 @@ test('对工具消息禁止撤回', function () {
 test('B端引用访客消息时直接使用落库发送者名称', function () {
     [$channel, $sessionToken] = imProtocolStartSession();
 
-    $workspace = Workspace::current();
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create(['name' => 'Agent One']);
 
     app(AppendVisitorMessageAction::class)->handle($channel->code, $sessionToken, 'visitor original');
@@ -686,7 +686,7 @@ test('B端引用 AI 消息时 sender_name 由后端填充，前端无需 fallbac
     app(AppendAiMessageAction::class)->handle($conversation, 'AI said something');
     $target = ConversationMessage::query()->where('role', MessageRole::Ai)->firstOrFail();
 
-    $workspace = Workspace::current();
+    $systemContext = SystemContext::current();
     $teammate = User::factory()->create(['name' => 'Agent Two']);
     $conversation->forceFill([
         'assigned_user_id' => $teammate->id,

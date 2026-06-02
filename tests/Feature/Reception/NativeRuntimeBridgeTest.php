@@ -26,8 +26,8 @@ use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -72,7 +72,7 @@ test('LoadReceptionRuntimeBridgeAction 在 AI 接待时返回 system prompt 与�
 });
 
 test('LoadReceptionRuntimeBridgeAction 返回任务智能体配置的模型', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
@@ -646,7 +646,7 @@ test('LogReceptionEventBridgeAction 拒绝未知 type', function () {
 });
 
 test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不可用兜底文案', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
@@ -739,7 +739,7 @@ test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不�
 });
 
 test('LoadReceptionRuntimeBridgeAction 过滤已停用的备用模型', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
@@ -884,7 +884,7 @@ test('HandleAiUnavailableBridgeAction 在非 AI 接待状态时返回 handled=fa
  */
 function makeNativeRuntimeChannel(array $strategyOverrides = []): Channel
 {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
     User::factory()->create([
         'is_super_admin' => true,
         'online_status' => UserOnlineStatus::Online->value,

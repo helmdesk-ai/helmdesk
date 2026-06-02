@@ -10,8 +10,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement('DROP INDEX IF EXISTS tags_workspace_normalized_name_active_unique');
-        DB::statement('DROP INDEX IF EXISTS tags_workspace_group_normalized_name_active_unique');
+        DB::statement('DROP INDEX IF EXISTS tags_system_normalized_name_active_unique');
+        DB::statement('DROP INDEX IF EXISTS tags_system_group_normalized_name_active_unique');
         DB::statement(
             'CREATE UNIQUE INDEX IF NOT EXISTS tags_group_normalized_name_active_unique ON tags (tag_group_id, normalized_name) WHERE deleted_at IS NULL',
         );

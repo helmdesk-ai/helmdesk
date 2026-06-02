@@ -2,10 +2,10 @@
 
 namespace App\Actions\Translation;
 
+use App\Data\SystemUserContextData;
 use App\Data\Translation\FormCreateTranslationProviderData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\SystemContext;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use App\Services\Translation\TranslationProviderCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 在当前工作区下创建一条翻译供应商记录。
+ * 在当前系统下创建一条翻译供应商记录。
  */
 class CreateTranslationProviderAction
 {
@@ -30,9 +30,9 @@ class CreateTranslationProviderAction
     /**
      * 落库一条新的翻译供应商记录。
      */
-    public function handle(Workspace $workspace, FormCreateTranslationProviderData $data): TranslationProvider
+    public function handle(SystemContext $systemContext, FormCreateTranslationProviderData $data): TranslationProvider
     {
-        $maxSort = $workspace->translationProviders()->max('sort_order') ?? 0;
+        $maxSort = $systemContext->translationProviders()->max('sort_order') ?? 0;
         $defaultConfiguration = $this->catalog->defaultConfigurationForProtocol($data->protocol);
         $credentialFields = $this->catalog->credentialFieldsForProtocol($data->protocol);
         $credentials = $this->buildCredentials($credentialFields, [
@@ -40,7 +40,7 @@ class CreateTranslationProviderAction
             ...$data->configuration,
         ]);
 
-        return $workspace->translationProviders()->create([
+        return $systemContext->translationProviders()->create([
             'slug' => Str::slug($data->name).'-'.Str::random(6),
             'name' => $data->name,
             'protocol' => $data->protocol,
@@ -57,11 +57,11 @@ class CreateTranslationProviderAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $data = FormCreateTranslationProviderData::from($request);
-        $this->handle($workspace, $data);
+        $this->handle($systemContext, $data);
 
         return back();
     }

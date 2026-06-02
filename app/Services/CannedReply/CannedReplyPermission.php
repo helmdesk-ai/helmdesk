@@ -3,8 +3,8 @@
 namespace App\Services\CannedReply;
 
 use App\Models\CannedReply;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -17,22 +17,22 @@ class CannedReplyPermission
     /**
      * 当前用户能否管理（创建 / 编辑 / 删除）系统共享模版。
      */
-    public function canManageWorkspaceShared(Workspace $workspace, User $user): bool
+    public function canManageSystemShared(SystemContext $systemContext, User $user): bool
     {
-        return Gate::forUser($user)->allows('workspace.canAccessManageCenter', [$workspace]);
+        return Gate::forUser($user)->allows('admin.canAccessManageCenter', [$systemContext]);
     }
 
     /**
      * 判断用户对某条模版是否可编辑。
      */
-    public function canEdit(CannedReply $reply, Workspace $workspace, User $user): bool
+    public function canEdit(CannedReply $reply, SystemContext $systemContext, User $user): bool
     {
         if ($reply->isOwnedBy($user)) {
             return true;
         }
 
-        if ($reply->isWorkspaceShared()) {
-            return $this->canManageWorkspaceShared($workspace, $user);
+        if ($reply->isSystemShared()) {
+            return $this->canManageSystemShared($systemContext, $user);
         }
 
         return false;
@@ -41,16 +41,16 @@ class CannedReplyPermission
     /**
      * 删除策略与编辑相同。
      */
-    public function canDelete(CannedReply $reply, Workspace $workspace, User $user): bool
+    public function canDelete(CannedReply $reply, SystemContext $systemContext, User $user): bool
     {
-        return $this->canEdit($reply, $workspace, $user);
+        return $this->canEdit($reply, $systemContext, $user);
     }
 
     /**
      * 当前用户能看到的模版（自己个人 + 系统共享）。
      */
-    public function canView(CannedReply $reply, Workspace $workspace, User $user): bool
+    public function canView(CannedReply $reply, SystemContext $systemContext, User $user): bool
     {
-        return $reply->isWorkspaceShared() || $reply->isOwnedBy($user);
+        return $reply->isSystemShared() || $reply->isOwnedBy($user);
     }
 }

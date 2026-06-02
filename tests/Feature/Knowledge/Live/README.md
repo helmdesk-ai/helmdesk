@@ -50,7 +50,7 @@ KNOWLEDGE_RUNTIME_LIVE=1 \
 
 ### `KnowledgeLiveRecallBenchmarkTest.php`（核心）
 - 载入 `tests/Fixtures/Knowledge/zh_recall_corpus.json`（57 篇文档 / 40 条查询，含 `lexical / paraphrased / conceptual / disambiguation / multi_positive` 五类标签，结构对齐 DuReader-Retrieval 与 C-MTEB）；
-- 在同一份索引上依次切换 workspace 配置，跑三条流水线：**FTS only** / **Hybrid (FTS+Vector)** / **Hybrid + Rerank**；
+- 在同一份索引上依次切换 systemContext 配置，跑三条流水线：**FTS only** / **Hybrid (FTS+Vector)** / **Hybrid + Rerank**；
 - 每条流水线打出 `Recall@1/3/5`、`MRR@10`、平均时延、rerank 应用次数、embedding 失败次数；
 - 额外输出 **per-query type** 拆解（MRR@10 / R@5），方便定位 vector / rerank 对哪类查询提升最大；
 - 最后把每条查询的最强 MRR 与 type 标签输出到 STDERR，便于排查个别中文查询是否回归。
@@ -67,7 +67,7 @@ Hybrid + Rerank          0.8521   0.9688   0.9875   0.9521     1233.1       40  
 ```
 
 ### `KnowledgeLiveAgentSearchTest.php`
-- 工作区一次性打开 `vector + raptor + rerank`，建两个知识库；
+- 系统一次性打开 `vector + raptor + rerank`，建两个知识库；
 - 通过 `SearchKnowledgeBaseAction` 把 `mode=grep / semantic / hybrid` 各跑一遍，断言每模式的返回结构正确；
 - STDERR 输出每模式 latency / hits / rerank_applied / embedding_error，用于排查上线前的"非完美外部依赖"行为。
 

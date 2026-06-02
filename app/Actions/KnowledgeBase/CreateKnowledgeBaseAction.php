@@ -3,11 +3,11 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormCreateKnowledgeBaseData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Storage\AttachmentBindingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 创建工作区知识库基础信息。
+ * 创建系统知识库基础信息。
  */
 class CreateKnowledgeBaseAction
 {
@@ -31,12 +31,12 @@ class CreateKnowledgeBaseAction
     ) {}
 
     /**
-     * 创建知识库并限定同一工作区内知识库名称唯一。
+     * 创建知识库并限定同一系统内知识库名称唯一。
      */
-    public function handle(Workspace $workspace, FormCreateKnowledgeBaseData $data): KnowledgeBase
+    public function handle(SystemContext $systemContext, FormCreateKnowledgeBaseData $data): KnowledgeBase
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($workspace, $name);
+        $this->ensureNameIsAvailable($systemContext, $name);
         $this->attachments->assertAssignable(
             attachable: new KnowledgeBase,
             attachmentId: $data->avatar_id,
@@ -71,20 +71,20 @@ class CreateKnowledgeBaseAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $knowledgeBase = $this->handle($workspace, FormCreateKnowledgeBaseData::from($request));
+        $knowledgeBase = $this->handle($systemContext, FormCreateKnowledgeBaseData::from($request));
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             'kb' => $knowledgeBase->id,
         ]);
     }
 
     /**
-     * 校验当前工作区内知识库名称是否可用。
+     * 校验当前系统内知识库名称是否可用。
      */
-    private function ensureNameIsAvailable(Workspace $workspace, string $name): void
+    private function ensureNameIsAvailable(SystemContext $systemContext, string $name): void
     {
         $exists = KnowledgeBase::query()
             ->where('name', $name)

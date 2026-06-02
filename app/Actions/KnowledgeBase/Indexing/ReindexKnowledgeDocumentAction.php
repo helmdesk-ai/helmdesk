@@ -2,7 +2,7 @@
 
 namespace App\Actions\KnowledgeBase\Indexing;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use Illuminate\Http\RedirectResponse;
@@ -37,8 +37,8 @@ class ReindexKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

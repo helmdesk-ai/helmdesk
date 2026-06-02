@@ -2,19 +2,19 @@
 
 namespace App\Actions\Tag;
 
+use App\Data\SystemUserContextData;
 use App\Data\Tag\FormCreateTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\TagSource;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 在指定标签组下创建工作区标签；标签维度经由所属组继承。
+ * 在指定标签组下创建系统标签；标签维度经由所属组继承。
  */
 class CreateTagAction
 {
@@ -23,7 +23,7 @@ class CreateTagAction
     /**
      * 校验标签组归属与名称唯一后，在该组下创建标签。
      */
-    public function handle(Workspace $workspace, FormCreateTagData $data, ?User $actor = null): Tag
+    public function handle(SystemContext $systemContext, FormCreateTagData $data, ?User $actor = null): Tag
     {
         $group = TagGroup::query()
             ->find($data->tag_group_id);
@@ -61,10 +61,10 @@ class CreateTagAction
 
     public function asController(Request $request)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $currentWorkspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $currentSystem = $ctx->systemContext();
         $data = FormCreateTagData::from($request);
-        $this->handle($currentWorkspace, $data, $request->user());
+        $this->handle($currentSystem, $data, $request->user());
 
         return back();
     }

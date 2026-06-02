@@ -4,7 +4,7 @@ namespace App\Actions\KnowledgeBase\Document;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormUpdateManualKnowledgeDocumentData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
@@ -59,8 +59,8 @@ class UpdateManualKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
@@ -79,7 +79,7 @@ class UpdateManualKnowledgeDocumentAction
             $query['group'] = $groupId;
         }
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             ...$query,
         ]);
     }

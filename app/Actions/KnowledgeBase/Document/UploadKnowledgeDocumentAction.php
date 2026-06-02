@@ -5,7 +5,7 @@ namespace App\Actions\KnowledgeBase\Document;
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormUploadKnowledgeDocumentData;
 use App\Data\KnowledgeBase\ListKnowledgeDocumentItemData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\AttachmentStatus;
 use App\Enums\AttachmentVisibility;
@@ -123,8 +123,8 @@ class UploadKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse|JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
@@ -169,7 +169,7 @@ class UploadKnowledgeDocumentAction
             $query['group'] = $groupId;
         }
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             ...$query,
         ]);
     }

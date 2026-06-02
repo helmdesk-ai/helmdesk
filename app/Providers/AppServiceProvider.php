@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\ContactTagFilterStrategy;
-use App\Enums\WorkspaceRole;
+use App\Enums\SystemRole;
 use App\Models\User;
 use App\Services\Database\SqliteVecExtensionLoader;
 use App\Services\KnowledgeBase\Parsing\DocumentParserManager;
@@ -77,17 +77,17 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // 管理中心权限
-        Gate::define('workspace.canAccessManageCenter', function (User $actor, mixed $scope = null): bool {
+        Gate::define('admin.canAccessManageCenter', function (User $actor, mixed $scope = null): bool {
             return $actor->is_super_admin
-                || in_array($actor->role, [WorkspaceRole::Owner, WorkspaceRole::Admin], true);
+                || in_array($actor->role, [SystemRole::Owner, SystemRole::Admin], true);
         });
 
-        Gate::define('workspace.manageAi', function (User $actor, mixed $scope = null): bool {
-            return $actor->is_super_admin || $actor->role === WorkspaceRole::Owner;
+        Gate::define('admin.manageAi', function (User $actor, mixed $scope = null): bool {
+            return $actor->is_super_admin || $actor->role === SystemRole::Owner;
         });
 
         // 从后台移除成员权限（仅普通成员可被移除，不删除超级管理员）
-        Gate::define('workspace-users.removeMember', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
+        Gate::define('systemContext-users.removeMember', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
             $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
             if (! $target instanceof User) {
                 return false;
@@ -101,59 +101,59 @@ class AppServiceProvider extends ServiceProvider
                 return false;
             }
 
-            if ($actor->is_super_admin || $actor->role === WorkspaceRole::Owner) {
+            if ($actor->is_super_admin || $actor->role === SystemRole::Owner) {
                 return true;
             }
 
-            if ($actor->role !== WorkspaceRole::Admin) {
+            if ($actor->role !== SystemRole::Admin) {
                 return false;
             }
 
-            return $target->role === WorkspaceRole::Operator;
+            return $target->role === SystemRole::Operator;
         });
 
         // 更新用户资料权限
-        Gate::define('workspace-users.updateProfile', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
+        Gate::define('systemContext-users.updateProfile', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
             $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
             if (! $target instanceof User) {
                 return false;
             }
 
-            if ($actor->is_super_admin || $actor->role === WorkspaceRole::Owner) {
+            if ($actor->is_super_admin || $actor->role === SystemRole::Owner) {
                 return true;
             }
 
-            if ($actor->role !== WorkspaceRole::Admin) {
+            if ($actor->role !== SystemRole::Admin) {
                 return false;
             }
 
             return (string) $actor->id === (string) $target->id
-                || $target->role === WorkspaceRole::Operator;
+                || $target->role === SystemRole::Operator;
         });
 
-        Gate::define('workspace-users.canUpdateRole', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
+        Gate::define('systemContext-users.canUpdateRole', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
             $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
 
-            return ($actor->is_super_admin || $actor->role === WorkspaceRole::Owner)
+            return ($actor->is_super_admin || $actor->role === SystemRole::Owner)
                 && $target instanceof User
                 && (string) $actor->id !== (string) $target->id;
         });
 
-        Gate::define('workspace-users.updateRole', function (User $actor, mixed $scopeOrTarget, User|WorkspaceRole|null $targetOrRole = null, ?WorkspaceRole $newRole = null): bool {
+        Gate::define('systemContext-users.updateRole', function (User $actor, mixed $scopeOrTarget, User|SystemRole|null $targetOrRole = null, ?SystemRole $newRole = null): bool {
             $target = $scopeOrTarget instanceof User ? $scopeOrTarget : null;
             if ($target === null && $targetOrRole instanceof User) {
                 $target = $targetOrRole;
             }
 
-            if ($newRole === null && $targetOrRole instanceof WorkspaceRole) {
+            if ($newRole === null && $targetOrRole instanceof SystemRole) {
                 $newRole = $targetOrRole;
             }
 
-            return ($actor->is_super_admin || $actor->role === WorkspaceRole::Owner)
+            return ($actor->is_super_admin || $actor->role === SystemRole::Owner)
                 && $target instanceof User
-                && $newRole instanceof WorkspaceRole
+                && $newRole instanceof SystemRole
                 && (string) $actor->id !== (string) $target->id
-                && in_array($newRole, WorkspaceRole::assignableCases(), true);
+                && in_array($newRole, SystemRole::assignableCases(), true);
         });
     }
 

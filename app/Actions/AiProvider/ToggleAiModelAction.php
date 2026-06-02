@@ -2,23 +2,23 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 启用或停用工作区供应商下的单个 AI 模型。
+ * 启用或停用系统供应商下的单个 AI 模型。
  */
 class ToggleAiModelAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $providerSlug, string $modelId): AiModel
+    public function handle(SystemContext $systemContext, string $providerSlug, string $modelId): AiModel
     {
         $model = AiModel::query()
             ->whereHas(
@@ -57,10 +57,10 @@ class ToggleAiModelAction
 
     public function asController(Request $request, string $provider, string $model)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $this->handle($workspace, $provider, $model);
+        $this->handle($systemContext, $provider, $model);
 
         return back();
     }

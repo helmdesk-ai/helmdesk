@@ -3,11 +3,11 @@
 namespace App\Actions\CustomAttribute;
 
 use App\Data\CustomAttribute\FormUpdateAttributeDefinitionData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Models\AttributeDefinition;
 use App\Models\ContactAttributeValue;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -20,9 +20,9 @@ class UpdateAttributeDefinitionAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $definitionId, FormUpdateAttributeDefinitionData $data): AttributeDefinition
+    public function handle(SystemContext $systemContext, string $definitionId, FormUpdateAttributeDefinitionData $data): AttributeDefinition
     {
-        $definition = $workspace->attributeDefinitions()->findOrFail($definitionId);
+        $definition = $systemContext->attributeDefinitions()->findOrFail($definitionId);
 
         $this->validateFilterable($definition, $data->is_filterable);
         $this->validateConfig($definition, $data->config);
@@ -39,10 +39,10 @@ class UpdateAttributeDefinitionAction
 
     public function asController(Request $request, string $id): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         $data = FormUpdateAttributeDefinitionData::from($request);
 
-        $this->handle($workspace, $id, $data);
+        $this->handle($systemContext, $id, $data);
 
         return back();
     }

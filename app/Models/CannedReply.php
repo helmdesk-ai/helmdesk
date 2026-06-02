@@ -66,7 +66,7 @@ class CannedReply extends Model
     /**
      * 是否为系统共享模版（非个人）。
      */
-    public function isWorkspaceShared(): bool
+    public function isSystemShared(): bool
     {
         return $this->user_id === null;
     }

@@ -7,11 +7,11 @@ use App\Data\Channel\Telegram\ShowTelegramChannelDetailPagePropsData;
 use App\Data\Channel\Telegram\TelegramChannelData;
 use App\Data\Channel\Telegram\TelegramChannelFormOptionsData;
 use App\Data\EnumOptionData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Enums\ReceptionLanguage;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -37,7 +37,7 @@ class ShowTelegramChannelDetailPageAction
     /**
      * 组装 Telegram 渠道详情页和表单选项。
      */
-    public function handle(Workspace $workspace, string $channelId): ShowTelegramChannelDetailPagePropsData
+    public function handle(SystemContext $systemContext, string $channelId): ShowTelegramChannelDetailPagePropsData
     {
         $channel = Channel::query()
             ->where('type', ChannelType::Telegram)
@@ -47,10 +47,10 @@ class ShowTelegramChannelDetailPageAction
         return new ShowTelegramChannelDetailPagePropsData(
             telegram_channel: TelegramChannelData::fromModel(
                 $channel,
-                $this->planVersionResolver->resolveChannelStatus($workspace, $channel),
+                $this->planVersionResolver->resolveChannelStatus($systemContext, $channel),
             ),
             form_options: new TelegramChannelFormOptionsData(
-                reception_plan_options: $this->listReceptionPlans->handle($workspace),
+                reception_plan_options: $this->listReceptionPlans->handle($systemContext),
                 reception_language_options: EnumOptionData::fromCases(ReceptionLanguage::cases()),
             ),
         );
@@ -61,9 +61,9 @@ class ShowTelegramChannelDetailPageAction
      */
     public function asController(Request $request, string $channel): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        return Inertia::render('channel/telegram/Show', $this->handle($workspace, $channel)->toArray());
+        return Inertia::render('channel/telegram/Show', $this->handle($systemContext, $channel)->toArray());
     }
 }

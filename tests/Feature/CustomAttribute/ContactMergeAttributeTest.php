@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('合并填充缺失单选值来自来源', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -23,7 +23,7 @@ test('合并填充缺失单选值来自来源', function () {
         'value_json' => ['value' => 'Acme'],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $val = ContactAttributeValue::query()
         ->where('contact_id', $target->id)
@@ -36,7 +36,7 @@ test('合并填充缺失单选值来自来源', function () {
 });
 
 test('合并保留目标值当双方都有值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -54,7 +54,7 @@ test('合并保留目标值当双方都有值', function () {
         'value_json' => ['value' => 'Merged Corp'],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $val = ContactAttributeValue::query()
         ->where('contact_id', $target->id)
@@ -71,7 +71,7 @@ test('合并保留目标值当双方都有值', function () {
 });
 
 test('合并保留布尔false在目标', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -89,7 +89,7 @@ test('合并保留布尔false在目标', function () {
         'value_json' => ['value' => true],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $val = ContactAttributeValue::query()
         ->where('contact_id', $target->id)
@@ -100,7 +100,7 @@ test('合并保留布尔false在目标', function () {
 });
 
 test('合并生成并集用于multi_select', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -122,7 +122,7 @@ test('合并生成并集用于multi_select', function () {
         'value_json' => ['value' => ['b', 'c']],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $val = ContactAttributeValue::query()
         ->where('contact_id', $target->id)
@@ -133,7 +133,7 @@ test('合并生成并集用于multi_select', function () {
 });
 
 test('合并设置来源到合并', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -145,7 +145,7 @@ test('合并设置来源到合并', function () {
         'value_json' => ['value' => 'from merged'],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $val = ContactAttributeValue::query()
         ->where('contact_id', $target->id)
@@ -156,7 +156,7 @@ test('合并设置来源到合并', function () {
 });
 
 test('合并活动日志包含merged_custom_attributes', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -168,7 +168,7 @@ test('合并活动日志包含merged_custom_attributes', function () {
         'value_json' => ['value' => 'Acme'],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $log = ContactActivityLog::query()
         ->where('contact_id', $target->id)
@@ -181,7 +181,7 @@ test('合并活动日志包含merged_custom_attributes', function () {
 });
 
 test('合并处理已删除定义', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -193,7 +193,7 @@ test('合并处理已删除定义', function () {
         'value_json' => ['value' => 'old data'],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     $val = ContactAttributeValue::query()
         ->where('contact_id', $target->id)
@@ -205,7 +205,7 @@ test('合并处理已删除定义', function () {
 });
 
 test('合并移除来源联系人自定义属性行之后复制值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
+    [$systemContext, $user] = createSystemWithOwner();
 
     $target = Contact::factory()->create();
     $merged = Contact::factory()->create();
@@ -217,7 +217,7 @@ test('合并移除来源联系人自定义属性行之后复制值', function ()
         'value_json' => ['value' => 'Acme'],
     ]);
 
-    MergeContactsAction::run($workspace, $target->id, $merged->id, $user);
+    MergeContactsAction::run($systemContext, $target->id, $merged->id, $user);
 
     expect(ContactAttributeValue::query()
         ->where('contact_id', $merged->id)

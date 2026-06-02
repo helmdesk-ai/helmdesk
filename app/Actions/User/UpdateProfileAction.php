@@ -30,10 +30,10 @@ class UpdateProfileAction
     {
         $this->handle($request->user(), FormUpdateProfileData::from($request));
 
-        $fromWorkspace = $request->query('from_workspace');
+        $fromSystem = $request->query('from_system');
 
-        if (is_string($fromWorkspace) && $fromWorkspace !== '') {
-            return to_route('settings.profile.edit', ['from_workspace' => $fromWorkspace]);
+        if (is_string($fromSystem) && $fromSystem !== '') {
+            return to_route('settings.profile.edit', ['from_system' => $fromSystem]);
         }
 
         return to_route('settings.profile.edit');

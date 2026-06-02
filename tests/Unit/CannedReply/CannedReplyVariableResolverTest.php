@@ -9,7 +9,7 @@ uses(TestCase::class);
 beforeEach(function () {
     $this->resolver = new CannedReplyVariableResolver;
     $this->context = new CannedReplyRenderContextData(
-        workspace_name: 'Helmdesk',
+        system_name: 'Helmdesk',
         teammate_name: '张客服',
         contact_name: '李四',
         contact_email: 'lisi@example.com',
@@ -21,7 +21,7 @@ beforeEach(function () {
 
 test('解析所有静态命名空间变量', function () {
     $template = '你好 {{contact.name}}（{{contact.email}}），我是 {{teammate.name}}，'
-        .'代表 {{workspace.name}} 处理你的会话 {{conversation.subject}} (id: {{conversation.id}})。';
+        .'代表 {{system.name}} 处理你的会话 {{conversation.subject}} (id: {{conversation.id}})。';
 
     $result = $this->resolver->render($template, $this->context);
 
@@ -51,7 +51,7 @@ test('AI 命名空间在未启用时原样保留并产生 warning', function () 
 
 test('缺值字段保留原文并产生 warning', function () {
     $emptyContext = new CannedReplyRenderContextData(
-        workspace_name: 'Helmdesk',
+        system_name: 'Helmdesk',
         teammate_name: '张客服',
         contact_name: null,
         contact_email: null,
@@ -84,6 +84,6 @@ test('availableTokens 返回 v1 支持的全部静态变量列表', function () 
     expect($tokenStrings)->toContain('{{conversation.subject}}');
     expect($tokenStrings)->toContain('{{conversation.id}}');
     expect($tokenStrings)->toContain('{{teammate.name}}');
-    expect($tokenStrings)->toContain('{{workspace.name}}');
+    expect($tokenStrings)->toContain('{{system.name}}');
     expect($tokenStrings)->not->toContain('{{ai.suggested_reply}}');
 });

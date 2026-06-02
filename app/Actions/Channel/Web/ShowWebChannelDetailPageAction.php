@@ -9,7 +9,7 @@ use App\Data\Channel\Web\WebChannelData;
 use App\Data\Channel\Web\WebChannelFormOptionsData;
 use App\Data\Channel\Web\WritableAttributeDefinitionOptionData;
 use App\Data\EnumOptionData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\Channel\Web\WebChannelParamTarget;
 use App\Enums\Channel\Web\WebChannelParamTrust;
@@ -23,7 +23,7 @@ use App\Enums\ChannelType;
 use App\Enums\ReceptionLanguage;
 use App\Models\AttributeDefinition;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
 use App\Support\Channel\WebChannelThemePalette;
 use Illuminate\Http\Request;
@@ -50,7 +50,7 @@ class ShowWebChannelDetailPageAction
     /**
      * 组装网站渠道详情页和配置表单选项。
      */
-    public function handle(Workspace $workspace, string $channelId): ShowWebChannelDetailPagePropsData
+    public function handle(SystemContext $systemContext, string $channelId): ShowWebChannelDetailPagePropsData
     {
         $channel = Channel::query()
             ->where('type', ChannelType::Web)
@@ -60,10 +60,10 @@ class ShowWebChannelDetailPageAction
         return new ShowWebChannelDetailPagePropsData(
             web_channel: WebChannelData::fromModel(
                 $channel,
-                $this->planVersionResolver->resolveChannelStatus($workspace, $channel),
+                $this->planVersionResolver->resolveChannelStatus($systemContext, $channel),
             ),
             form_options: new WebChannelFormOptionsData(
-                reception_plan_options: $this->listReceptionPlans->handle($workspace),
+                reception_plan_options: $this->listReceptionPlans->handle($systemContext),
                 visitor_identity_mode_options: EnumOptionData::fromCases(WebChannelVisitorIdentityMode::cases()),
                 query_param_options: QueryParamOptionData::options(),
                 theme_color_options: WebChannelThemePalette::presets(),
@@ -99,9 +99,9 @@ class ShowWebChannelDetailPageAction
      */
     public function asController(Request $request, string $channel): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        return Inertia::render('channel/web/Show', $this->handle($workspace, $channel)->toArray());
+        return Inertia::render('channel/web/Show', $this->handle($systemContext, $channel)->toArray());
     }
 }

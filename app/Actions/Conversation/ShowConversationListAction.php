@@ -7,9 +7,9 @@ use App\Data\Conversation\ListConversationItemData;
 use App\Data\Conversation\ShowConversationListPagePropsData;
 use App\Data\EnumOptionData;
 use App\Data\SimplePaginationData;
+use App\Data\SystemUserContextData;
 use App\Data\Tag\TagOptionData;
 use App\Data\User\UserOptionData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\ConversationSource;
 use App\Enums\ConversationStatus;
@@ -17,9 +17,9 @@ use App\Enums\ConversationVisitorReplyStatus;
 use App\Enums\TagMatchMode;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Search\ConversationMessageSearch;
 use App\Services\Search\ConversationMessageVisibleTextResolver;
 use Illuminate\Http\Request;
@@ -48,7 +48,7 @@ class ShowConversationListAction
      * 按搜索、状态、收件箱、访客回复、分配、接待方案版本筛选条件查询会话列表页 props。
      */
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         ?string $search = null,
         int $page = 1,
         int $perPage = 15,
@@ -63,7 +63,7 @@ class ShowConversationListAction
         $page = max(1, $page);
 
         $currentUser = $currentUserId !== null ? User::query()->find($currentUserId) : null;
-        $query = $workspace->conversations()->with(['contact', 'receptionPlanVersion.plan', 'assignedUser', 'channel', 'latestMessage']);
+        $query = $systemContext->conversations()->with(['contact', 'receptionPlanVersion.plan', 'assignedUser', 'channel', 'latestMessage']);
 
         if ($status !== null) {
             $query->where('status', $status);
@@ -95,7 +95,7 @@ class ShowConversationListAction
 
         if (filled($search)) {
             $messageMatchedConversationIds = $this->collectConversationIdsMatchingMessageContent(
-                $workspace,
+                $systemContext,
                 $currentUser,
                 $search,
             );
@@ -130,7 +130,7 @@ class ShowConversationListAction
             ->orderByDesc('id')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $teammates = $workspace->users()
+        $teammates = $systemContext->users()
             ->orderBy('name')
             ->get()
             ->map(fn (User $user) => UserOptionData::fromModel($user))
@@ -156,14 +156,14 @@ class ShowConversationListAction
                 ->map(fn (Tag $tag) => TagOptionData::fromModel($tag))
                 ->all(),
             teammate_options: $teammates,
-            reception_plan_options: $this->listReceptionPlans->handle($workspace),
+            reception_plan_options: $this->listReceptionPlans->handle($systemContext),
         );
     }
 
     /**
      * @return list<string>
      */
-    private function collectConversationIdsMatchingMessageContent(Workspace $workspace, ?User $viewer, string $search): array
+    private function collectConversationIdsMatchingMessageContent(SystemContext $systemContext, ?User $viewer, string $search): array
     {
         $perPage = 200;
         $maxPages = 25;
@@ -211,12 +211,12 @@ class ShowConversationListAction
     }
 
     /**
-     * 返回工作区会话列表页面。
+     * 返回系统会话列表页面。
      */
     public function asController(Request $request): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(array_map(fn (ConversationStatus $status) => $status->value, ConversationStatus::cases()))],
             'inbox_status' => ['nullable', Rule::in(array_map(fn (ConversationInboxStatus $status) => $status->value, ConversationInboxStatus::cases()))],
@@ -224,7 +224,7 @@ class ShowConversationListAction
         ]);
 
         $props = $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             search: $request->query('search'),
             page: (int) $request->query('page', 1),
             status: isset($validated['status']) ? ConversationStatus::from($validated['status']) : null,

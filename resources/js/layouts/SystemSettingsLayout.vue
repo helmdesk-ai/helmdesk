@@ -7,7 +7,6 @@ import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/composables/useI18n';
 import { toUrl, urlIsActive } from '@/lib/utils';
 import admin from '@/routes/admin';
-import workspace from '@/routes/workspace';
 import type { AppPageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -45,27 +44,27 @@ const sidebarNavItems = computed<SubMenuItem[]>(() => [
   },
   {
     title: t('标签'),
-    href: workspace.manage.tags.index.url(),
+    href: admin.manage.tags.index.url(),
   },
   {
     title: t('自定义属性'),
-    href: workspace.manage.attributes.index.url(),
+    href: admin.manage.attributes.index.url(),
   },
   {
     title: t('快捷回复'),
-    href: workspace.cannedReplies.index.url(),
+    href: admin.cannedReplies.index.url(),
   },
   {
     title: t('大模型供应商'),
-    href: workspace.manage.ai.providers.index.url(),
+    href: admin.manage.ai.providers.index.url(),
   },
   {
     title: t('MCP 服务'),
-    href: workspace.manage.mcp.servers.index.url(),
+    href: admin.manage.mcp.servers.index.url(),
   },
   {
     title: t('翻译供应商'),
-    href: workspace.manage.translation.providers.index.url(),
+    href: admin.manage.translation.providers.index.url(),
   },
 ]);
 

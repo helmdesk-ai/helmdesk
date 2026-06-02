@@ -2,11 +2,11 @@
 
 namespace App\Actions\Mcp;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\McpSyncStatus;
 use App\Models\McpServer;
 use App\Models\McpTool;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\Mcp\GoMcpRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,9 +40,9 @@ class SyncMcpServerToolsAction
      *
      * @return array{success: bool, code: string, message: string, total: int, added: int, removed: int, warnings: array<int, string>}
      */
-    public function handle(Workspace $workspace, string $slug): array
+    public function handle(SystemContext $systemContext, string $slug): array
     {
-        $server = $workspace->mcpServers()->where('slug', $slug)->firstOrFail();
+        $server = $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
 
         $result = $this->bridge->listServerTools(
             $server,
@@ -102,10 +102,10 @@ class SyncMcpServerToolsAction
      */
     public function asController(Request $request, string $server): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
-        $result = $this->handle($workspace, $server);
+        $result = $this->handle($systemContext, $server);
 
         return response()->json([
             'success' => $result['success'],

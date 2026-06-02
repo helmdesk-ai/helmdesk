@@ -123,7 +123,7 @@ test('超级管理员可以更新通用设置且只有必填字段', function ()
     expect($settings->name)->toBe('HelmDesk');
 });
 
-test('通用设置页面没有不再包含工作区AI运行时字段', function () {
+test('通用设置页面没有不再包含系统AI运行时字段', function () {
     $page = file_get_contents(resource_path('js/pages/admin/generalSetting/Index.vue'));
 
     expect($page)->not->toContain("t('AI 全局最大并发')");

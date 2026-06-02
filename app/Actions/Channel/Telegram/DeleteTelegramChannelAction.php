@@ -2,7 +2,7 @@
 
 namespace App\Actions\Channel\Telegram;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Exceptions\TelegramApiException;
 use App\Models\Channel;
@@ -53,8 +53,8 @@ class DeleteTelegramChannelAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $channelModel = Channel::query()
             ->where('type', ChannelType::Telegram)
@@ -62,6 +62,6 @@ class DeleteTelegramChannelAction
 
         $this->handle($channelModel);
 
-        return redirect()->route('workspace.manage.channels.telegram.index');
+        return redirect()->route('admin.manage.channels.telegram.index');
     }
 }

@@ -5,11 +5,11 @@ namespace App\Actions\Contact;
 use App\Data\Contact\ContactActivityLogData;
 use App\Data\Contact\ContactDetailData;
 use App\Data\CustomAttribute\ContactAttributeFieldData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,7 +21,7 @@ class ShowContactDetailAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, bool $includeTrashed = false): ContactDetailData
+    public function handle(SystemContext $systemContext, string $contactId, bool $includeTrashed = false): ContactDetailData
     {
         $contactQuery = Contact::query()
             ->when($includeTrashed, fn ($query) => $query->withTrashed())
@@ -41,7 +41,7 @@ class ShowContactDetailAction
             ->get()
             ->map(fn (ContactActivityLog $activityLog) => ContactActivityLogData::fromModel($activityLog));
 
-        $customAttributes = $this->buildCustomAttributeFields($workspace, $contact);
+        $customAttributes = $this->buildCustomAttributeFields($systemContext, $contact);
 
         return ContactDetailData::fromModel($contact, $activityLogs, $customAttributes);
     }
@@ -49,9 +49,9 @@ class ShowContactDetailAction
     /**
      * @return ContactAttributeFieldData[]
      */
-    private function buildCustomAttributeFields(Workspace $workspace, Contact $contact): array
+    private function buildCustomAttributeFields(SystemContext $systemContext, Contact $contact): array
     {
-        $activeDefinitions = $workspace->attributeDefinitions()
+        $activeDefinitions = $systemContext->attributeDefinitions()
             ->active()
             ->ordered()
             ->get();
@@ -95,10 +95,10 @@ class ShowContactDetailAction
 
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $includeTrashed = $request->boolean('include_trashed');
 
-        return response()->json($this->handle($workspace, $id, $includeTrashed)->toArray());
+        return response()->json($this->handle($systemContext, $id, $includeTrashed)->toArray());
     }
 }

@@ -9,7 +9,7 @@ use App\Enums\KnowledgeQaEntryStatus;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use Illuminate\Support\Collection;
@@ -58,7 +58,7 @@ class IndexKnowledgeQaEntryVectorAction
         ])->save();
 
         try {
-            $embeddingModel = Workspace::current()->knowledgeEmbeddingModel;
+            $embeddingModel = SystemContext::current()->knowledgeEmbeddingModel;
             if ($embeddingModel === null || $embeddingModel->provider === null) {
                 throw new BusinessException(__('knowledge_base.messages.invalid_embedding_model'));
             }
@@ -121,7 +121,7 @@ class IndexKnowledgeQaEntryVectorAction
     }
 
     /**
-     * 工作区未启用向量索引时，问答条目仅维持全文索引并标记为已就绪。
+     * 系统未启用向量索引时，问答条目仅维持全文索引并标记为已就绪。
      */
     private function markIdle(KnowledgeQaEntry $entry): void
     {

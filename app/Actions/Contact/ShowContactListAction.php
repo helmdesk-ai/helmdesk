@@ -9,15 +9,15 @@ use App\Data\Contact\ShowContactListPagePropsData;
 use App\Data\CustomAttribute\FilterAttributeDefinitionData;
 use App\Data\EnumOptionData;
 use App\Data\SimplePaginationData;
+use App\Data\SystemUserContextData;
 use App\Data\Tag\TagOptionData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\ContactListType;
 use App\Enums\TagMatchMode;
 use App\Models\AttributeDefinition;
 use App\Models\Contact;
+use App\Models\SystemContext;
 use App\Models\Tag;
-use App\Models\Workspace;
 use App\Services\CustomAttribute\ScopedAttributeFilterHelper;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -41,7 +41,7 @@ class ShowContactListAction
      * @param  array<string, mixed>  $attributeFilters
      */
     public function handle(
-        Workspace $workspace,
+        SystemContext $systemContext,
         ContactListType $type = ContactListType::All,
         ?string $search = null,
         int $page = 1,
@@ -54,7 +54,7 @@ class ShowContactListAction
         $page = max(1, $page);
         $tagFilter ??= ContactTagFilterData::unfiltered();
 
-        $attributeFilterDefinitions = $workspace->attributeDefinitions()
+        $attributeFilterDefinitions = $systemContext->attributeDefinitions()
             ->active()
             ->where('is_filterable', true)
             ->whereIn('type', array_map(fn (AttributeType $type) => $type->value, AttributeType::filterableCases()))
@@ -64,7 +64,7 @@ class ShowContactListAction
         $definitionsByKey = $attributeFilterDefinitions->keyBy('key');
         $normalizedAttributeFilters = $this->attributeFilterHelper->normalizeFilters($definitionsByKey, $attributeFilters);
 
-        $query = $workspace->contacts()->with(['identities', 'tags']);
+        $query = $systemContext->contacts()->with(['identities', 'tags']);
 
         $contactType = $type->contactType();
         if ($contactType !== null) {
@@ -77,7 +77,7 @@ class ShowContactListAction
 
         $this->attributeFilterHelper->applyFilters(
             $query,
-            $workspace,
+            $systemContext,
             $definitionsByKey,
             $normalizedAttributeFilters,
             'contact_attribute_values',
@@ -135,8 +135,8 @@ class ShowContactListAction
 
     public function asController(Request $request, string $type): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
+        $ctx = SystemUserContextData::fromRequest($request);
+        $systemContext = $ctx->systemContext();
         $listType = ContactListType::tryFrom($type) ?? throw new NotFoundHttpException;
         $search = $request->query('search');
         $importantOnly = $request->boolean('important');
@@ -145,7 +145,7 @@ class ShowContactListAction
         $tagFilter = ContactTagFilterData::fromRequest($request);
 
         $props = $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             type: $listType,
             search: $search,
             importantOnly: $importantOnly,

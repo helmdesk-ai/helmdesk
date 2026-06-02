@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 退出工作区前台 guard 的登录状态。
+ * 退出系统前台 guard 的登录状态。
  */
 class LogoutWebAction
 {

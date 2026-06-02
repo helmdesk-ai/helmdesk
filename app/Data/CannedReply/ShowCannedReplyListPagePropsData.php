@@ -17,7 +17,7 @@ class ShowCannedReplyListPagePropsData extends Data
      */
     public function __construct(
         public array $canned_reply_list,
-        public bool $can_manage_workspace_replies,
+        public bool $can_manage_system_replies,
         public string $current_visibility,
         public array $available_tokens,
     ) {}

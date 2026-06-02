@@ -3,9 +3,9 @@
 namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormCreateMcpServerData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\McpServer;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 在工作区下创建新的 MCP 服务记录。
+ * 在系统下创建新的 MCP 服务记录。
  */
 class CreateMcpServerAction
 {
@@ -22,13 +22,13 @@ class CreateMcpServerAction
     /**
      * 创建新的 MCP 服务，只保存配置，不触发远端连接或工具同步。
      */
-    public function handle(Workspace $workspace, FormCreateMcpServerData $data): McpServer
+    public function handle(SystemContext $systemContext, FormCreateMcpServerData $data): McpServer
     {
-        $maxSort = $workspace->mcpServers()->max('sort_order') ?? 0;
+        $maxSort = $systemContext->mcpServers()->max('sort_order') ?? 0;
 
         /** @var McpServer $server */
-        $server = $workspace->mcpServers()->create([
-            'slug' => $this->generateSlug($workspace, $data->name),
+        $server = $systemContext->mcpServers()->create([
+            'slug' => $this->generateSlug($systemContext, $data->name),
             'name' => $data->name,
             'transport' => $data->transport,
             'endpoint_url' => $data->endpoint_url,
@@ -47,11 +47,11 @@ class CreateMcpServerAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $data = FormCreateMcpServerData::from($request);
-        $this->handle($workspace, $data);
+        $this->handle($systemContext, $data);
 
         return back();
     }
@@ -104,9 +104,9 @@ class CreateMcpServerAction
     }
 
     /**
-     * 在 workspace 范围内生成唯一 slug。
+     * 在 system 范围内生成唯一 slug。
      */
-    private function generateSlug(Workspace $workspace, string $name): string
+    private function generateSlug(SystemContext $systemContext, string $name): string
     {
         $base = Str::slug($name);
         if ($base === '') {
@@ -115,7 +115,7 @@ class CreateMcpServerAction
 
         do {
             $candidate = $base.'-'.Str::lower(Str::random(6));
-            $exists = $workspace->mcpServers()->where('slug', $candidate)->exists();
+            $exists = $systemContext->mcpServers()->where('slug', $candidate)->exists();
         } while ($exists);
 
         return $candidate;

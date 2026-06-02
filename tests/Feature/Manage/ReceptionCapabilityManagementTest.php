@@ -10,13 +10,13 @@ use App\Models\McpTool;
 use App\Models\ReceptionPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->withoutVite();
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 function createCapabilityTestProvider(array $attributes = []): AiProvider
@@ -111,7 +111,7 @@ test('所有者可以打开接待方案详情页并看到服务场景模板', fu
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.reception.plans.show', ['plan' => $plan->id,
+        ->get(route('admin.manage.reception.plans.show', ['plan' => $plan->id,
         ]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -129,13 +129,13 @@ test('通过更新方案草稿可写入服务场景 JSON', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [[
             'name' => '订单查询',
             'description' => '处理订单状态、订单详情、订单列表类问题。',
             'instructions' => '你是订单查询专员，按订单号回答访客。',
         ]]))
-        ->assertRedirect(route('workspace.manage.reception.plans.show', ['plan' => $plan->id,
+        ->assertRedirect(route('admin.manage.reception.plans.show', ['plan' => $plan->id,
         ]));
 
     $plan->refresh();
@@ -148,7 +148,7 @@ test('服务场景名称可直接使用中文', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [[
             'name' => '订单查询',
             'description' => '',
@@ -172,7 +172,7 @@ test('同一方案内重复服务场景名称会被拒绝', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [
             ['name' => '订单查询', 'description' => '', 'instructions' => '原始指令'],
             ['name' => '订单查询', 'description' => '', 'instructions' => '不同指令'],
@@ -187,7 +187,7 @@ test('带空格或大小写差异的服务场景名称也按重复处理', funct
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [
             ['name' => 'Order Lookup', 'description' => '', 'instructions' => '指令'],
             ['name' => 'order lookup ', 'description' => '', 'instructions' => '指令'],
@@ -204,7 +204,7 @@ test('单租户下方案可以引用任意知识库', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload(
             $plan,
             [['name' => '常见问题', 'description' => '', 'instructions' => '指令']],
@@ -225,7 +225,7 @@ test('所有者可以更新服务场景', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [[
             'name' => '订单查询（新）',
             'description' => '新描述',
@@ -248,7 +248,7 @@ test('更新方案草稿时可移除单个服务场景', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload($plan, [
             ['name' => '常见问题', 'description' => '', 'instructions' => '常见问题助手'],
         ]))
@@ -270,7 +270,7 @@ test('单租户下管理员可以更新任意方案', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $foreignPlan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $foreignPlan->id,
         ]), receptionPlanUpdatePayload($foreignPlan, []))
         ->assertRedirect();
 });
@@ -296,7 +296,7 @@ test('编译方案时服务场景写入 compiled_config，方案级 KB 作为快
         ],
     ]);
 
-    $compiled = app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan);
 
     expect($compiled['compiled_config']['service_scenarios'])->toHaveCount(2)
         ->and($compiled['compiled_config']['service_scenarios'][0]['name'])->toBe('订单查询')
@@ -322,7 +322,7 @@ test('保存方案时可写入方案级 MCP 工具引用', function () {
     $tool = McpTool::factory()->for($server, 'server')->create(['name' => 'lookup_order']);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload(
             $plan,
             [['name' => '订单查询', 'description' => '', 'instructions' => '指令']],
@@ -341,7 +341,7 @@ test('单租户下方案可以引用任意 MCP 工具', function () {
     $tool = McpTool::factory()->for($server, 'server')->create();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.reception.plans.update', ['plan' => $plan->id,
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
         ]), receptionPlanUpdatePayload(
             $plan,
             [['name' => '订单查询', 'description' => '', 'instructions' => '指令']],
@@ -376,7 +376,7 @@ test('编译方案时方案级 MCP 工具写入 compiled_config 快照', functio
         ],
     ]);
 
-    $compiled = app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan);
 
     expect($compiled['compiled_config']['mcp_tools'])->toHaveCount(1)
         ->and($compiled['compiled_config']['mcp_tools'][0]['id'])->toBe($tool->id)
@@ -402,7 +402,7 @@ test('编译时方案级引用悬空 MCP 工具会抛 BusinessException', functi
         ],
     ]);
 
-    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan))
+    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan))
         ->toThrow(BusinessException::class);
 });
 
@@ -423,7 +423,7 @@ test('编译时方案级引用任意 MCP 工具会写入快照', function () {
         ],
     ]);
 
-    $compiled = app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan);
 
     expect($compiled['compiled_config']['mcp_tools'])->toHaveCount(1);
 });
@@ -443,6 +443,6 @@ test('编译时方案级引用悬空知识库会抛 BusinessException', function
         ],
     ]);
 
-    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->workspace, $plan))
+    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan))
         ->toThrow(BusinessException::class);
 });

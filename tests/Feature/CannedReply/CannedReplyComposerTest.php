@@ -6,13 +6,13 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->withoutVite();
-    $this->owner = $this->createUserWithWorkspace();
+    $this->owner = $this->createUserWithSystem();
 });
 
 test('search 返回当前用户可见的模版（个人 + 共享）', function () {
@@ -22,7 +22,7 @@ test('search 返回当前用户可见的模版（个人 + 共享）', function (
     $other = User::factory()->create();
 
     CannedReply::factory()->create([
-        'name' => '工作区共享回复',
+        'name' => '系统共享回复',
     ]);
     CannedReply::factory()->ownedBy($member)->create([
         'name' => '我的私有回复',
@@ -32,12 +32,12 @@ test('search 返回当前用户可见的模版（个人 + 共享）', function (
     ]);
 
     $response = $this->actingAs($member)
-        ->getJson(route('workspace.canned-replies.search', ['q' => '回复',
+        ->getJson(route('admin.canned-replies.search', ['q' => '回复',
         ]));
 
     $response->assertOk();
     $names = collect($response->json('items'))->pluck('name')->all();
-    expect($names)->toContain('工作区共享回复');
+    expect($names)->toContain('系统共享回复');
     expect($names)->toContain('我的私有回复');
     expect($names)->not->toContain('别人的私有');
 });
@@ -53,7 +53,7 @@ test('search 按短码前缀匹配优先于内容', function () {
     ]);
 
     $response = $this->actingAs($this->owner)
-        ->getJson(route('workspace.canned-replies.search', ['q' => 'refund',
+        ->getJson(route('admin.canned-replies.search', ['q' => 'refund',
         ]));
 
     $response->assertOk();
@@ -77,7 +77,7 @@ test('use-and-render 渲染变量并自增 usage_count', function () {
 
     $response = $this->actingAs($this->owner)
         ->postJson(
-            route('workspace.canned-replies.use-and-render', ['cannedReply' => $reply->id,
+            route('admin.canned-replies.use-and-render', ['cannedReply' => $reply->id,
             ]),
             ['conversation_id' => $conversation->id]
         );
@@ -97,7 +97,7 @@ test('use-and-render 在 AI token 上保留原文并提示 warning', function ()
 
     $response = $this->actingAs($this->owner)
         ->postJson(
-            route('workspace.canned-replies.use-and-render', ['cannedReply' => $reply->id,
+            route('admin.canned-replies.use-and-render', ['cannedReply' => $reply->id,
             ]),
             ['conversation_id' => null]
         );
@@ -118,7 +118,7 @@ test('use-and-render 拒绝访问别人的私有模版', function () {
 
     $this->actingAs($member)
         ->postJson(
-            route('workspace.canned-replies.use-and-render', ['cannedReply' => $reply->id,
+            route('admin.canned-replies.use-and-render', ['cannedReply' => $reply->id,
             ]),
             ['conversation_id' => null]
         )

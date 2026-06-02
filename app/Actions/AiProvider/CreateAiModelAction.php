@@ -3,24 +3,24 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\AiProvider\FormCreateAiModelData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Models\AiModel;
 use App\Models\AiProvider;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 为工作区下的 AI 供应商新增（或更新）一个模型。
+ * 为系统下的 AI 供应商新增（或更新）一个模型。
  */
 class CreateAiModelAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $providerSlug, FormCreateAiModelData $data): AiModel
+    public function handle(SystemContext $systemContext, string $providerSlug, FormCreateAiModelData $data): AiModel
     {
-        $provider = $workspace->aiProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = $systemContext->aiProviders()->where('slug', $providerSlug)->firstOrFail();
 
         return $this->upsertModel($provider, $data);
     }
@@ -50,11 +50,11 @@ class CreateAiModelAction
 
     public function asController(Request $request, string $provider)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $data = FormCreateAiModelData::from($request);
-        $this->handle($workspace, $provider, $data);
+        $this->handle($systemContext, $provider, $data);
 
         return back();
     }

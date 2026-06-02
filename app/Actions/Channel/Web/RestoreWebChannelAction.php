@@ -2,7 +2,7 @@
 
 namespace App\Actions\Channel\Web;
 
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Models\Channel;
 use Illuminate\Http\RedirectResponse;
@@ -30,8 +30,8 @@ class RestoreWebChannelAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $channelModel = Channel::query()
             ->onlyTrashed()

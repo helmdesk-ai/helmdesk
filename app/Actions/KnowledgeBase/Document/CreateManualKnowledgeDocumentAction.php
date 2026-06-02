@@ -4,7 +4,7 @@ namespace App\Actions\KnowledgeBase\Document;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormCreateManualKnowledgeDocumentData;
-use App\Data\WorkspaceUserContextData;
+use App\Data\SystemUserContextData;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentSourceType;
@@ -72,8 +72,8 @@ class CreateManualKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        Gate::authorize('admin.manageAi', [$systemContext]);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
@@ -87,7 +87,7 @@ class CreateManualKnowledgeDocumentAction
             $query['group'] = $groupId;
         }
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             ...$query,
         ]);
     }

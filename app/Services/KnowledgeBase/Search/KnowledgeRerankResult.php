@@ -10,7 +10,7 @@ namespace App\Services\KnowledgeBase\Search;
  * SearchKnowledgeBaseAction 把 applied 直接写到 debug.rerank_applied 给前端 / 观测使用。
  *
  * errorCode 仅在 applied=false 且发生过降级时给出稳定码，原始异常落到服务端日志而不向上传播：
- *  - 'model_missing'：工作区未配置 rerank 模型；
+ *  - 'model_missing'：系统未配置 rerank 模型；
  *  - 'remote_unavailable'：Go 桥 / 远端调用失败或超时；
  *  - 'empty_response'：外部模型返回 results 为空或无可用 index。
  */
