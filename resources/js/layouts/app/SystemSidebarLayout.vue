@@ -48,28 +48,8 @@ const user = computed(() => page.props.auth.user);
 const notificationPreferences = computed(
   () => page.props.auth.user.notification_preferences,
 );
-const canAccessUsers = computed(() => page.props.canAccessUsers === true);
-const canAccessContacts = computed(() => page.props.canAccessContacts === true);
-const canAccessConversations = computed(
-  () => page.props.canAccessConversations === true,
-);
-const canAccessTags = computed(() => page.props.canAccessTags === true);
-const canAccessAttributes = computed(
-  () => page.props.canAccessAttributes === true,
-);
-const canAccessCannedReplies = computed(
-  () => page.props.canAccessCannedReplies === true,
-);
-const canAccessKnowledgeBases = computed(
-  () => page.props.canAccessKnowledgeBases === true,
-);
-const canAccessReceptionPlans = computed(
-  () => page.props.canAccessReceptionPlans === true,
-);
-const canAccessChannels = computed(() => page.props.canAccessChannels === true);
-const canManageSystemSettings = computed(
-  () => page.props.canManageSystemSettings === true,
-);
+// 侧边栏菜单项按后端下发的权限位显示，统一用一个读取辅助避免十几个雷同的 computed。
+const can = (key: keyof AppPageProps): boolean => page.props[key] === true;
 
 const routePath = (url: string) => {
   const origin =
@@ -103,7 +83,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     },
   ];
 
-  if (canAccessContacts.value) {
+  if (can('canAccessContacts')) {
     items.push({
       title: t('联系人'),
       href: admin.contacts.index.url({ type: 'all' }),
@@ -112,7 +92,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessConversations.value) {
+  if (can('canAccessConversations')) {
     items.push({
       title: t('会话记录'),
       href: admin.conversations.index.url(),
@@ -121,7 +101,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessTags.value) {
+  if (can('canAccessTags')) {
     items.push({
       title: t('标签'),
       href: admin.manage.tags.index.url(),
@@ -130,7 +110,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessAttributes.value) {
+  if (can('canAccessAttributes')) {
     items.push({
       title: t('自定义属性'),
       href: admin.manage.attributes.index.url(),
@@ -139,7 +119,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessCannedReplies.value) {
+  if (can('canAccessCannedReplies')) {
     items.push({
       title: t('快捷回复'),
       href: admin.cannedReplies.index.url(),
@@ -148,7 +128,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessKnowledgeBases.value) {
+  if (can('canAccessKnowledgeBases')) {
     items.push({
       title: t('知识库'),
       href: KnowledgeBase.ListKnowledgeBasesAction.url(),
@@ -157,7 +137,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessReceptionPlans.value) {
+  if (can('canAccessReceptionPlans')) {
     items.push({
       title: t('接待方案'),
       href: Plan.ShowReceptionPlanIndexPageAction.url(),
@@ -166,7 +146,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessChannels.value) {
+  if (can('canAccessChannels')) {
     items.push({
       title: t('渠道管理'),
       href: admin.manage.channels.web.index.url(),
@@ -175,7 +155,7 @@ const mainNavItems = computed<SidebarShellNavItem[]>(() => {
     });
   }
 
-  if (canAccessUsers.value) {
+  if (can('canAccessUsers')) {
     items.push({
       title: t('客服管理'),
       href: admin.manage.teammates.index.url(),
@@ -201,7 +181,7 @@ const footerNavItems = computed<SidebarShellNavItem[]>(() => {
     },
   ];
 
-  if (canManageSystemSettings.value) {
+  if (can('canManageSystemSettings')) {
     items.push({
       title: t('系统设置'),
       href: admin.general.show.url(),

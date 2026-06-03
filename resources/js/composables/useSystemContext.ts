@@ -7,9 +7,6 @@ import { computed, type ComputedRef } from 'vue';
 
 export interface CurrentSystemContext {
   id: string;
-  slug: string;
-  name: string;
-  logo_url: string;
 }
 
 function getContextForError() {
@@ -30,23 +27,8 @@ const readContext = (): SystemUserContextData | null => {
     : null;
 };
 
-const mapContext = (context: SystemUserContextData): CurrentSystemContext => ({
-  id: context.system_slug,
-  slug: context.system_slug,
-  name: context.system_name,
-  logo_url: context.system_logo_url,
-});
-
-export function useCurrentSystem(): ComputedRef<CurrentSystemContext | null> {
-  return computed(() => {
-    const context = readContext();
-
-    return context ? mapContext(context) : null;
-  });
-}
-
 /**
- * 后台页面使用：从 `systemUserContext` 读取单租户上下文。
+ * 后台页面使用：从 `systemUserContext` 读取单租户上下文（id 用作本地存储命名空间）。
  */
 export function useRequiredSystem(): ComputedRef<CurrentSystemContext> {
   return computed(() => {
@@ -59,6 +41,6 @@ export function useRequiredSystem(): ComputedRef<CurrentSystemContext> {
       );
     }
 
-    return mapContext(context);
+    return { id: context.system_slug };
   });
 }

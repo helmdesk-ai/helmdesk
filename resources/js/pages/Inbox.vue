@@ -39,6 +39,7 @@ import {
   useAttachmentUploader,
 } from '@/composables/useAttachmentUploader';
 import { useDateTime } from '@/composables/useDateTime';
+import { useAiAssistantModels } from '@/composables/useAiAssistantModels';
 import { useI18n } from '@/composables/useI18n';
 import { useInboxAutoTranslate } from '@/composables/useInboxAutoTranslate';
 import { useInboxSummaryAutoTranslate } from '@/composables/useInboxSummaryAutoTranslate';
@@ -61,7 +62,6 @@ import systemRoutes from '@/routes/admin';
 import inboxActions from '@/routes/admin/inbox';
 import type { AppPageProps } from '@/types';
 import type {
-  AiModelOptionData,
   ContactStitchedTimelineData,
   ContactTimelineEntryData,
   ConversationSummaryData,
@@ -128,29 +128,11 @@ type StringEnumOptionData = {
   description: string | null;
 };
 
-const aiAssistantModelStorageKey = computed(
-  () => `ai-assistant:selected-model:${currentSystem.value.id}`,
-);
-const aiModelOptions = computed<AiModelOptionData[]>(() => {
-  if (!Array.isArray(page.props.aiAssistantLlmModelOptions)) {
-    throw new Error('aiAssistantLlmModelOptions is required.');
-  }
-
-  return page.props.aiAssistantLlmModelOptions;
-});
-const groupedAiModelOptions = computed(() => {
-  const groups = new Map<string, AiModelOptionData[]>();
-  for (const option of aiModelOptions.value) {
-    const list = groups.get(option.provider_name) ?? [];
-    list.push(option);
-    groups.set(option.provider_name, list);
-  }
-
-  return Array.from(groups, ([providerName, options]) => ({
-    providerName,
-    options,
-  }));
-});
+const {
+  modelOptions: aiModelOptions,
+  groupedModelOptions: groupedAiModelOptions,
+  selectedModelStorageKey: aiAssistantModelStorageKey,
+} = useAiAssistantModels();
 const replyPolishToneStorageKey = computed(
   () => `helmdesk.inbox.reply-polish-tone:${currentSystem.value.id}`,
 );

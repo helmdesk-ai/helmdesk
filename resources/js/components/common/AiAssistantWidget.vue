@@ -14,12 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAiAssistantModels } from '@/composables/useAiAssistantModels';
 import { useI18n } from '@/composables/useI18n';
 import { useRequiredSystem } from '@/composables/useSystemContext';
 import { renderMarkdownToSafeHtml } from '@/lib/markdown';
-import type { AppPageProps } from '@/types';
-import type { AiModelOptionData } from '@/types/generated';
-import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import {
   CheckCircle2,
@@ -86,7 +84,6 @@ interface StoredPosition {
 
 const { t } = useI18n();
 const system = useRequiredSystem();
-const page = usePage<AppPageProps>();
 
 const isOpen = ref(false);
 const inputValue = ref('');
@@ -130,32 +127,13 @@ let currentAssistantId: string | null = null;
 let currentEventSource: EventSource | null = null;
 
 const hasMessages = computed(() => messages.value.length > 0);
-const modelOptions = computed<AiModelOptionData[]>(() => {
-  if (!Array.isArray(page.props.aiAssistantLlmModelOptions)) {
-    throw new Error('aiAssistantLlmModelOptions is required.');
-  }
-
-  return page.props.aiAssistantLlmModelOptions;
-});
+const {
+  modelOptions,
+  groupedModelOptions,
+  selectedModelStorageKey: modelStorageKey,
+} = useAiAssistantModels();
 const hasAvailableModels = computed(() => modelOptions.value.length > 0);
 const hasSelectedModel = computed(() => selectedModelId.value.trim() !== '');
-const modelStorageKey = computed(
-  () => `ai-assistant:selected-model:${system.value.id}`,
-);
-
-const groupedModelOptions = computed(() => {
-  const groups = new Map<string, AiModelOptionData[]>();
-  for (const option of modelOptions.value) {
-    const list = groups.get(option.provider_name) ?? [];
-    list.push(option);
-    groups.set(option.provider_name, list);
-  }
-
-  return Array.from(groups, ([providerName, options]) => ({
-    providerName,
-    options,
-  }));
-});
 
 // --- Container positioning ---
 // Anchor the container by its bottom edge so the button stays in place
