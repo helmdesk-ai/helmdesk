@@ -5,7 +5,6 @@ namespace App\Actions\KnowledgeBase;
 use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeRecallTestResultData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
@@ -106,7 +105,7 @@ class RunKnowledgeRecallTestAction
      */
     public function asController(Request $request, string $knowledgeBase): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         $kb = KnowledgeBase::query()

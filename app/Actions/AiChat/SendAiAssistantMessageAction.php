@@ -2,7 +2,6 @@
 
 namespace App\Actions\AiChat;
 
-use App\Data\SystemUserContextData;
 use App\Enums\AiProviderProtocol;
 use App\Models\AiModel;
 use App\Models\SystemContext;
@@ -129,7 +128,7 @@ class SendAiAssistantMessageAction
      */
     public function asController(Request $request): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
 
         $validated = $request->validate([
             'prompt' => ['required', 'string'],

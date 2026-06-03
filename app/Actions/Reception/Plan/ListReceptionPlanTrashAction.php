@@ -5,7 +5,6 @@ namespace App\Actions\Reception\Plan;
 use App\Data\Reception\Plan\ListReceptionPlanTrashPagePropsData;
 use App\Data\Reception\Plan\ReceptionPlanData;
 use App\Data\SimplePaginationData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
@@ -63,7 +62,7 @@ class ListReceptionPlanTrashAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
         Gate::authorize('user.permission', UserPermission::ReceptionPlansView);
 
         return Inertia::render('reception/plans/Trash', $this->handle(

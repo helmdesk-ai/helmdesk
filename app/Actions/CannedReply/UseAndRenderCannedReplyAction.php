@@ -4,7 +4,6 @@ namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\CannedReplyRenderContextData;
 use App\Data\CannedReply\RenderedCannedReplyData;
-use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
 use App\Models\Conversation;
@@ -93,8 +92,7 @@ class UseAndRenderCannedReplyAction
      */
     public function asController(Request $request, string $cannedReply): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
+        $systemContext = SystemContext::current();
         $user = $request->user();
 
         $conversationId = $request->input('conversation_id');

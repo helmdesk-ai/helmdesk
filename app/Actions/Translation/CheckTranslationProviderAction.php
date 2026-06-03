@@ -2,7 +2,6 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\SystemUserContextData;
 use App\Data\Translation\FormCheckTranslationProviderData;
 use App\Data\Translation\TranslationCheckResultData;
 use App\Enums\TranslationProviderType;
@@ -79,7 +78,7 @@ class CheckTranslationProviderAction
      */
     public function asController(Request $request, ?string $provider = null): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCheckTranslationProviderData::from($request);

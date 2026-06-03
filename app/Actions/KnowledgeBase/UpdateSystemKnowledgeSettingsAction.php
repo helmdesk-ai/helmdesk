@@ -3,7 +3,6 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormUpdateSystemKnowledgeSettingsData;
-use App\Data\SystemUserContextData;
 use App\Enums\AiModelType;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Enums\UserPermission;
@@ -93,7 +92,7 @@ class UpdateSystemKnowledgeSettingsAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $this->handle($systemContext, FormUpdateSystemKnowledgeSettingsData::from($request));

@@ -2,7 +2,6 @@
 
 namespace App\Actions\AiChat;
 
-use App\Data\SystemUserContextData;
 use App\Models\SystemContext;
 use App\Services\GoBridge\Exceptions\GoBridgeException;
 use App\Services\GoBridge\GoBridgeClient;
@@ -73,7 +72,7 @@ class StopAiAssistantMessageAction
 
     public function asController(Request $request): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
 
         $validated = $request->validate([
             'topic' => ['required', 'string'],

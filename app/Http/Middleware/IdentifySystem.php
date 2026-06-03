@@ -37,8 +37,6 @@ class IdentifySystem
         $this->touchSystemUserLastActiveAtAction->handle($user);
 
         $systemUserContext = SystemUserContextData::fromUser($user);
-
-        $request->attributes->set(SystemUserContextData::class, $systemUserContext);
         Inertia::share('systemUserContext', $systemUserContext->toArray());
         Inertia::share('canAccessUsers', Gate::allows('user.permission', UserPermission::UsersView));
         Inertia::share('canAccessContacts', Gate::allows('user.permission', UserPermission::ContactsView));

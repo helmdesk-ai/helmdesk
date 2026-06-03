@@ -8,7 +8,6 @@ use App\Data\Reception\Plan\ShowReceptionPlanDetailPagePropsData;
 use App\Data\Reception\ServiceScenario\PlanKnowledgeBaseOptionData;
 use App\Data\Reception\ServiceScenario\PlanMcpToolOptionData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioTemplateData;
-use App\Data\SystemUserContextData;
 use App\Data\Translation\TranslationProviderOptionData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\ReceptionPersonaTone;
@@ -66,7 +65,7 @@ class ShowReceptionPlanDetailPageAction
      */
     public function asController(Request $request, string $plan): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
         Gate::authorize('user.permission', UserPermission::ReceptionPlansView);
 
         $planModel = ReceptionPlan::query()

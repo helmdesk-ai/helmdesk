@@ -10,7 +10,6 @@ use App\Data\KnowledgeBase\ListKnowledgeQaEntryItemData;
 use App\Data\KnowledgeBase\ShowKnowledgeBaseListPagePropsData;
 use App\Data\KnowledgeBase\SystemKnowledgeSettingsData;
 use App\Data\SimplePaginationData;
-use App\Data\SystemUserContextData;
 use App\Enums\AiModelType;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeChunkingStrategy;
@@ -242,7 +241,7 @@ class ListKnowledgeBasesAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
+        $systemContext = SystemContext::current();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         return Inertia::render('knowledgeBase/List', $this->handle(
