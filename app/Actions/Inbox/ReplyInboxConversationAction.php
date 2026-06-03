@@ -9,7 +9,6 @@ use App\Enums\ConversationInboxStatus;
 use App\Enums\InboxView;
 use App\Exceptions\BusinessException;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Localization\LocalePreference;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +33,7 @@ class ReplyInboxConversationAction
     /**
      * 向指定会话追加客服回复并返回刷新后的会话。
      */
-    public function handle(SystemContext $systemContext, User $user, string $conversationId, FormReplyInboxConversationData $data): Conversation
+    public function handle(User $user, string $conversationId, FormReplyInboxConversationData $data): Conversation
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -70,7 +69,6 @@ class ReplyInboxConversationAction
         $user = User::query()->findOrFail($ctx->user_id);
 
         $conversation = $this->handle(
-            systemContext: $ctx->systemContext(),
             user: $user,
             conversationId: $conversationId,
             data: FormReplyInboxConversationData::from($request),

@@ -10,7 +10,6 @@ use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\SystemContext;
 use App\Settings\KnowledgeSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
@@ -25,9 +24,9 @@ class AiModelResolver
      *
      * @return AiModelOptionData[]
      */
-    public function getActiveLlmModelOptions(SystemContext $systemContext): array
+    public function getActiveLlmModelOptions(): array
     {
-        return $this->activeSystemModelsQuery($systemContext, AiModelType::Llm)
+        return $this->activeSystemModelsQuery(AiModelType::Llm)
             ->get()
             ->map(fn (AiModel $model) => AiModelOptionData::fromModel($model))
             ->all();
@@ -36,7 +35,7 @@ class AiModelResolver
     /**
      * 判断模型选择是否仍然可用。
      */
-    public function resolveModelStatus(SystemContext $systemContext, ?string $modelId): ModelSelectionStatusData
+    public function resolveModelStatus(?string $modelId): ModelSelectionStatusData
     {
         if ($modelId === null) {
             return new ModelSelectionStatusData(
@@ -82,13 +81,13 @@ class AiModelResolver
     /**
      * 检查模型是否是启用中的 LLM。
      */
-    public function isValidActiveLlmModel(SystemContext $systemContext, ?string $modelId): bool
+    public function isValidActiveLlmModel(?string $modelId): bool
     {
         if ($modelId === null) {
             return false;
         }
 
-        return $this->activeSystemModelsQuery($systemContext, AiModelType::Llm)
+        return $this->activeSystemModelsQuery(AiModelType::Llm)
             ->whereKey($modelId)
             ->exists();
     }
@@ -97,9 +96,9 @@ class AiModelResolver
      * 模型存在且可用时返回，否则抛出业务异常并附带传入的多语言消息。
      * 主要给接待方案保存/发布等需要在多个字段上做同样可用性校验的场景使用。
      */
-    public function assertActiveLlmModelOrFail(SystemContext $systemContext, ?string $modelId, string $messageKey): void
+    public function assertActiveLlmModelOrFail(?string $modelId, string $messageKey): void
     {
-        if (! $this->isValidActiveLlmModel($systemContext, $modelId)) {
+        if (! $this->isValidActiveLlmModel($modelId)) {
             throw new BusinessException(__($messageKey));
         }
     }
@@ -107,9 +106,9 @@ class AiModelResolver
     /**
      * 取当前系统内排序最靠前的可用 LLM 模型。
      */
-    public function firstActiveLlmModel(SystemContext $systemContext): ?AiModel
+    public function firstActiveLlmModel(): ?AiModel
     {
-        return $this->activeSystemModelsQuery($systemContext, AiModelType::Llm)->first();
+        return $this->activeSystemModelsQuery(AiModelType::Llm)->first();
     }
 
     /**
@@ -166,7 +165,7 @@ class AiModelResolver
      *
      * @param  array<string, mixed>  $compiled
      */
-    public function hasUsableModels(SystemContext $systemContext, array $compiled): bool
+    public function hasUsableModels(array $compiled): bool
     {
         $receptionConfig = $compiled['reception_config'] ?? [];
         $taskConfig = $compiled['task_config'] ?? [];
@@ -180,7 +179,7 @@ class AiModelResolver
         }
 
         foreach ($modelIds as $modelId) {
-            if (! $this->resolveModelStatus($systemContext, $modelId)->isValid) {
+            if (! $this->resolveModelStatus($modelId)->isValid) {
                 return false;
             }
         }
@@ -319,9 +318,9 @@ class AiModelResolver
     /**
      * 校验并取得启用供应商下的启用模型。
      */
-    public function resolveActiveKnowledgeBaseModel(SystemContext $systemContext, string $modelId, AiModelType $type, string $field): AiModel
+    public function resolveActiveKnowledgeBaseModel(string $modelId, AiModelType $type, string $field): AiModel
     {
-        $model = $this->activeSystemModelsQuery($systemContext, $type)
+        $model = $this->activeSystemModelsQuery($type)
             ->whereKey($modelId)
             ->first();
 
@@ -343,9 +342,9 @@ class AiModelResolver
      *
      * @return AiModelOptionData[]
      */
-    public function getKnowledgeBaseModelOptions(SystemContext $systemContext, AiModelType $type): array
+    public function getKnowledgeBaseModelOptions(AiModelType $type): array
     {
-        return $this->activeSystemModelsQuery($systemContext, $type)
+        return $this->activeSystemModelsQuery($type)
             ->get()
             ->map(fn (AiModel $model) => AiModelOptionData::fromModel($model))
             ->all();
@@ -354,15 +353,12 @@ class AiModelResolver
     /**
      * 启用模型的统一查询（供应商存在即可用），按供应商和模型自身的 sort_order 排序。
      */
-    private function activeSystemModelsQuery(SystemContext $systemContext, AiModelType $type): Builder
+    private function activeSystemModelsQuery(AiModelType $type): Builder
     {
         return AiModel::query()
             ->where('type', $type)
             ->where('is_active', true)
-            ->whereHas(
-                'provider',
-                fn (Builder $query) => $query,
-            )
+            ->whereHas('provider')
             ->with('provider')
             ->orderBy(
                 AiProvider::query()

@@ -3,14 +3,12 @@
 namespace App\Actions\CustomAttribute;
 
 use App\Data\CustomAttribute\FormUpdateContactAttributeValuesData;
-use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\AttributeValueSource;
 use App\Models\AttributeDefinition;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,12 +22,12 @@ class UpdateContactAttributeValuesAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $contactId, array $attributes, int|string|null $userId = null): void
+    public function handle(string $contactId, array $attributes, int|string|null $userId = null): void
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
 
-        $definitions = $systemContext->attributeDefinitions()
+        $definitions = AttributeDefinition::query()
             ->withTrashed()
             ->get()
             ->keyBy('key');
@@ -104,11 +102,9 @@ class UpdateContactAttributeValuesAction
 
     public function asController(Request $request, string $id): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $data = FormUpdateContactAttributeValuesData::from($request);
 
-        $this->handle($systemContext, $id, $data->attributes, $request->user()?->id);
+        $this->handle($id, $data->attributes, $request->user()?->id);
 
         return back();
     }

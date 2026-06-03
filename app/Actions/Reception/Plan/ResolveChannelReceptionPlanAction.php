@@ -5,7 +5,6 @@ namespace App\Actions\Reception\Plan;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
-use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\ChannelActivePlanVersionResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -29,7 +28,7 @@ class ResolveChannelReceptionPlanAction
     /**
      * 校验并返回归一化后的接待方案 ID；方案不存在或无可用最新版本时抛业务异常。
      */
-    public function handle(SystemContext $systemContext, string $planId, bool $requireUsable = true): string
+    public function handle(string $planId, bool $requireUsable = true): string
     {
         $plan = ReceptionPlan::query()
             ->find($planId);
@@ -50,7 +49,7 @@ class ResolveChannelReceptionPlanAction
         }
 
         $compiled = is_array($version->compiled_config) ? $version->compiled_config : [];
-        if (! $this->resolver->hasUsableModels($systemContext, $compiled)) {
+        if (! $this->resolver->hasUsableModels($compiled)) {
             throw new BusinessException(__('channel.messages.reception_plan_version_model_unavailable'));
         }
 

@@ -2,11 +2,9 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
-use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +17,7 @@ class ToggleAiModelAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $providerSlug, string $modelId): AiModel
+    public function handle(string $providerSlug, string $modelId): AiModel
     {
         $model = AiModel::query()
             ->whereHas(
@@ -58,10 +56,9 @@ class ToggleAiModelAction
 
     public function asController(Request $request, string $provider, string $model)
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($systemContext, $provider, $model);
+        $this->handle($provider, $model);
 
         return back();
     }

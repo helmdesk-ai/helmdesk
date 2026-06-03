@@ -2,7 +2,6 @@
 
 namespace App\Actions\Channel\Telegram;
 
-use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Enums\UserPermission;
 use App\Exceptions\TelegramApiException;
@@ -54,7 +53,6 @@ class DeleteTelegramChannelAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsDelete);
 
         $channelModel = Channel::query()

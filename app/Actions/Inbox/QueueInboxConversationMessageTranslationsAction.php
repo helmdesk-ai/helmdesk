@@ -10,7 +10,6 @@ use App\Enums\MessageRole;
 use App\Jobs\Inbox\TranslateInboxConversationMessageJob;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Localization\LocalePreference;
 use Illuminate\Http\JsonResponse;
@@ -38,7 +37,7 @@ class QueueInboxConversationMessageTranslationsAction
      *
      * @param  list<string>  $messageIds
      */
-    public function handle(SystemContext $systemContext, User $user, string $conversationId, array $messageIds): int
+    public function handle(User $user, string $conversationId, array $messageIds): int
     {
         $conversation = Conversation::query()
             ->with(['channel'])
@@ -75,7 +74,6 @@ class QueueInboxConversationMessageTranslationsAction
 
         return response()->json([
             'queued_count' => $this->handle(
-                systemContext: $ctx->systemContext(),
                 user: $user,
                 conversationId: $conversationId,
                 messageIds: $data->message_ids,

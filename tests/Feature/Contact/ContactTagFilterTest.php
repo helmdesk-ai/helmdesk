@@ -90,7 +90,6 @@ function makeFilter(array $include = [], string $includeMode = 'any', array $exc
 function runFilter(ContactTagFilterData $filter, $systemContext): array
 {
     $props = ShowContactListAction::run(
-        systemContext: $systemContext,
         type: ContactListType::All,
         perPage: 50,
         tagFilter: $filter,
@@ -101,7 +100,6 @@ function runFilter(ContactTagFilterData $filter, $systemContext): array
 
 test('联系人列表暴露列表类型选项来自枚举', function () {
     $props = ShowContactListAction::run(
-        systemContext: $this->systemContext,
         type: ContactListType::All,
         perPage: 50,
     );

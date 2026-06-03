@@ -90,7 +90,7 @@ function createChannelTestAttachment(array $attributes = []): Attachment
  * 创建一个可被渠道直接部署的接待方案版本：插入到当前 systemContext、状态 published、
  * 接待 / 任务默认模型指向给定 AiModel，AiModelResolver 能据此判定为可用。
  */
-function createDeployableReceptionPlanVersion(SystemContext $systemContext, ?AiModel $model = null, array $versionAttributes = []): ReceptionPlanVersion
+function createDeployableReceptionPlanVersion(?AiModel $model = null, array $versionAttributes = []): ReceptionPlanVersion
 {
     if ($model === null) {
         $provider = createChannelTestProvider();
@@ -108,7 +108,7 @@ function createDeployableReceptionPlanVersion(SystemContext $systemContext, ?AiM
 }
 
 test('超级管理员可以查看网页频道列表和详情页面', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
     $planName = $version->plan->name;
 
     $channel = Channel::factory()->create([
@@ -194,7 +194,7 @@ test('超级管理员可以查看网页频道列表和详情页面', function ()
 });
 
 test('网页频道列表与详情会回填 embed host 跟踪字段', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $firstEmbedAt = CarbonImmutable::parse('2026-04-20T03:15:00Z');
     $lastEmbedAt = CarbonImmutable::parse('2026-05-20T08:42:00Z');
@@ -232,7 +232,7 @@ test('网页频道列表与详情会回填 embed host 跟踪字段', function ()
 });
 
 test('网页频道未被嵌入时 embed host 字段为 null', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
         'name' => '帮助中心',
@@ -278,7 +278,7 @@ test('网站渠道预览地址使用后台保存的主机地址', function () {
     $settings->base_url = 'http://localhost:8080';
     $settings->save();
 
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
         'name' => '本地开发站点',
@@ -296,7 +296,7 @@ test('网站渠道预览地址使用后台保存的主机地址', function () {
 });
 
 test('超级管理员可以创建活跃频道并带名称和接待方案版本', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $response = $this->actingAs($this->user)
         ->from(route('admin.manage.channels.web.index'))
@@ -335,7 +335,7 @@ test('超级管理员可以创建活跃频道并带名称和接待方案版本',
 });
 
 test('创建频道需要名称', function () {
-    createDeployableReceptionPlanVersion($this->systemContext);
+    createDeployableReceptionPlanVersion();
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.channels.web.create'))
@@ -345,7 +345,7 @@ test('创建频道需要名称', function () {
 });
 
 test('创建频道时不部署接待方案版本则被拒绝', function () {
-    createDeployableReceptionPlanVersion($this->systemContext);
+    createDeployableReceptionPlanVersion();
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.channels.web.create'))
@@ -356,7 +356,7 @@ test('创建频道时不部署接待方案版本则被拒绝', function () {
 });
 
 test('超级管理员可以保存基础频道信息', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
     ]);
@@ -666,7 +666,7 @@ test('访客界面校验猜你想问建议数量', function () {
 });
 
 test('超级管理员可以软删除频道', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
@@ -684,7 +684,7 @@ test('超级管理员可以软删除频道', function () {
 test('保留当前部署不可用版本时仍能保存其它字段', function () {
     $provider = createChannelTestProvider();
     $model = createChannelTestModel($provider);
-    $version = createDeployableReceptionPlanVersion($this->systemContext, $model);
+    $version = createDeployableReceptionPlanVersion($model);
 
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
@@ -707,13 +707,13 @@ test('保留当前部署不可用版本时仍能保存其它字段', function ()
 test('切换到不可用接待方案版本会被拒绝', function () {
     $provider = createChannelTestProvider();
     $currentModel = createChannelTestModel($provider);
-    $currentVersion = createDeployableReceptionPlanVersion($this->systemContext, $currentModel);
+    $currentVersion = createDeployableReceptionPlanVersion($currentModel);
 
     $brokenModel = createChannelTestModel($provider, [
         'is_active' => false,
         'model_id' => 'gpt-4.1-broken',
     ]);
-    $brokenVersion = createDeployableReceptionPlanVersion($this->systemContext, $brokenModel);
+    $brokenVersion = createDeployableReceptionPlanVersion($brokenModel);
 
     $channel = Channel::factory()->create([
         'reception_plan_id' => $currentVersion->reception_plan_id,
@@ -735,7 +735,7 @@ test('切换到不可用接待方案版本会被拒绝', function () {
 test('详情页面暴露 reception_plan_status_detail 用于已部署版本', function () {
     $provider = createChannelTestProvider();
     $model = createChannelTestModel($provider);
-    $version = createDeployableReceptionPlanVersion($this->systemContext, $model);
+    $version = createDeployableReceptionPlanVersion($model);
 
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
@@ -754,7 +754,7 @@ test('详情页面暴露 reception_plan_status_detail 用于已部署版本', fu
 });
 
 test('单租户下基础更新可以使用任意接待方案版本', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
     ]);
@@ -835,7 +835,7 @@ test('访客界面更新接受未绑定页面图标并绑定到频道', function
 });
 
 test('超级管理员可以查看频道回收站和恢复频道', function () {
-    $version = createDeployableReceptionPlanVersion($this->systemContext);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,

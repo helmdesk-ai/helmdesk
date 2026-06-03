@@ -2,11 +2,9 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\FormAttachContactTagData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Contact\ContactActivityLogger;
@@ -22,7 +20,7 @@ class AttachContactTagAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $contactId, FormAttachContactTagData $data, ?User $actor = null): void
+    public function handle(string $contactId, FormAttachContactTagData $data, ?User $actor = null): void
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
@@ -61,9 +59,8 @@ class AttachContactTagAction
 
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormAttachContactTagData::from($request);
-        $this->handle($ctx->systemContext(), $id, $data, $request->user());
+        $this->handle($id, $data, $request->user());
 
         return response()->json(['success' => true]);
     }

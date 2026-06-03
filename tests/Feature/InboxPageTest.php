@@ -3,7 +3,6 @@
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Channel;
-use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -13,7 +12,7 @@ beforeEach(function (): void {
     $this->withoutVite();
 });
 
-function createSystemAiProvider(SystemContext $systemContext, array $attributes = []): AiProvider
+function createSystemAiProvider(array $attributes = []): AiProvider
 {
     return AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -47,7 +46,7 @@ test('访客用户会被重定向到登录页面', function () {
 
 test('已认证用户进入仪表盘和可以打开收件箱', function () {
     [$systemContext, $user] = createSystemWithOwner();
-    $provider = createSystemAiProvider($systemContext);
+    $provider = createSystemAiProvider();
     $model = createSystemAiModel($provider);
 
     $this->actingAs($user);
@@ -104,7 +103,7 @@ test('访问仪表盘刷新用户最后活跃时间戳', function () {
 
 test('用户在收件箱接收 AI 助手模型选项', function () {
     [$systemContext] = createSystemWithOwner();
-    $provider = createSystemAiProvider($systemContext);
+    $provider = createSystemAiProvider();
     $model = createSystemAiModel($provider);
 
     $admin = createSuperAdmin();

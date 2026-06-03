@@ -86,7 +86,7 @@ function createConversationAiSummaryContext(): array
 /**
  * 给摘要测试上下文的接待方案版本写入可用翻译供应商。
  */
-function enableConversationAiSummaryTranslation(SystemContext $systemContext, Conversation $conversation): TranslationProvider
+function enableConversationAiSummaryTranslation(Conversation $conversation): TranslationProvider
 {
     $provider = TranslationProvider::factory()->create();
     $version = $conversation->receptionPlanVersion()->firstOrFail();
@@ -215,7 +215,7 @@ test('收件箱会话摘要翻译队列只派发缺失当前客服语言的摘�
 
     [$systemContext, $contact, $anchor] = createConversationAiSummaryContext();
     $user = User::factory()->create(['locale' => 'zh-CN']);
-    enableConversationAiSummaryTranslation($systemContext, $anchor);
+    enableConversationAiSummaryTranslation($anchor);
 
     $needsTranslation = Conversation::factory()->forContact($contact)->create([
         'reception_plan_version_id' => $anchor->reception_plan_version_id,
@@ -236,7 +236,6 @@ test('收件箱会话摘要翻译队列只派发缺失当前客服语言的摘�
     ]);
 
     $queued = QueueInboxConversationSummaryTranslationsAction::run(
-        systemContext: $systemContext,
         user: $user,
         conversationId: (string) $anchor->id,
         conversationIds: [
@@ -255,7 +254,7 @@ test('收件箱联系人 AI 摘要翻译队列只派发缺失当前语言的联�
     Bus::fake();
 
     [$systemContext, $contact, $anchor] = createConversationAiSummaryContext();
-    enableConversationAiSummaryTranslation($systemContext, $anchor);
+    enableConversationAiSummaryTranslation($anchor);
     $contact->update([
         'ai_context' => [
             'summary' => [
@@ -271,7 +270,6 @@ test('收件箱联系人 AI 摘要翻译队列只派发缺失当前语言的联�
     ]);
 
     $queued = QueueInboxContactAiSummaryTranslationAction::run(
-        systemContext: $systemContext,
         contactId: (string) $contact->id,
         targetLocale: 'zh-CN',
     );

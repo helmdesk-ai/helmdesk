@@ -4,7 +4,6 @@ namespace App\Actions\KnowledgeBase\Document;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormUpdateManualKnowledgeDocumentData;
-use App\Data\SystemUserContextData;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
@@ -60,7 +59,6 @@ class UpdateManualKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()

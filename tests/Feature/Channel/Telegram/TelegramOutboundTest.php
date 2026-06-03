@@ -35,7 +35,7 @@ beforeEach(function () {
 function seedTelegramConversation(): array
 {
     $systemContext = test()->systemContext;
-    $version = createTelegramDeployablePlanVersion($systemContext, withoutAutoMessages: true);
+    $version = createTelegramDeployablePlanVersion(withoutAutoMessages: true);
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
     ]);

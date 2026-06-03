@@ -2,9 +2,7 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\TagUsageData;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -16,7 +14,7 @@ class ListTagUsageAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $id): TagUsageData
+    public function handle(string $id): TagUsageData
     {
         $tag = Tag::query()
             ->withTrashed()
@@ -33,8 +31,7 @@ class ListTagUsageAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
 
-        return $this->handle($ctx->systemContext(), $id)->toArray();
+        return $this->handle($id)->toArray();
     }
 }

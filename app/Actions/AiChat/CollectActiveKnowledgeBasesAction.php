@@ -3,7 +3,6 @@
 namespace App\Actions\AiChat;
 
 use App\Models\KnowledgeBase;
-use App\Models\SystemContext;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -21,7 +20,7 @@ class CollectActiveKnowledgeBasesAction
     /**
      * @return list<array{id: string, name: string, description: string}>
      */
-    public function handle(SystemContext $systemContext): array
+    public function handle(): array
     {
         $knowledgeBases = KnowledgeBase::query()
             ->orderBy('created_at')

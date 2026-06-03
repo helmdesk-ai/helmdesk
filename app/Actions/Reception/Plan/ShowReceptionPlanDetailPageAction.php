@@ -47,13 +47,13 @@ class ShowReceptionPlanDetailPageAction
         $plan->setRelation('systemContext', $systemContext);
 
         return new ShowReceptionPlanDetailPagePropsData(
-            plan: ReceptionPlanData::fromModelDetailed($plan, $systemContext, $this->resolver),
-            llm_model_options: $this->resolver->getActiveLlmModelOptions($systemContext),
+            plan: ReceptionPlanData::fromModelDetailed($plan, $this->resolver),
+            llm_model_options: $this->resolver->getActiveLlmModelOptions(),
             persona_tone_options: EnumOptionData::fromCases(ReceptionPersonaTone::cases()),
             message_translation_failure_mode_options: EnumOptionData::fromCases(AutoMessageTranslationFailureMode::cases()),
-            translation_provider_options: $this->buildTranslationProviderOptions($systemContext),
-            knowledge_base_options: $this->buildKnowledgeBaseOptions($systemContext),
-            mcp_tool_options: $this->buildMcpToolOptions($systemContext),
+            translation_provider_options: $this->buildTranslationProviderOptions(),
+            knowledge_base_options: $this->buildKnowledgeBaseOptions(),
+            mcp_tool_options: $this->buildMcpToolOptions(),
             service_scenario_templates: array_map(
                 static fn (array $template): ServiceScenarioTemplateData => ServiceScenarioTemplateData::fromArray($template),
                 ServiceScenarioTemplates::all(),
@@ -80,7 +80,7 @@ class ShowReceptionPlanDetailPageAction
      *
      * @return list<PlanKnowledgeBaseOptionData>
      */
-    private function buildKnowledgeBaseOptions(SystemContext $systemContext): array
+    private function buildKnowledgeBaseOptions(): array
     {
         return KnowledgeBase::query()
             ->orderBy('name')
@@ -94,7 +94,7 @@ class ShowReceptionPlanDetailPageAction
      *
      * @return list<PlanMcpToolOptionData>
      */
-    private function buildMcpToolOptions(SystemContext $systemContext): array
+    private function buildMcpToolOptions(): array
     {
         return McpTool::query()
             ->with('server')
@@ -114,9 +114,9 @@ class ShowReceptionPlanDetailPageAction
      *
      * @return list<TranslationProviderOptionData>
      */
-    private function buildTranslationProviderOptions(SystemContext $systemContext): array
+    private function buildTranslationProviderOptions(): array
     {
-        return $systemContext->translationProviders()
+        return TranslationProvider::query()
             ->orderBy('sort_order')
             ->get()
             ->map(fn (TranslationProvider $provider): TranslationProviderOptionData => TranslationProviderOptionData::fromModel($provider))

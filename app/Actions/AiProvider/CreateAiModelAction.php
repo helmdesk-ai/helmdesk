@@ -3,11 +3,9 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\AiProvider\FormCreateAiModelData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\AiModel;
 use App\Models\AiProvider;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,9 +17,9 @@ class CreateAiModelAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $providerSlug, FormCreateAiModelData $data): AiModel
+    public function handle(string $providerSlug, FormCreateAiModelData $data): AiModel
     {
-        $provider = $systemContext->aiProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = AiProvider::query()->where('slug', $providerSlug)->firstOrFail();
 
         return $this->upsertModel($provider, $data);
     }
@@ -51,11 +49,10 @@ class CreateAiModelAction
 
     public function asController(Request $request, string $provider)
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateAiModelData::from($request);
-        $this->handle($systemContext, $provider, $data);
+        $this->handle($provider, $data);
 
         return back();
     }

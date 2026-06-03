@@ -4,7 +4,6 @@ namespace App\Services\CustomAttribute;
 
 use App\Enums\AttributeType;
 use App\Models\AttributeDefinition;
-use App\Models\SystemContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -72,7 +71,6 @@ class ScopedAttributeFilterHelper
      */
     public function applyFilters(
         Builder|HasMany $query,
-        SystemContext $systemContext,
         Collection $definitionsByKey,
         array $attributeFilters,
         string $valueTable,

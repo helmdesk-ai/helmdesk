@@ -5,7 +5,6 @@ namespace App\Actions\Inbox;
 use App\Actions\Reception\RecallTeammateMessageAction;
 use App\Data\SystemUserContextData;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +28,7 @@ class RecallInboxConversationMessageAction
     /**
      * 校验会话归属并触发撤回。
      */
-    public function handle(SystemContext $systemContext, User $user, string $conversationId, string $messageId): void
+    public function handle(User $user, string $conversationId, string $messageId): void
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -54,7 +53,6 @@ class RecallInboxConversationMessageAction
         $user = User::query()->findOrFail($ctx->user_id);
 
         $this->handle(
-            systemContext: $ctx->systemContext(),
             user: $user,
             conversationId: $conversationId,
             messageId: $messageId,

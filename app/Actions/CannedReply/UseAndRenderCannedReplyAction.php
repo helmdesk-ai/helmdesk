@@ -52,11 +52,11 @@ class UseAndRenderCannedReplyAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->policy->canView($reply, $systemContext, $user)) {
+        if (! $this->policy->canView($reply, $user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
-        $conversation = $this->resolveConversation($systemContext, $conversationId);
+        $conversation = $this->resolveConversation($conversationId);
         $context = CannedReplyRenderContextData::build(
             systemContext: $systemContext,
             teammate: $user,
@@ -112,7 +112,7 @@ class UseAndRenderCannedReplyAction
     /**
      * 解析 conversation_id 并加载渲染所需的上下文关联。
      */
-    private function resolveConversation(SystemContext $systemContext, ?string $conversationId): ?Conversation
+    private function resolveConversation(?string $conversationId): ?Conversation
     {
         if ($conversationId === null) {
             return null;

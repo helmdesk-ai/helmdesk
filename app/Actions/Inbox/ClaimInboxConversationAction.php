@@ -6,7 +6,6 @@ use App\Actions\Reception\ClaimConversationAction;
 use App\Data\SystemUserContextData;
 use App\Enums\InboxView;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +23,7 @@ class ClaimInboxConversationAction
         private readonly ClaimConversationAction $claimConversationAction,
     ) {}
 
-    public function handle(SystemContext $systemContext, User $user, string $conversationId): Conversation
+    public function handle(User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -40,7 +39,6 @@ class ClaimInboxConversationAction
     {
         $ctx = SystemUserContextData::fromRequest($request);
         $conversation = $this->handle(
-            systemContext: $ctx->systemContext(),
             user: User::query()->findOrFail($ctx->user_id),
             conversationId: $conversationId,
         );

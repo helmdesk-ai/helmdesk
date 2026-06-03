@@ -6,9 +6,7 @@ use App\Enums\KnowledgeChunkingStrategy;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Settings\GeneralSettings;
 use App\Settings\KnowledgeSettings;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -37,30 +35,9 @@ use Illuminate\Support\Carbon;
  * @property mixed $use_factory
  * @property mixed $logoUrl
  * @property mixed $logo_url
- * @property int|null $knowledge_embedding_models_count
- * @property int|null $knowledge_rerank_models_count
- * @property int|null $knowledge_summary_models_count
- * @property int|null $tags_count
- * @property int|null $ai_providers_count
- * @property int|null $mcp_servers_count
- * @property int|null $translation_providers_count
- * @property int|null $knowledge_bases_count
- * @property int|null $channels_count
- * @property int|null $contacts_count
- * @property int|null $conversations_count
- * @property int|null $attribute_definitions_count
  * @property-read AiModel|null $knowledgeEmbeddingModel
  * @property-read AiModel|null $knowledgeRerankModel
  * @property-read AiModel|null $knowledgeSummaryModel
- * @property-read Collection|Tag[] $tags
- * @property-read Collection|AiProvider[] $aiProviders
- * @property-read Collection|McpServer[] $mcpServers
- * @property-read Collection|TranslationProvider[] $translationProviders
- * @property-read Collection|KnowledgeBase[] $knowledgeBases
- * @property-read Collection|Channel[] $channels
- * @property-read Collection|Contact[] $contacts
- * @property-read Collection|Conversation[] $conversations
- * @property-read Collection|AttributeDefinition[] $attributeDefinitions
  *
  * @method static \Database\Factories\SystemContextFactory<self> factory($count = null, $state = [])
  */
@@ -175,16 +152,6 @@ class SystemContext extends Model
     }
 
     /**
-     * 返回系统用户查询。
-     *
-     * @return Builder<User>
-     */
-    public function users(): Builder
-    {
-        return User::query();
-    }
-
-    /**
      * 当前系统关联的超级管理员。
      */
     public function owner()
@@ -213,106 +180,6 @@ class SystemContext extends Model
     public function logo()
     {
         return $this->morphOne(Attachment::class, 'attachable');
-    }
-
-    /**
-     * 返回系统联系人和会话标签查询。
-     *
-     * @return Builder<Tag>
-     */
-    public function tags(): Builder
-    {
-        return Tag::query();
-    }
-
-    /**
-     * 返回系统标签组查询。
-     *
-     * @return Builder<TagGroup>
-     */
-    public function tagGroups(): Builder
-    {
-        return TagGroup::query();
-    }
-
-    /**
-     * 返回系统大模型供应商查询。
-     *
-     * @return Builder<AiProvider>
-     */
-    public function aiProviders(): Builder
-    {
-        return AiProvider::query();
-    }
-
-    /**
-     * 返回系统 MCP 服务查询。
-     *
-     * @return Builder<McpServer>
-     */
-    public function mcpServers(): Builder
-    {
-        return McpServer::query();
-    }
-
-    /**
-     * 返回系统翻译供应商查询。
-     *
-     * @return Builder<TranslationProvider>
-     */
-    public function translationProviders(): Builder
-    {
-        return TranslationProvider::query();
-    }
-
-    /**
-     * 返回系统知识库查询。
-     *
-     * @return Builder<KnowledgeBase>
-     */
-    public function knowledgeBases(): Builder
-    {
-        return KnowledgeBase::query();
-    }
-
-    /**
-     * 返回系统访客接入渠道查询。
-     *
-     * @return Builder<Channel>
-     */
-    public function channels(): Builder
-    {
-        return Channel::query();
-    }
-
-    /**
-     * 返回系统联系人查询。
-     *
-     * @return Builder<Contact>
-     */
-    public function contacts(): Builder
-    {
-        return Contact::query();
-    }
-
-    /**
-     * 返回系统接待会话查询。
-     *
-     * @return Builder<Conversation>
-     */
-    public function conversations(): Builder
-    {
-        return Conversation::query();
-    }
-
-    /**
-     * 返回系统自定义属性定义查询。
-     *
-     * @return Builder<AttributeDefinition>
-     */
-    public function attributeDefinitions(): Builder
-    {
-        return AttributeDefinition::query();
     }
 
     /**

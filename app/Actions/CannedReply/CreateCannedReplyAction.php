@@ -7,7 +7,6 @@ use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
@@ -31,20 +30,20 @@ class CreateCannedReplyAction
     /**
      * 持久化新模版并返回模型。
      */
-    public function handle(SystemContext $systemContext, User $user, FormCreateCannedReplyData $data): CannedReply
+    public function handle(User $user, FormCreateCannedReplyData $data): CannedReply
     {
         Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesEdit);
 
         $isPersonal = $data->is_personal;
 
-        if (! $isPersonal && ! $this->policy->canManageSystemShared($systemContext, $user)) {
+        if (! $isPersonal && ! $this->policy->canManageSystemShared($user)) {
             throw new BusinessException(__('canned_reply.errors.system_create_forbidden'));
         }
 
         $shortcut = $this->normalizeShortcut($data->shortcut);
         $userId = $isPersonal ? (string) $user->id : null;
 
-        $this->guardShortcutUnique($systemContext, $userId, $shortcut);
+        $this->guardShortcutUnique($userId, $shortcut);
 
         return CannedReply::query()->create([
             'user_id' => $userId,
@@ -62,10 +61,9 @@ class CreateCannedReplyAction
     public function asController(Request $request): RedirectResponse
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($systemContext, $user, FormCreateCannedReplyData::from($request));
+        $this->handle($user, FormCreateCannedReplyData::from($request));
 
         return redirect()->route('admin.canned-replies.index');
     }
@@ -87,7 +85,7 @@ class CreateCannedReplyAction
     /**
      * 同 system + 同归属下，shortcut 不可重复。
      */
-    private function guardShortcutUnique(SystemContext $systemContext, ?string $userId, ?string $shortcut): void
+    private function guardShortcutUnique(?string $userId, ?string $shortcut): void
     {
         if ($shortcut === null) {
             return;

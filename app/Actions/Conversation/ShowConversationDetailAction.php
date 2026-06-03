@@ -52,7 +52,6 @@ class ShowConversationDetailAction
     public function asController(Request $request, string $id): JsonResponse
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $conversation = Conversation::query()
             ->findOrFail($id);
         $viewer = User::query()->find($ctx->user_id);

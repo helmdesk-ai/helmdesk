@@ -4,7 +4,6 @@ namespace App\Actions\Channel\Web;
 
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelWidgetData;
-use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\Channel\Web\WebChannelWidgetEntryMode;
 use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
@@ -82,10 +81,9 @@ class UpdateWebChannelWidgetAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
-        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
+        $channelModel = $this->resolution->findSystemChannel($channel);
 
         $this->handle($channelModel, FormUpdateWebChannelWidgetData::from($request));
 

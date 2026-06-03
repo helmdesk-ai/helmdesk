@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Contact\ShowContactConversationTimelineAction;
 use App\Data\Contact\ContactStitchedTimelineData;
-use App\Data\SystemUserContextData;
 use App\Enums\ConversationTimelineEntryType;
 use App\Models\Contact;
 use App\Models\User;
@@ -55,8 +54,6 @@ class LoadInboxContactTimelineAction
      */
     public function asController(Request $request, string $contactId): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $contact = Contact::query()
             ->findOrFail($contactId);
 

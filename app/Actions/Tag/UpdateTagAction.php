@@ -2,10 +2,8 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\FormUpdateTagData;
 use App\Models\Contact;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\User;
@@ -24,7 +22,7 @@ class UpdateTagAction
     /**
      * 更新标签字段并在同维度组之间移动；改名后刷新关联联系人搜索索引。
      */
-    public function handle(SystemContext $systemContext, string $id, FormUpdateTagData $data, ?User $actor = null): Tag
+    public function handle(string $id, FormUpdateTagData $data, ?User $actor = null): Tag
     {
         $tag = Tag::query()
             ->with('tagGroup')
@@ -91,10 +89,8 @@ class UpdateTagAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $currentSystem = $ctx->systemContext();
         $data = FormUpdateTagData::from($request);
-        $this->handle($currentSystem, $id, $data, $request->user());
+        $this->handle($id, $data, $request->user());
 
         return back();
     }

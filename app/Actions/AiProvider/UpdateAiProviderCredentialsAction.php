@@ -2,10 +2,8 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -23,9 +21,9 @@ class UpdateAiProviderCredentialsAction
     /**
      * @param  array<string, mixed>  $configuration
      */
-    public function handle(SystemContext $systemContext, string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
+    public function handle(string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
     {
-        $provider = $this->findProvider($systemContext, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
         $configuration = $this->withoutLockedEndpointConfiguration($provider, $configuration, $allowEndpointUpdate);
         $this->validateConfiguration($provider, $configuration);
 
@@ -39,18 +37,17 @@ class UpdateAiProviderCredentialsAction
 
     public function asController(Request $request, string $provider)
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $configuration = $request->input('configuration');
-        $this->handle($systemContext, $provider, is_array($configuration) ? $configuration : []);
+        $this->handle($provider, is_array($configuration) ? $configuration : []);
 
         return back();
     }
 
-    private function findProvider(SystemContext $systemContext, string $slug): AiProvider
+    private function findProvider(string $slug): AiProvider
     {
-        return $systemContext->aiProviders()->where('slug', $slug)->firstOrFail();
+        return AiProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

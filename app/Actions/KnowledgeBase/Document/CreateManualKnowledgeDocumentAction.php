@@ -4,7 +4,6 @@ namespace App\Actions\KnowledgeBase\Document;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormCreateManualKnowledgeDocumentData;
-use App\Data\SystemUserContextData;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentSourceType;
@@ -73,7 +72,6 @@ class CreateManualKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()

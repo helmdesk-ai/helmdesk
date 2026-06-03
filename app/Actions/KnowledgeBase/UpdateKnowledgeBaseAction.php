@@ -3,11 +3,9 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormUpdateKnowledgeBaseData;
-use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
-use App\Models\SystemContext;
 use App\Services\Storage\AttachmentBindingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,10 +30,10 @@ class UpdateKnowledgeBaseAction
     /**
      * 更新知识库名称、头像和描述。
      */
-    public function handle(SystemContext $systemContext, KnowledgeBase $knowledgeBase, FormUpdateKnowledgeBaseData $data): void
+    public function handle(KnowledgeBase $knowledgeBase, FormUpdateKnowledgeBaseData $data): void
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($systemContext, $name, (string) $knowledgeBase->id);
+        $this->ensureNameIsAvailable($name, (string) $knowledgeBase->id);
         $originalAvatarId = filled($knowledgeBase->avatar_id) ? (string) $knowledgeBase->avatar_id : null;
         $this->attachments->assertAssignable(
             attachable: $knowledgeBase,
@@ -58,13 +56,12 @@ class UpdateKnowledgeBaseAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $knowledgeBaseModel = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);
 
-        $this->handle($systemContext, $knowledgeBaseModel, FormUpdateKnowledgeBaseData::from($request));
+        $this->handle($knowledgeBaseModel, FormUpdateKnowledgeBaseData::from($request));
 
         return back();
     }
@@ -72,7 +69,7 @@ class UpdateKnowledgeBaseAction
     /**
      * 校验当前系统内知识库名称是否可用。
      */
-    private function ensureNameIsAvailable(SystemContext $systemContext, string $name, string $exceptId): void
+    private function ensureNameIsAvailable(string $name, string $exceptId): void
     {
         $exists = KnowledgeBase::query()
             ->where('name', $name)

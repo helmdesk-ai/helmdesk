@@ -18,9 +18,8 @@ class TouchSystemUserLastActiveAtAction
     /**
      * 按最小间隔刷新用户最后活跃时间。
      */
-    public function handle(string $userId): void
+    public function handle(User $user): void
     {
-        $user = User::query()->findOrFail($userId);
         $lastActiveAt = $user->last_active_at;
 
         if ($lastActiveAt !== null && Carbon::parse($lastActiveAt)->greaterThan(now()->subMinutes(self::TOUCH_INTERVAL_MINUTES))) {

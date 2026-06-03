@@ -9,7 +9,6 @@ use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Conversation\ConversationReplyPermission;
@@ -42,7 +41,7 @@ class PolishInboxReplyAction
     /**
      * 校验会话和模型后，调用 AI 运行时返回候选回复。
      */
-    public function handle(SystemContext $systemContext, User $user, string $conversationId, FormPolishInboxReplyData $data): InboxReplyPolishResultData
+    public function handle(User $user, string $conversationId, FormPolishInboxReplyData $data): InboxReplyPolishResultData
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -56,7 +55,7 @@ class PolishInboxReplyAction
             throw new BusinessException(__($denialMessageKey));
         }
 
-        $model = $this->resolveActiveModel($systemContext, trim($data->model_id));
+        $model = $this->resolveActiveModel(trim($data->model_id));
         $context = $this->buildContext->handle($conversation, $data->quoted_message_id, $user->locale);
 
         try {
@@ -96,7 +95,6 @@ class PolishInboxReplyAction
         $data = FormPolishInboxReplyData::from($request);
 
         return response()->json($this->handle(
-            systemContext: $ctx->systemContext(),
             user: $user,
             conversationId: $conversationId,
             data: $data,
@@ -106,9 +104,9 @@ class PolishInboxReplyAction
     /**
      * 选出当前系统中启用的 LLM 模型。
      */
-    private function resolveActiveModel(SystemContext $systemContext, string $modelId): AiModel
+    private function resolveActiveModel(string $modelId): AiModel
     {
-        if (! $this->modelResolver->isValidActiveLlmModel($systemContext, $modelId)) {
+        if (! $this->modelResolver->isValidActiveLlmModel($modelId)) {
             throw ValidationException::withMessages([
                 'model_id' => __('ai.chat.selected_model_unavailable'),
             ]);

@@ -4,10 +4,8 @@ namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormCreateMcpServerData;
 use App\Data\Mcp\FormUpdateMcpServerData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\McpServer;
-use App\Models\SystemContext;
 use App\Services\Mcp\GoMcpRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,11 +33,11 @@ class CheckMcpServerAction
      *
      * @return array{success: bool, code: string, message: string, supported: bool, warnings: array<int, string>}
      */
-    public function handle(SystemContext $systemContext, ?string $slug, FormCreateMcpServerData|FormUpdateMcpServerData|null $data): array
+    public function handle(?string $slug, FormCreateMcpServerData|FormUpdateMcpServerData|null $data): array
     {
         $server = $slug === null
             ? null
-            : $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
+            : McpServer::query()->where('slug', $slug)->firstOrFail();
         $runtimeServer = $data === null ? $server : $this->serverForRuntimeCheck($server, $data);
 
         $result = $this->bridge->checkServerConnection(
@@ -62,7 +60,6 @@ class CheckMcpServerAction
      */
     public function asController(Request $request, ?string $server = null): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         try {
@@ -71,7 +68,7 @@ class CheckMcpServerAction
                 $request->input() === [] => null,
                 default => FormUpdateMcpServerData::from($request),
             };
-            $this->handle($systemContext, $server, $data);
+            $this->handle($server, $data);
         } catch (ValidationException $e) {
             $message = (string) collect($e->errors())
                 ->flatten()

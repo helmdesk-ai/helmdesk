@@ -5,11 +5,10 @@ namespace App\Actions\Contact;
 use App\Data\Contact\ContactActivityLogData;
 use App\Data\Contact\ContactDetailData;
 use App\Data\CustomAttribute\ContactAttributeFieldData;
-use App\Data\SystemUserContextData;
+use App\Models\AttributeDefinition;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
-use App\Models\SystemContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,7 +20,7 @@ class ShowContactDetailAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $contactId, bool $includeTrashed = false): ContactDetailData
+    public function handle(string $contactId, bool $includeTrashed = false): ContactDetailData
     {
         $contactQuery = Contact::query()
             ->when($includeTrashed, fn ($query) => $query->withTrashed())
@@ -41,7 +40,7 @@ class ShowContactDetailAction
             ->get()
             ->map(fn (ContactActivityLog $activityLog) => ContactActivityLogData::fromModel($activityLog));
 
-        $customAttributes = $this->buildCustomAttributeFields($systemContext, $contact);
+        $customAttributes = $this->buildCustomAttributeFields($contact);
 
         return ContactDetailData::fromModel($contact, $activityLogs, $customAttributes);
     }
@@ -49,9 +48,9 @@ class ShowContactDetailAction
     /**
      * @return ContactAttributeFieldData[]
      */
-    private function buildCustomAttributeFields(SystemContext $systemContext, Contact $contact): array
+    private function buildCustomAttributeFields(Contact $contact): array
     {
-        $activeDefinitions = $systemContext->attributeDefinitions()
+        $activeDefinitions = AttributeDefinition::query()
             ->active()
             ->ordered()
             ->get();
@@ -95,10 +94,8 @@ class ShowContactDetailAction
 
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $includeTrashed = $request->boolean('include_trashed');
 
-        return response()->json($this->handle($systemContext, $id, $includeTrashed)->toArray());
+        return response()->json($this->handle($id, $includeTrashed)->toArray());
     }
 }

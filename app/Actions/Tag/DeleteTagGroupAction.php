@@ -2,9 +2,7 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use Illuminate\Http\Request;
@@ -20,7 +18,7 @@ class DeleteTagGroupAction
     /**
      * 组内仍有未删除标签时拒绝删除，否则软删除标签组。
      */
-    public function handle(SystemContext $systemContext, string $id): void
+    public function handle(string $id): void
     {
         $group = TagGroup::query()
             ->findOrFail($id);
@@ -42,8 +40,7 @@ class DeleteTagGroupAction
      */
     public function asController(Request $request, string $id)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $this->handle($ctx->systemContext(), $id);
+        $this->handle($id);
 
         return back();
     }

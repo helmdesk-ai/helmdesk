@@ -2,9 +2,7 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\FormCreateTagGroupData;
-use App\Models\SystemContext;
 use App\Models\TagGroup;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,7 +19,7 @@ class CreateTagGroupAction
     /**
      * 校验组名在系统内唯一后创建标签组。
      */
-    public function handle(SystemContext $systemContext, FormCreateTagGroupData $data, ?User $actor = null): TagGroup
+    public function handle(FormCreateTagGroupData $data, ?User $actor = null): TagGroup
     {
         $name = trim($data->name);
         $normalizedName = mb_strtolower($name);
@@ -49,9 +47,8 @@ class CreateTagGroupAction
      */
     public function asController(Request $request)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormCreateTagGroupData::from($request);
-        $this->handle($ctx->systemContext(), $data, $request->user());
+        $this->handle($data, $request->user());
 
         return back();
     }

@@ -7,7 +7,6 @@ use App\Data\Teammate\EditTeammateData;
 use App\Data\Teammate\PermissionGroupData;
 use App\Data\Teammate\ShowEditTeammatePagePropsData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,18 +24,18 @@ class ShowEditTeammatePageAction
     /**
      * 查询客服账号并组装编辑页数据。
      */
-    public function handle(SystemContext $systemContext, User $actor, string $id): ShowEditTeammatePagePropsData
+    public function handle(User $actor, string $id): ShowEditTeammatePagePropsData
     {
         Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersEdit);
 
-        $user = $systemContext->users()
+        $user = User::query()
             ->where('is_super_admin', false)
             ->findOrFail($id);
 
         return new ShowEditTeammatePagePropsData(
             user_form: EditTeammateData::fromModel($user),
             permission_groups: PermissionGroupData::allGroups(),
-            can_update_profile: Gate::forUser($actor)->allows('systemContext-users.updateProfile', [$systemContext, $user]),
+            can_update_profile: Gate::forUser($actor)->allows('users.updateProfile', $user),
         );
     }
 
@@ -48,6 +47,6 @@ class ShowEditTeammatePageAction
         $ctx = SystemUserContextData::fromRequest($request);
         $actor = User::query()->findOrFail($ctx->user_id);
 
-        return Inertia::render('teammates/Edit', $this->handle($ctx->systemContext(), $actor, $teammate)->toArray());
+        return Inertia::render('teammates/Edit', $this->handle($actor, $teammate)->toArray());
     }
 }

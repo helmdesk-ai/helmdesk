@@ -2,10 +2,8 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Contact\ContactActivityLogger;
@@ -21,7 +19,7 @@ class DetachContactTagAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $contactId, string $tagId, ?User $actor = null): void
+    public function handle(string $contactId, string $tagId, ?User $actor = null): void
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
@@ -53,8 +51,7 @@ class DetachContactTagAction
 
     public function asController(Request $request, string $id, string $tagId): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $this->handle($ctx->systemContext(), $id, $tagId, $request->user());
+        $this->handle($id, $tagId, $request->user());
 
         return response()->json(['success' => true]);
     }

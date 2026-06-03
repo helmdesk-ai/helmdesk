@@ -2,11 +2,9 @@
 
 namespace App\Actions\Contact;
 
-use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\Request;
@@ -23,7 +21,6 @@ class DeleteContactIdentityAction
     use AsAction;
 
     public function handle(
-        SystemContext $systemContext,
         string $contactId,
         string $identityId,
         ?User $actor = null,
@@ -62,10 +59,8 @@ class DeleteContactIdentityAction
         string $contactId,
         string $identityId,
     ): Response {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
 
-        $this->handle($systemContext, $contactId, $identityId, $request->user());
+        $this->handle($contactId, $identityId, $request->user());
 
         return back();
     }

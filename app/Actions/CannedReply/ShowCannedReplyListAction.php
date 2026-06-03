@@ -8,7 +8,6 @@ use App\Data\CannedReply\ShowCannedReplyListPagePropsData;
 use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\CannedReply;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\CannedReply\CannedReplyPermission;
 use App\Services\CannedReply\CannedReplyVariableResolver;
@@ -45,7 +44,7 @@ class ShowCannedReplyListAction
     /**
      * 组装列表页面 props。
      */
-    public function handle(SystemContext $systemContext, User $user, string $visibility = self::VISIBILITY_ALL): ShowCannedReplyListPagePropsData
+    public function handle(User $user, string $visibility = self::VISIBILITY_ALL): ShowCannedReplyListPagePropsData
     {
         $visibility = $this->normalizeVisibility($visibility);
 
@@ -68,13 +67,13 @@ class ShowCannedReplyListAction
 
         $items = $replies->map(fn (CannedReply $reply) => ListCannedReplyItemData::fromModel(
             $reply,
-            canEdit: $this->policy->canEdit($reply, $systemContext, $user),
-            canDelete: $this->policy->canDelete($reply, $systemContext, $user),
+            canEdit: $this->policy->canEdit($reply, $user),
+            canDelete: $this->policy->canDelete($reply, $user),
         ))->all();
 
         return new ShowCannedReplyListPagePropsData(
             canned_reply_list: $items,
-            can_manage_system_replies: $this->policy->canManageSystemShared($systemContext, $user),
+            can_manage_system_replies: $this->policy->canManageSystemShared($user),
             current_visibility: $visibility,
             available_tokens: array_map(
                 static fn (array $token) => CannedReplyTokenOptionData::fromArray($token),
@@ -89,13 +88,11 @@ class ShowCannedReplyListAction
     public function asController(Request $request): Response
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
         Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesView);
 
         $visibility = $request->query('visibility');
         $props = $this->handle(
-            $systemContext,
             $user,
             is_string($visibility) ? $visibility : self::VISIBILITY_ALL,
         );

@@ -2,8 +2,7 @@
 
 namespace App\Actions\CustomAttribute;
 
-use App\Data\SystemUserContextData;
-use App\Models\SystemContext;
+use App\Models\AttributeDefinition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,9 +19,9 @@ class ReorderAttributeDefinitionsAction
     /**
      * @param  string[]  $orderedIds
      */
-    public function handle(SystemContext $systemContext, array $orderedIds): void
+    public function handle(array $orderedIds): void
     {
-        $existingIds = $systemContext->attributeDefinitions()
+        $existingIds = AttributeDefinition::query()
             ->active()
             ->ordered()
             ->pluck('id')
@@ -42,9 +41,9 @@ class ReorderAttributeDefinitionsAction
             ]);
         }
 
-        DB::transaction(function () use ($systemContext, $orderedIds) {
+        DB::transaction(function () use ($orderedIds) {
             foreach ($orderedIds as $index => $id) {
-                $systemContext->attributeDefinitions()
+                AttributeDefinition::query()
                     ->active()
                     ->where('id', $id)
                     ->update(['display_order' => $index]);
@@ -59,9 +58,7 @@ class ReorderAttributeDefinitionsAction
             'ordered_ids.*' => ['required', 'string'],
         ]);
 
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-
-        $this->handle($systemContext, $validated['ordered_ids']);
+        $this->handle($validated['ordered_ids']);
 
         return back();
     }

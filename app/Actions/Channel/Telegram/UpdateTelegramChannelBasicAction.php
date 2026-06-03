@@ -5,11 +5,9 @@ namespace App\Actions\Channel\Telegram;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Telegram\FormUpdateTelegramChannelBasicData;
-use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Enums\UserPermission;
 use App\Models\Channel;
-use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,12 +31,11 @@ class UpdateTelegramChannelBasicAction
     /**
      * 保存 Telegram 渠道基本信息与接待方案引用。
      */
-    public function handle(SystemContext $systemContext, Channel $channel, FormUpdateTelegramChannelBasicData $data): void
+    public function handle(Channel $channel, FormUpdateTelegramChannelBasicData $data): void
     {
         $submittedPlanId = $data->receptionPlanId();
         $requireUsable = $submittedPlanId !== $channel->reception_plan_id;
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $systemContext,
             $submittedPlanId,
             requireUsable: $requireUsable,
         );
@@ -67,14 +64,13 @@ class UpdateTelegramChannelBasicAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()
             ->where('type', ChannelType::Telegram)
             ->findOrFail($channel);
 
-        $this->handle($systemContext, $channelModel, FormUpdateTelegramChannelBasicData::from($request));
+        $this->handle($channelModel, FormUpdateTelegramChannelBasicData::from($request));
 
         return redirect()->route('admin.manage.channels.telegram.show', [
             'channel' => $channelModel->id,

@@ -2,7 +2,6 @@
 
 namespace App\Actions\Channel\Telegram;
 
-use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Enums\UserPermission;
 use App\Models\Channel;
@@ -40,7 +39,6 @@ class RestoreTelegramChannelAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()

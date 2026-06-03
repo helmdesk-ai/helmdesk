@@ -41,7 +41,7 @@ function fakeTelegramProfilePhotosUnavailable(): void
 function makeInboundTelegramChannel(): Channel
 {
     $systemContext = test()->systemContext;
-    $version = createTelegramDeployablePlanVersion($systemContext);
+    $version = createTelegramDeployablePlanVersion();
 
     return Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,

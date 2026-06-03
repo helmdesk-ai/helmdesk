@@ -5,7 +5,6 @@ namespace App\Actions\CannedReply;
 use App\Data\CannedReply\CannedReplyComposerItemData;
 use App\Data\SystemUserContextData;
 use App\Models\CannedReply;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -37,7 +36,6 @@ class SearchCannedRepliesForComposerAction
      * @return array<int, CannedReplyComposerItemData>
      */
     public function handle(
-        SystemContext $systemContext,
         User $user,
         ?string $conversationId,
         string $query,
@@ -84,7 +82,6 @@ class SearchCannedRepliesForComposerAction
     public function asController(Request $request): JsonResponse
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
 
         $conversationId = $request->query('conversation_id');
@@ -92,7 +89,6 @@ class SearchCannedRepliesForComposerAction
         $rawLimit = $request->query('limit');
 
         $items = $this->handle(
-            systemContext: $systemContext,
             user: $user,
             conversationId: is_string($conversationId) && $conversationId !== '' ? $conversationId : null,
             query: is_string($query) ? $query : '',

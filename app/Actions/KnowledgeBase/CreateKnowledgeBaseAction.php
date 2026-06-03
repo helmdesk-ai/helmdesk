@@ -3,12 +3,10 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormCreateKnowledgeBaseData;
-use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
-use App\Models\SystemContext;
 use App\Services\Storage\AttachmentBindingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,10 +32,10 @@ class CreateKnowledgeBaseAction
     /**
      * 创建知识库并限定同一系统内知识库名称唯一。
      */
-    public function handle(SystemContext $systemContext, FormCreateKnowledgeBaseData $data): KnowledgeBase
+    public function handle(FormCreateKnowledgeBaseData $data): KnowledgeBase
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($systemContext, $name);
+        $this->ensureNameIsAvailable($name);
         $this->attachments->assertAssignable(
             attachable: new KnowledgeBase,
             attachmentId: $data->avatar_id,
@@ -72,10 +70,9 @@ class CreateKnowledgeBaseAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesCreate);
 
-        $knowledgeBase = $this->handle($systemContext, FormCreateKnowledgeBaseData::from($request));
+        $knowledgeBase = $this->handle(FormCreateKnowledgeBaseData::from($request));
 
         return redirect()->route('admin.manage.knowledge-bases.index', [
             'kb' => $knowledgeBase->id,
@@ -85,7 +82,7 @@ class CreateKnowledgeBaseAction
     /**
      * 校验当前系统内知识库名称是否可用。
      */
-    private function ensureNameIsAvailable(SystemContext $systemContext, string $name): void
+    private function ensureNameIsAvailable(string $name): void
     {
         $exists = KnowledgeBase::query()
             ->where('name', $name)

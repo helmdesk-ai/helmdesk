@@ -8,7 +8,6 @@ use App\Enums\Reception\ReceptionRoutingMode;
 use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
-use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Carbon\CarbonInterface;
 
@@ -47,7 +46,7 @@ class ChannelAiAvailability
         $modelId = $compiled['reception_config']['default_model']['ai_model_id'] ?? null;
         $modelId = is_string($modelId) ? $modelId : null;
 
-        return $this->aiModelResolver->resolveModelStatus(SystemContext::current(), $modelId)->isValid;
+        return $this->aiModelResolver->resolveModelStatus($modelId)->isValid;
     }
 
     /**

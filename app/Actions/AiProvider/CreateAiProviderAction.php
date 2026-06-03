@@ -3,10 +3,8 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\AiProvider\FormCreateAiProviderData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\SystemContext;
 use App\Services\AiProvider\AiProviderCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,16 +23,16 @@ class CreateAiProviderAction
         private readonly AiProviderCatalog $catalog,
     ) {}
 
-    public function handle(SystemContext $systemContext, FormCreateAiProviderData $data): AiProvider
+    public function handle(FormCreateAiProviderData $data): AiProvider
     {
         $brand = $this->catalog->brand($data->brand);
         $isCustom = (bool) ($brand['is_custom'] ?? false);
         $name = filled($data->name) ? trim((string) $data->name) : (string) $brand['label'];
 
-        return DB::transaction(function () use ($systemContext, $data, $brand, $isCustom, $name) {
-            $maxSort = $systemContext->aiProviders()->max('sort_order') ?? 0;
+        return DB::transaction(function () use ($data, $brand, $isCustom, $name) {
+            $maxSort = AiProvider::query()->max('sort_order') ?? 0;
 
-            $provider = $systemContext->aiProviders()->create([
+            $provider = AiProvider::query()->create([
                 'brand' => $data->brand,
                 'slug' => Str::slug($data->brand).'-'.Str::random(6),
                 'name' => $name,
@@ -51,7 +49,7 @@ class CreateAiProviderAction
                 $this->catalog->defaultConfigurationForBrand($data->brand),
                 $data->configuration,
             );
-            UpdateAiProviderCredentialsAction::run($systemContext, $provider->slug, $configuration, allowEndpointUpdate: true);
+            UpdateAiProviderCredentialsAction::run($provider->slug, $configuration, allowEndpointUpdate: true);
 
             foreach ($this->catalog->defaultModelsForBrand($data->brand) as $index => $model) {
                 $provider->models()->create([
@@ -70,11 +68,10 @@ class CreateAiProviderAction
 
     public function asController(Request $request)
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateAiProviderData::from($request);
-        $this->handle($systemContext, $data);
+        $this->handle($data);
 
         return back();
     }

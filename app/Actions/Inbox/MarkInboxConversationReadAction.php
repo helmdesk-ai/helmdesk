@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Data\SystemUserContextData;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -20,7 +19,7 @@ class MarkInboxConversationReadAction
     /**
      * 当前用户是会话负责人时，将访客消息已读位置推进到当前时刻。
      */
-    public function handle(SystemContext $systemContext, string $userId, string $conversationId): void
+    public function handle(string $userId, string $conversationId): void
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -46,7 +45,6 @@ class MarkInboxConversationReadAction
         $ctx = SystemUserContextData::fromRequest($request);
 
         $this->handle(
-            systemContext: $ctx->systemContext(),
             userId: $ctx->user_id,
             conversationId: $conversationId,
         );

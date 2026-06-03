@@ -3,10 +3,8 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormUpdateContactImportanceData;
-use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +21,7 @@ class UpdateContactImportanceAction
     /**
      * 更新重点客户标记并写入联系人活动日志。
      */
-    public function handle(SystemContext $systemContext, string $contactId, FormUpdateContactImportanceData $data, ?User $actor = null): Contact
+    public function handle(string $contactId, FormUpdateContactImportanceData $data, ?User $actor = null): Contact
     {
         $contact = Contact::query()
             ->findOrFail($contactId);
@@ -62,9 +60,7 @@ class UpdateContactImportanceAction
      */
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $contact = $this->handle(
-            $ctx->systemContext(),
             $id,
             FormUpdateContactImportanceData::from($request),
             $request->user(),

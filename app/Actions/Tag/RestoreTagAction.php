@@ -2,9 +2,7 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Models\Contact;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use Illuminate\Http\Request;
@@ -19,7 +17,7 @@ class RestoreTagAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $id): Tag
+    public function handle(string $id): Tag
     {
         $tag = Tag::query()
             ->onlyTrashed()
@@ -65,8 +63,7 @@ class RestoreTagAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $this->handle($ctx->systemContext(), $id);
+        $this->handle($id);
 
         return back();
     }

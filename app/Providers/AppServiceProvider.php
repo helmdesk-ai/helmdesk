@@ -76,6 +76,9 @@ class AppServiceProvider extends ServiceProvider
             app(SqliteVecExtensionLoader::class)->ensureLoadedFor($event->connection);
         });
 
+        // 两套权限 Gate 服务于两种调用语法，底层均委托给 User::hasPermission()：
+        //  - 参数化 'user.permission'：供 Action / 中间件传入 UserPermission 枚举使用；
+        //  - 每个权限名一个同名 Gate：供路由 'can:users.view' 中间件使用（can 中间件只能传字符串 ability，无法带枚举参数）。
         Gate::define('user.permission', function (User $actor, UserPermission|string $permission): bool {
             return $actor->hasPermission($permission);
         });
@@ -86,12 +89,8 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
-        Gate::define('systemContext-users.removeMember', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
-            $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
-            if (! $target instanceof User) {
-                return false;
-            }
-
+        // 删除/更新后台成员的关系判定 Gate（与按权限名注册的 Gate 区分：这里还要校验超管与本人）。
+        Gate::define('users.removeMember', function (User $actor, User $target): bool {
             if ($target->is_super_admin) {
                 return false;
             }
@@ -103,12 +102,7 @@ class AppServiceProvider extends ServiceProvider
             return $actor->hasPermission(UserPermission::UsersDelete);
         });
 
-        Gate::define('systemContext-users.updateProfile', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
-            $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
-            if (! $target instanceof User) {
-                return false;
-            }
-
+        Gate::define('users.updateProfile', function (User $actor, User $target): bool {
             if ($target->is_super_admin) {
                 return false;
             }

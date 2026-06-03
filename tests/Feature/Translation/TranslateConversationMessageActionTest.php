@@ -12,7 +12,6 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlanVersion;
-use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use App\Services\Translation\Exceptions\TranslationException;
@@ -63,7 +62,7 @@ function createFakeTranslatorManager(
     return $manager;
 }
 
-function buildTranslationChannel(SystemContext $systemContext): Channel
+function buildTranslationChannel(): Channel
 {
     return Channel::factory()->create();
 }
@@ -72,7 +71,7 @@ function buildTranslationChannel(SystemContext $systemContext): Channel
  * 在系统下创建一个可用翻译供应商，并产出一个 snapshot 已写入 provider_id 的接待方案版本。
  * 返回版本 ID，供会话挂到该版本上，让运行时从会话锁定的方案版本解析供应商。
  */
-function provisionTranslationPlanVersion(SystemContext $systemContext): string
+function provisionTranslationPlanVersion(): string
 {
     $provider = TranslationProvider::factory()->create();
 

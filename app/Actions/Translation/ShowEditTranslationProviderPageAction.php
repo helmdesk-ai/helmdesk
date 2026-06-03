@@ -3,12 +3,11 @@
 namespace App\Actions\Translation;
 
 use App\Data\EnumOptionData;
-use App\Data\SystemUserContextData;
 use App\Data\Translation\ShowEditTranslationProviderPagePropsData;
 use App\Data\Translation\TranslationProviderData;
 use App\Enums\TranslationProviderType;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
+use App\Models\TranslationProvider;
 use App\Services\Translation\TranslationProviderCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -33,9 +32,9 @@ class ShowEditTranslationProviderPageAction
     /**
      * 组装编辑翻译供应商页面 props。
      */
-    public function handle(SystemContext $systemContext, string $slug): ShowEditTranslationProviderPagePropsData
+    public function handle(string $slug): ShowEditTranslationProviderPagePropsData
     {
-        $provider = $systemContext->translationProviders()
+        $provider = TranslationProvider::query()
             ->where('slug', $slug)
             ->firstOrFail();
 
@@ -51,9 +50,8 @@ class ShowEditTranslationProviderPageAction
      */
     public function asController(Request $request, string $provider): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        return Inertia::render('systemSettings/translationProviders/Edit', $this->handle($systemContext, $provider)->toArray());
+        return Inertia::render('systemSettings/translationProviders/Edit', $this->handle($provider)->toArray());
     }
 }

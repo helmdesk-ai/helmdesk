@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\SystemContext;
 use App\Services\DemoData\ConversationDemoGenerator;
 use Illuminate\Database\Seeder;
 
@@ -15,10 +14,7 @@ class ConversationDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $systemContext = SystemContext::current();
-
         $result = app(ConversationDemoGenerator::class)->generate(
-            $systemContext,
             count: 30,
         );
 

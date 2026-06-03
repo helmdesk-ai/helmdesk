@@ -2,7 +2,6 @@
 
 namespace App\Actions\KnowledgeBase\Group;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
@@ -56,7 +55,6 @@ class DeleteKnowledgeGroupAction
      */
     public function asController(Request $request, string $knowledgeBase, string $group): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesDelete);
 
         $kb = KnowledgeBase::query()->findOrFail($knowledgeBase);

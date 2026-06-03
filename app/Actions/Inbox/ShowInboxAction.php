@@ -33,7 +33,6 @@ use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactAttributeValue;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Reception\ChannelAiAvailability;
@@ -69,14 +68,13 @@ class ShowInboxAction
      * 组装收件箱当前筛选条件下的列表、选中会话和统计数据。
      */
     public function handle(
-        SystemContext $systemContext,
         User $user,
         InboxFiltersData $filters,
         ?string $conversationId = null,
     ): ShowInboxPagePropsData {
-        $filters = $this->normalizeFilters($systemContext, $filters);
+        $filters = $this->normalizeFilters($filters);
 
-        $conversations = $this->buildQuery($systemContext, $user, $filters)
+        $conversations = $this->buildQuery($user, $filters)
             ->select('conversations.*')
             ->with(['contact', 'receptionPlanVersion.plan', 'assignedUser', 'channel', 'latestMessage'])
             ->when(
@@ -95,7 +93,6 @@ class ShowInboxAction
 
         $selectionId = null;
         $selection = $this->resolveSelection(
-            systemContext: $systemContext,
             user: $user,
             conversations: $conversations,
             conversationId: $conversationId,
@@ -110,25 +107,25 @@ class ShowInboxAction
             current_search: $filters->search,
             current_important_only: $filters->important_only,
             current_conversation_id: $selectionId,
-            enabled_web_channels: $this->loadEnabledWebChannels($systemContext),
-            teammates: $this->loadTeammates($systemContext, $user),
+            enabled_web_channels: $this->loadEnabledWebChannels(),
+            teammates: $this->loadTeammates($user),
             conversation_list: $conversations
                 ->map(fn (Conversation $conversation) => ListConversationItemData::fromModel($conversation, $user))
                 ->all(),
             selection: $selection,
-            available_contact_tags: $this->loadAvailableContactTags($systemContext),
-            available_conversation_tags: $this->loadAvailableConversationTags($systemContext),
+            available_contact_tags: $this->loadAvailableContactTags(),
+            available_conversation_tags: $this->loadAvailableConversationTags(),
             reception_language_options: EnumOptionData::fromCases(ReceptionLanguage::cases()),
             reply_assistant_mode_options: EnumOptionData::fromCases(ReplyAssistantMode::cases()),
             reply_polish_tone_options: EnumOptionData::fromCases(ReplyPolishTone::cases()),
-            tab_counts: $this->computeTabCounts($systemContext, $user),
+            tab_counts: $this->computeTabCounts($user),
         );
     }
 
     /**
      * Tab 待关注数量；只有“我负责的”使用未读访客消息语义，非本人会话不计入个人未读。
      */
-    private function computeTabCounts(SystemContext $systemContext, User $user): InboxTabCountsData
+    private function computeTabCounts(User $user): InboxTabCountsData
     {
         $pending = (int) Conversation::query()
             ->where('status', ConversationStatus::Open)
@@ -138,7 +135,7 @@ class ShowInboxAction
         return new InboxTabCountsData(
             pending: $pending,
             ai: 0,
-            mine: $this->countMyOpenConversationsWithUnreadVisitorMessages($systemContext, $user),
+            mine: $this->countMyOpenConversationsWithUnreadVisitorMessages($user),
             teammates: 0,
         );
     }
@@ -146,7 +143,7 @@ class ShowInboxAction
     /**
      * 统计当前用户负责的开放会话中仍未读的访客消息会话数。
      */
-    private function countMyOpenConversationsWithUnreadVisitorMessages(SystemContext $systemContext, User $user): int
+    private function countMyOpenConversationsWithUnreadVisitorMessages(User $user): int
     {
         return (int) Conversation::query()
             ->where('status', ConversationStatus::Open)
@@ -161,13 +158,11 @@ class ShowInboxAction
     public function asController(Request $request): Response
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
 
         $filters = InboxFiltersData::fromRequest($request);
         $conversationId = is_string($request->query('conversation_id')) ? $request->query('conversation_id') : null;
 
         $props = $this->handle(
-            systemContext: $systemContext,
             user: User::query()->findOrFail($ctx->user_id),
             filters: $filters,
             conversationId: $conversationId,
@@ -176,10 +171,10 @@ class ShowInboxAction
         return Inertia::render('Inbox', $props->toArray());
     }
 
-    private function normalizeFilters(SystemContext $systemContext, InboxFiltersData $filters): InboxFiltersData
+    private function normalizeFilters(InboxFiltersData $filters): InboxFiltersData
     {
         $channelId = $filters->channel_id;
-        if ($channelId !== null && ! $this->channelBelongsToSystem($systemContext, $channelId)) {
+        if ($channelId !== null && ! $this->channelBelongsToSystem($channelId)) {
             throw ValidationException::withMessages([
                 'channel' => __('validation.exists', ['attribute' => 'channel']),
             ]);
@@ -189,7 +184,7 @@ class ShowInboxAction
         if (
             $assignee !== null
             && $assignee !== InboxFiltersData::ASSIGNEE_UNASSIGNED
-            && ! $this->userBelongsToSystem($systemContext, $assignee)
+            && ! $this->userBelongsToSystem($assignee)
         ) {
             throw ValidationException::withMessages([
                 'assignee' => __('validation.exists', ['attribute' => 'assignee']),
@@ -208,7 +203,7 @@ class ShowInboxAction
     /**
      * 构造收件箱会话列表查询。
      */
-    private function buildQuery(SystemContext $systemContext, User $user, InboxFiltersData $filters): Builder
+    private function buildQuery(User $user, InboxFiltersData $filters): Builder
     {
         $query = Conversation::query();
 
@@ -482,7 +477,7 @@ class ShowInboxAction
      *
      * @return EnabledWebChannelData[]
      */
-    private function loadEnabledWebChannels(SystemContext $systemContext): array
+    private function loadEnabledWebChannels(): array
     {
         return Channel::query()
             ->where('type', ChannelType::Web)
@@ -497,7 +492,7 @@ class ShowInboxAction
      *
      * @return UserOptionData[]
      */
-    private function loadTeammates(SystemContext $systemContext, User $currentUser): array
+    private function loadTeammates(User $currentUser): array
     {
         return User::query()
             ->whereKeyNot($currentUser->id)
@@ -512,9 +507,9 @@ class ShowInboxAction
      *
      * @return TagOptionData[]
      */
-    private function loadAvailableContactTags(SystemContext $systemContext): array
+    private function loadAvailableContactTags(): array
     {
-        return $this->loadAvailableTagsForScope($systemContext, TagScope::Contact);
+        return $this->loadAvailableTagsForScope(TagScope::Contact);
     }
 
     /**
@@ -522,9 +517,9 @@ class ShowInboxAction
      *
      * @return TagOptionData[]
      */
-    private function loadAvailableConversationTags(SystemContext $systemContext): array
+    private function loadAvailableConversationTags(): array
     {
-        return $this->loadAvailableTagsForScope($systemContext, TagScope::Conversation);
+        return $this->loadAvailableTagsForScope(TagScope::Conversation);
     }
 
     /**
@@ -532,7 +527,7 @@ class ShowInboxAction
      *
      * @return TagOptionData[]
      */
-    private function loadAvailableTagsForScope(SystemContext $systemContext, TagScope $scope): array
+    private function loadAvailableTagsForScope(TagScope $scope): array
     {
         return Tag::query()
             ->whereHas('tagGroup', fn (Builder $query) => $query->where('scope', $scope->value))
@@ -548,7 +543,6 @@ class ShowInboxAction
      * @param  Collection<int, Conversation>  $conversations
      */
     private function resolveSelection(
-        SystemContext $systemContext,
         User $user,
         Collection $conversations,
         ?string $conversationId,
@@ -584,10 +578,10 @@ class ShowInboxAction
             viewer: $user,
         );
         $customAttributes = $selected->contact
-            ? $this->buildCustomAttributeFields($systemContext, $selected->contact)
+            ? $this->buildCustomAttributeFields($selected->contact)
             : [];
         $conversationTagAggregates = $selected->contact
-            ? $this->conversationTagAggregates->handle($systemContext, (string) $selected->contact->id)
+            ? $this->conversationTagAggregates->handle((string) $selected->contact->id)
             : [];
 
         $isOpen = $selected->status === ConversationStatus::Open;
@@ -666,7 +660,7 @@ class ShowInboxAction
      *
      * @return ContactAttributeFieldData[]
      */
-    private function buildCustomAttributeFields(SystemContext $systemContext, Contact $contact): array
+    private function buildCustomAttributeFields(Contact $contact): array
     {
         $activeDefinitions = AttributeDefinition::query()
             ->active()
@@ -711,7 +705,7 @@ class ShowInboxAction
     /**
      * 判断渠道筛选值是否存在。
      */
-    private function channelBelongsToSystem(SystemContext $systemContext, string $channelId): bool
+    private function channelBelongsToSystem(string $channelId): bool
     {
         return Channel::query()
             ->whereKey($channelId)
@@ -721,7 +715,7 @@ class ShowInboxAction
     /**
      * 判断负责人筛选值是否存在。
      */
-    private function userBelongsToSystem(SystemContext $systemContext, string $userId): bool
+    private function userBelongsToSystem(string $userId): bool
     {
         return User::query()->whereKey($userId)->exists();
     }

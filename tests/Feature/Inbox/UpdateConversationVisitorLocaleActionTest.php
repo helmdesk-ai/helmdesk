@@ -23,7 +23,7 @@ beforeEach(function (): void {
 });
 
 test('更新会话访客语言', function (): void {
-    $conversation = UpdateConversationVisitorLocaleAction::run($this->systemContext, $this->conversation->id, ReceptionLanguage::Japanese);
+    $conversation = UpdateConversationVisitorLocaleAction::run($this->conversation->id, ReceptionLanguage::Japanese);
 
     expect($conversation->visitor_locale)->toBe('ja')
         ->and($this->conversation->fresh()->visitor_locale)->toBe('ja');
@@ -47,7 +47,6 @@ test('单租户后台可以更新任意会话访客语言', function (): void {
     $otherConversation = Conversation::factory()->create();
 
     $conversation = UpdateConversationVisitorLocaleAction::run(
-        $this->systemContext,
         $otherConversation->id,
         ReceptionLanguage::English,
     );

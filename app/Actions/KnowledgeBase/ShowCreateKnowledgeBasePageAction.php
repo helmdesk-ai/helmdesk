@@ -2,7 +2,6 @@
 
 namespace App\Actions\KnowledgeBase;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -23,7 +22,6 @@ class ShowCreateKnowledgeBasePageAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesCreate);
 
         return Inertia::render('knowledgeBase/Create');

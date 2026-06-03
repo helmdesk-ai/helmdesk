@@ -2,12 +2,10 @@
 
 namespace App\Actions\Mcp;
 
-use App\Data\SystemUserContextData;
 use App\Enums\McpSyncStatus;
 use App\Enums\UserPermission;
 use App\Models\McpServer;
 use App\Models\McpTool;
-use App\Models\SystemContext;
 use App\Services\Mcp\GoMcpRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,9 +39,9 @@ class SyncMcpServerToolsAction
      *
      * @return array{success: bool, code: string, message: string, total: int, added: int, removed: int, warnings: array<int, string>}
      */
-    public function handle(SystemContext $systemContext, string $slug): array
+    public function handle(string $slug): array
     {
-        $server = $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
+        $server = McpServer::query()->where('slug', $slug)->firstOrFail();
 
         return $this->syncServer($server);
     }
@@ -117,10 +115,9 @@ class SyncMcpServerToolsAction
      */
     public function asController(Request $request, string $server): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $result = $this->handle($systemContext, $server);
+        $result = $this->handle($server);
 
         return response()->json([
             'success' => $result['success'],

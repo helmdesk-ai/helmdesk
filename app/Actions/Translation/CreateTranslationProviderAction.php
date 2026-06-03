@@ -2,10 +2,8 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\SystemUserContextData;
 use App\Data\Translation\FormCreateTranslationProviderData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\Translation\TranslationProviderCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -31,9 +29,9 @@ class CreateTranslationProviderAction
     /**
      * 落库一条新的翻译供应商记录。
      */
-    public function handle(SystemContext $systemContext, FormCreateTranslationProviderData $data): TranslationProvider
+    public function handle(FormCreateTranslationProviderData $data): TranslationProvider
     {
-        $maxSort = $systemContext->translationProviders()->max('sort_order') ?? 0;
+        $maxSort = TranslationProvider::query()->max('sort_order') ?? 0;
         $defaultConfiguration = $this->catalog->defaultConfigurationForProtocol($data->protocol);
         $credentialFields = $this->catalog->credentialFieldsForProtocol($data->protocol);
         $credentials = $this->buildCredentials($credentialFields, [
@@ -41,7 +39,7 @@ class CreateTranslationProviderAction
             ...$data->configuration,
         ]);
 
-        return $systemContext->translationProviders()->create([
+        return TranslationProvider::query()->create([
             'slug' => Str::slug($data->name).'-'.Str::random(6),
             'name' => $data->name,
             'protocol' => $data->protocol,
@@ -58,11 +56,10 @@ class CreateTranslationProviderAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateTranslationProviderData::from($request);
-        $this->handle($systemContext, $data);
+        $this->handle($data);
 
         return redirect()->route('admin.manage.translation.providers.index');
     }

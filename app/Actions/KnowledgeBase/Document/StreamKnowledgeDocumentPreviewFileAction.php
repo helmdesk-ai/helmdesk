@@ -2,7 +2,6 @@
 
 namespace App\Actions\KnowledgeBase\Document;
 
-use App\Data\SystemUserContextData;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
@@ -85,7 +84,6 @@ class StreamKnowledgeDocumentPreviewFileAction
      */
     public function asController(Request $request, string $knowledgeBase, string $document): StreamedResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         $kb = KnowledgeBase::query()

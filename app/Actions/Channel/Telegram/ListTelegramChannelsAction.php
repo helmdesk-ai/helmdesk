@@ -5,11 +5,9 @@ namespace App\Actions\Channel\Telegram;
 use App\Data\Channel\Telegram\ShowTelegramChannelListPagePropsData;
 use App\Data\Channel\Telegram\TelegramChannelData;
 use App\Data\SimplePaginationData;
-use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Enums\UserPermission;
 use App\Models\Channel;
-use App\Models\SystemContext;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -34,7 +32,7 @@ class ListTelegramChannelsAction
     /**
      * 查询当前系统的 Telegram 渠道列表。
      */
-    public function handle(SystemContext $systemContext, int $page = 1, int $perPage = 12): ShowTelegramChannelListPagePropsData
+    public function handle(int $page = 1, int $perPage = 12): ShowTelegramChannelListPagePropsData
     {
         $page = max(1, $page);
         $perPage = max(1, min($perPage, 24));
@@ -49,7 +47,7 @@ class ListTelegramChannelsAction
             channel_list: $paginator->getCollection()
                 ->map(fn (Channel $channel) => TelegramChannelData::fromModel(
                     $channel,
-                    $this->planVersionResolver->resolveChannelStatus($systemContext, $channel),
+                    $this->planVersionResolver->resolveChannelStatus($channel),
                 ))
                 ->all(),
             channel_list_pagination: SimplePaginationData::fromPaginator($paginator),
@@ -61,11 +59,9 @@ class ListTelegramChannelsAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsView);
 
         return Inertia::render('channel/telegram/List', $this->handle(
-            systemContext: $systemContext,
             page: (int) $request->query('page', 1),
         )->toArray());
     }

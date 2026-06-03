@@ -3,10 +3,8 @@
 namespace App\Actions\CustomAttribute;
 
 use App\Data\CustomAttribute\FormCreateAttributeDefinitionData;
-use App\Data\SystemUserContextData;
 use App\Enums\AttributeType;
 use App\Models\AttributeDefinition;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,15 +17,15 @@ class CreateAttributeDefinitionAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, FormCreateAttributeDefinitionData $data): AttributeDefinition
+    public function handle(FormCreateAttributeDefinitionData $data): AttributeDefinition
     {
-        $this->validateKey($systemContext, $data->key);
+        $this->validateKey($data->key);
 
         $type = AttributeType::from($data->type);
         $this->validateFilterable($type, $data->is_filterable);
         $this->validateConfig($type, $data->config);
 
-        $maxOrder = $systemContext->attributeDefinitions()
+        $maxOrder = AttributeDefinition::query()
             ->max('display_order') ?? -1;
 
         return AttributeDefinition::query()->create([
@@ -43,15 +41,14 @@ class CreateAttributeDefinitionAction
 
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         $data = FormCreateAttributeDefinitionData::from($request);
 
-        $this->handle($systemContext, $data);
+        $this->handle($data);
 
         return back();
     }
 
-    private function validateKey(SystemContext $systemContext, string $key): void
+    private function validateKey(string $key): void
     {
         if (in_array($key, AttributeDefinition::RESERVED_KEYS, true)) {
             throw ValidationException::withMessages([
@@ -59,7 +56,7 @@ class CreateAttributeDefinitionAction
             ]);
         }
 
-        $exists = $systemContext->attributeDefinitions()
+        $exists = AttributeDefinition::query()
             ->withTrashed()
             ->where('key', $key)
             ->exists();

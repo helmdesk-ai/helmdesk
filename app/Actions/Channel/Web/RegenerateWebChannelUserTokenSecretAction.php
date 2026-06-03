@@ -3,7 +3,6 @@
 namespace App\Actions\Channel\Web;
 
 use App\Data\Channel\Web\ChannelWebSettingsData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelResolutionService;
@@ -50,10 +49,9 @@ class RegenerateWebChannelUserTokenSecretAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
-        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
+        $channelModel = $this->resolution->findSystemChannel($channel);
         $this->handle($channelModel);
 
         return redirect()->back(302, [], route('admin.manage.channels.web.show', [

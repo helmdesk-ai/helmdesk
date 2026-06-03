@@ -4,10 +4,8 @@ namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\KnowledgeBaseData;
 use App\Data\KnowledgeBase\ShowEditKnowledgeBasePagePropsData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -24,7 +22,7 @@ class ShowEditKnowledgeBasePageAction
     /**
      * 组装编辑知识库页面所需的表单数据。
      */
-    public function handle(SystemContext $systemContext, string $knowledgeBaseId): ShowEditKnowledgeBasePagePropsData
+    public function handle(string $knowledgeBaseId): ShowEditKnowledgeBasePagePropsData
     {
         $knowledgeBase = KnowledgeBase::query()
             ->with(['avatar'])
@@ -40,9 +38,8 @@ class ShowEditKnowledgeBasePageAction
      */
     public function asController(Request $request, string $knowledgeBase): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
-        return Inertia::render('knowledgeBase/Edit', $this->handle($systemContext, $knowledgeBase)->toArray());
+        return Inertia::render('knowledgeBase/Edit', $this->handle($knowledgeBase)->toArray());
     }
 }

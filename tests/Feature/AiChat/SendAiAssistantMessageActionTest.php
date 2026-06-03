@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 uses(RefreshDatabase::class);
 
-function createAiChatTestProvider(SystemContext $systemContext, array $attributes = []): AiProvider
+function createAiChatTestProvider(array $attributes = []): AiProvider
 {
     return AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -44,7 +44,7 @@ function createAiChatTestModel(AiProvider $provider, array $attributes = []): Ai
 
 test('它携带最近二十条历史消息到Go运行时', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     config([
@@ -86,7 +86,7 @@ test('它携带最近二十条历史消息到Go运行时', function () {
 test('它拒绝过大的聊天历史来自系统路由', function () {
     $user = User::factory()->create(['is_super_admin' => true]);
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     $this->actingAs($user)
@@ -103,7 +103,7 @@ test('它拒绝过大的聊天历史来自系统路由', function () {
 
 test('它拒绝空提示词在触及桥接前', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     Http::fake();
@@ -116,7 +116,7 @@ test('它拒绝空提示词在触及桥接前', function () {
 
 test('它转发用户提示词到Go运行时', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     config([
@@ -140,7 +140,7 @@ test('它转发用户提示词到Go运行时', function () {
 
 test('它暴露已净化错误和返回422当桥接失败时', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     config([
@@ -169,7 +169,7 @@ test('它暴露已净化错误和返回422当桥接失败时', function () {
 test('系统路由是限流到合理数字的请求每分钟', function () {
     $user = User::factory()->create(['is_super_admin' => true]);
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     config([
@@ -203,7 +203,7 @@ test('系统路由是限流到合理数字的请求每分钟', function () {
 
 test('它拒绝聊天请求且没有已选择的模型', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     createAiChatTestModel($provider);
 
     Http::fake();
@@ -216,7 +216,7 @@ test('它拒绝聊天请求且没有已选择的模型', function () {
 
 test('它拒绝不可用已选择模型', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider, ['is_active' => false]);
 
     Http::fake();
@@ -229,7 +229,7 @@ test('它拒绝不可用已选择模型', function () {
 
 test('它拒绝无效历史角色在触及桥接前', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     Http::fake();
@@ -246,7 +246,7 @@ test('它拒绝无效历史角色在触及桥接前', function () {
 
 test('它转发已配置的 MCP 服务和工具白名单到 Go 桥接', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     $configuredServer = McpServer::factory()
@@ -313,7 +313,7 @@ test('它转发已配置的 MCP 服务和工具白名单到 Go 桥接', function
 
 test('它在系统没有可用 MCP 工具时下发空数组到 Go 桥接', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     config([
@@ -335,7 +335,7 @@ test('它在系统没有可用 MCP 工具时下发空数组到 Go 桥接', funct
 
 test('它把知识库列表下发给 Go 桥接', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     $kb = KnowledgeBase::factory()->create([
@@ -371,7 +371,7 @@ test('它把知识库列表下发给 Go 桥接', function () {
 
 test('它把 MCP 空凭据和空请求头序列化为 JSON 对象', function () {
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider($systemContext);
+    $provider = createAiChatTestProvider();
     $model = createAiChatTestModel($provider);
 
     $server = McpServer::factory()->create([

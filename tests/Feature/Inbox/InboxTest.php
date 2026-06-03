@@ -53,7 +53,7 @@ beforeEach(function () {
     ]);
 });
 
-function createInboxLlmModel(SystemContext $systemContext, array $providerAttributes = [], array $modelAttributes = []): AiModel
+function createInboxLlmModel(array $providerAttributes = [], array $modelAttributes = []): AiModel
 {
     $provider = AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -80,9 +80,9 @@ function createInboxLlmModel(SystemContext $systemContext, array $providerAttrib
 /**
  * 构造一个绑定指定（或自动生成）AI 模型的接待方案版本，供需要 AI 可用性的会话用例使用。
  */
-function createInboxReceptionPlanVersion(SystemContext $systemContext, ?AiModel $model = null, ?TranslationProvider $translationProvider = null): ReceptionPlanVersion
+function createInboxReceptionPlanVersion(?AiModel $model = null, ?TranslationProvider $translationProvider = null): ReceptionPlanVersion
 {
-    $model ??= createInboxLlmModel($systemContext);
+    $model ??= createInboxLlmModel();
     $plan = ReceptionPlan::factory()->create([
         'name' => '收件箱测试方案-'.Str::lower(Str::random(6)),
     ]);
@@ -110,11 +110,11 @@ function createInboxReceptionPlanVersion(SystemContext $systemContext, ?AiModel 
 /**
  * 构造一个接待方案版本，并在快照里写入可用翻译供应商。
  */
-function createInboxTranslationPlanVersion(SystemContext $systemContext, ?AiModel $model = null): ReceptionPlanVersion
+function createInboxTranslationPlanVersion(?AiModel $model = null): ReceptionPlanVersion
 {
     $translationProvider = TranslationProvider::factory()->create();
 
-    return createInboxReceptionPlanVersion($systemContext, $model, $translationProvider);
+    return createInboxReceptionPlanVersion($model, $translationProvider);
 }
 
 test('收件箱默认进入待处理视图，让同事进入需要处理的队列', function () {
@@ -551,7 +551,7 @@ test('同事和访客语言一致时回复不需要翻译确认内容', function
 test('同事可为当前可见消息排队补翻到自己的语言', function () {
     Bus::fake();
     $this->user->update(['locale' => 'ja']);
-    $planVersion = createInboxTranslationPlanVersion($this->systemContext);
+    $planVersion = createInboxTranslationPlanVersion();
 
     $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([]);
@@ -615,7 +615,7 @@ test('同事可为当前可见消息排队补翻到自己的语言', function ()
 });
 
 test('收件箱打开会话保留可见消息翻译能力', function () {
-    $planVersion = createInboxTranslationPlanVersion($this->systemContext);
+    $planVersion = createInboxTranslationPlanVersion();
 
     $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([]);
@@ -645,7 +645,7 @@ test('收件箱打开会话保留可见消息翻译能力', function () {
 });
 
 test('打开会话时保留访客消息补翻能力', function () {
-    $planVersion = createInboxTranslationPlanVersion($this->systemContext);
+    $planVersion = createInboxTranslationPlanVersion();
 
     $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([]);
@@ -705,7 +705,7 @@ test('未配置默认翻译供应商时收件箱不提供消息补翻能力', fu
 
 test('关闭会话保留可见消息补翻能力', function () {
     Bus::fake();
-    $planVersion = createInboxTranslationPlanVersion($this->systemContext);
+    $planVersion = createInboxTranslationPlanVersion();
 
     $channel = Channel::factory()->create();
     $contact = Contact::factory()->create([]);
@@ -749,7 +749,7 @@ test('关闭会话保留可见消息补翻能力', function () {
 
 test('AI接待中同事可以补翻消息到自己的语言', function () {
     Bus::fake();
-    $planVersion = createInboxTranslationPlanVersion($this->systemContext);
+    $planVersion = createInboxTranslationPlanVersion();
     $channel = Channel::factory()->create([
         'reception_plan_id' => $planVersion->reception_plan_id,
         'reception_plan_version_id' => $planVersion->id,
@@ -796,7 +796,7 @@ test('AI接待中同事可以补翻消息到自己的语言', function () {
 });
 
 test('同事回复预览返回访客可见内容', function () {
-    $planVersion = createInboxTranslationPlanVersion($this->systemContext);
+    $planVersion = createInboxTranslationPlanVersion();
     Http::fake([
         'translation.googleapis.com/*' => Http::response([
             'data' => [
@@ -903,7 +903,6 @@ test('同事回复提交时访客语言变化会拒绝过期翻译', function ()
         ]);
 
     expect(fn () => app(ReplyInboxConversationAction::class)->handle(
-        systemContext: $this->systemContext,
         user: $this->user,
         conversationId: (string) $conversation->id,
         data: new FormReplyInboxConversationData(
@@ -1343,7 +1342,7 @@ test('同事视图可以被缩小到指定同事', function () {
 });
 
 test('同事可以释放其已分配会话回到AI在回复后', function () {
-    $version = createInboxReceptionPlanVersion($this->systemContext);
+    $version = createInboxReceptionPlanVersion();
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
@@ -1390,7 +1389,7 @@ test('同事可以释放其已分配会话回到AI在回复后', function () {
 });
 
 test('访客消息后释放给AI会让AI准备回答', function () {
-    $version = createInboxReceptionPlanVersion($this->systemContext);
+    $version = createInboxReceptionPlanVersion();
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
@@ -1435,8 +1434,8 @@ test('访客消息后释放给AI会让AI准备回答', function () {
 });
 
 test('频道模型不可用时释放给AI会回退到待处理队列', function () {
-    $model = createInboxLlmModel($this->systemContext, [], ['is_active' => false]);
-    $version = createInboxReceptionPlanVersion($this->systemContext, $model);
+    $model = createInboxLlmModel([], ['is_active' => false]);
+    $version = createInboxReceptionPlanVersion($model);
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,

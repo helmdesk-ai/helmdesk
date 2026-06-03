@@ -59,7 +59,7 @@ test('搜索联系人的聊天记录返回匹配消息', function () {
         'sender_name' => '客服小王',
     ]);
 
-    $results = SearchInboxMessagesAction::run($this->systemContext, $this->user, $contact->id, '发货');
+    $results = SearchInboxMessagesAction::run($this->user, $contact->id, '发货');
 
     expect($results)->toHaveCount(2);
     expect($results[0]->conversation_id)->toBe($conversation->id);
@@ -102,7 +102,7 @@ test('搜索不返回其他联系人的消息', function () {
         'sender_name' => 'B',
     ]);
 
-    $results = SearchInboxMessagesAction::run($this->systemContext, $this->user, $contactA->id, '退款');
+    $results = SearchInboxMessagesAction::run($this->user, $contactA->id, '退款');
 
     expect($results)->toHaveCount(1);
     expect($results[0]->conversation_id)->toBe($conversationA->id);
@@ -143,7 +143,7 @@ test('中文消息搜索要求关键词字符同时命中', function () {
         'content' => '订单已完成，退款会在三个工作日内到账',
     ]);
 
-    $results = SearchInboxMessagesAction::run($this->systemContext, $this->user, $contact->id, '订单退款');
+    $results = SearchInboxMessagesAction::run($this->user, $contact->id, '订单退款');
 
     expect(collect($results)->pluck('content')->all())->toEqualCanonicalizing([
         '订单退款流程已经提交',
@@ -174,7 +174,7 @@ test('搜索联系人的聊天记录可匹配当前客服语言译文', function
         ],
     ]);
 
-    $results = SearchInboxMessagesAction::run($this->systemContext, $this->user, $contact->id, '退款');
+    $results = SearchInboxMessagesAction::run($this->user, $contact->id, '退款');
 
     expect($results)->toHaveCount(1)
         ->and($results[0]->content)->toBe('I need a refund')
@@ -205,7 +205,7 @@ test('搜索联系人的聊天记录按当前客服语言读取译文', function
         ],
     ]);
 
-    $results = SearchInboxMessagesAction::run($this->systemContext, $this->user, $contact->id, '返金');
+    $results = SearchInboxMessagesAction::run($this->user, $contact->id, '返金');
 
     expect($results)->toHaveCount(1)
         ->and($results[0]->matched_content)->toBe('返金が必要です');
@@ -235,7 +235,7 @@ test('搜索联系人的聊天记录不会匹配其他客服语言译文', funct
         ],
     ]);
 
-    $results = SearchInboxMessagesAction::run($this->systemContext, $this->user, $contact->id, '退款');
+    $results = SearchInboxMessagesAction::run($this->user, $contact->id, '退款');
 
     expect($results)->toHaveCount(0);
 });

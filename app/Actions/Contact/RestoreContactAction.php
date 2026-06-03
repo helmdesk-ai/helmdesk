@@ -2,11 +2,9 @@
 
 namespace App\Actions\Contact;
 
-use App\Data\SystemUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\Request;
@@ -22,7 +20,7 @@ class RestoreContactAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $contactId, ?User $actor = null): Contact
+    public function handle(string $contactId, ?User $actor = null): Contact
     {
         $contact = Contact::withTrashed()
             ->findOrFail($contactId);
@@ -78,10 +76,8 @@ class RestoreContactAction
 
     public function asController(Request $request, string $id): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
 
-        $this->handle($systemContext, $id, $request->user());
+        $this->handle($id, $request->user());
 
         return back();
     }

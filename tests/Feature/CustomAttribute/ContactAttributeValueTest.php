@@ -19,7 +19,7 @@ test('可以更新文本属性值', function () {
     $contact = Contact::factory()->create();
     $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['company' => 'Acme'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['company' => 'Acme'], $user->id);
 
     $value = ContactAttributeValue::query()
         ->where('contact_id', $contact->id)
@@ -36,7 +36,7 @@ test('可以更新数字属性值', function () {
     $contact = Contact::factory()->create();
     AttributeDefinition::factory()->number()->create(['key' => 'age']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['age' => 25], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['age' => 25], $user->id);
 
     $value = ContactAttributeValue::query()
         ->where('contact_id', $contact->id)
@@ -50,7 +50,7 @@ test('可以更新布尔属性值', function () {
     $contact = Contact::factory()->create();
     AttributeDefinition::factory()->boolean()->create(['key' => 'is_vip']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['is_vip' => false], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['is_vip' => false], $user->id);
 
     $value = ContactAttributeValue::query()
         ->where('contact_id', $contact->id)
@@ -71,7 +71,7 @@ test('清除值删除行', function () {
         'value_json' => ['value' => 'Old'],
     ]);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['company' => null], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['company' => null], $user->id);
 
     expect(ContactAttributeValue::query()->where('contact_id', $contact->id)->count())->toBe(0);
 });
@@ -81,7 +81,7 @@ test('布尔false会被保留不已删除', function () {
     $contact = Contact::factory()->create();
     AttributeDefinition::factory()->boolean()->create(['key' => 'active']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['active' => false], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['active' => false], $user->id);
 
     $value = ContactAttributeValue::query()->where('contact_id', $contact->id)->first();
     expect($value)->not->toBeNull()
@@ -93,7 +93,7 @@ test('不能写入到已删除定义', function () {
     $contact = Contact::factory()->create();
     AttributeDefinition::factory()->text()->deleted()->create(['key' => 'old_field']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['old_field' => 'test'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['old_field' => 'test'], $user->id);
 })->throws(ValidationException::class);
 
 test('拒绝无效选项代码用于单选选择', function () {
@@ -103,7 +103,7 @@ test('拒绝无效选项代码用于单选选择', function () {
         ['code' => 'vip', 'label' => 'VIP'],
     ])->create(['key' => 'level']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['level' => 'invalid'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['level' => 'invalid'], $user->id);
 })->throws(ValidationException::class);
 
 test('多选选择去重值', function () {
@@ -114,7 +114,7 @@ test('多选选择去重值', function () {
         ['code' => 'b', 'label' => 'B'],
     ])->create(['key' => 'tags']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['tags' => ['a', 'b', 'a']], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['tags' => ['a', 'b', 'a']], $user->id);
 
     $value = ContactAttributeValue::query()->where('contact_id', $contact->id)->first();
     expect($value->value())->toBe(['a', 'b']);
@@ -135,7 +135,7 @@ test('联系人详情包含活跃定义即使且没有值', function () {
     AttributeDefinition::factory()->text()->create(['key' => 'company']);
     AttributeDefinition::factory()->number()->create(['key' => 'revenue']);
 
-    $detail = ShowContactDetailAction::run($systemContext, $contact->id);
+    $detail = ShowContactDetailAction::run($contact->id);
 
     expect($detail->custom_attributes)->toHaveCount(2);
     expect($detail->custom_attributes[0]->key)->toBeIn(['company', 'revenue']);
@@ -153,7 +153,7 @@ test('已删除定义并带值显示作为只读在详情', function () {
         'value_json' => ['value' => 'archived value'],
     ]);
 
-    $detail = ShowContactDetailAction::run($systemContext, $contact->id);
+    $detail = ShowContactDetailAction::run($contact->id);
 
     $deletedField = collect($detail->custom_attributes)->firstWhere('key', 'old');
     expect($deletedField)->not->toBeNull()
@@ -189,7 +189,7 @@ test('联系人列表可以筛选按单选选择自定义属性', function () {
         'value_json' => ['value' => 'normal'],
     ]);
 
-    $result = ShowContactListAction::run($systemContext, ContactListType::All, null, 1, 15, [
+    $result = ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'level' => 'vip',
     ]);
 
@@ -235,7 +235,7 @@ test('联系人列表可以筛选按数字和日期自定义属性', function ()
         'value_json' => ['value' => '2026-03-01'],
     ]);
 
-    $result = ShowContactListAction::run($systemContext, ContactListType::All, null, 1, 15, [
+    $result = ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'score' => ['min' => 60],
         'signup_date' => ['from' => '2026-04-01'],
     ]);
@@ -251,7 +251,7 @@ test('联系人列表可以筛选按数字和日期自定义属性', function ()
 test('联系人列表拒绝未知自定义属性筛选', function () {
     [$systemContext] = createSystemWithOwner();
 
-    ShowContactListAction::run($systemContext, ContactListType::All, null, 1, 15, [
+    ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'unknown_attribute' => 'value',
     ]);
 })->throws(ValidationException::class);
@@ -266,7 +266,7 @@ test('联系人列表拒绝无效自定义属性筛选值', function () {
         'is_filterable' => true,
     ]);
 
-    ShowContactListAction::run($systemContext, ContactListType::All, null, 1, 15, [
+    ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'level' => 'unknown',
     ]);
 })->throws(ValidationException::class);
@@ -276,7 +276,7 @@ test('单租户下可以按联系人 ID 更新自定义属性', function () {
     $contact = Contact::factory()->create();
     AttributeDefinition::factory()->text()->create(['key' => 'test']);
 
-    UpdateContactAttributeValuesAction::run($systemContext, $contact->id, ['test' => 'value'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['test' => 'value'], $user->id);
 
     expect(ContactAttributeValue::query()->where('contact_id', $contact->id)->first()?->value())->toBe('value');
 });

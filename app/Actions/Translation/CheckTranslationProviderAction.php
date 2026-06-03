@@ -44,12 +44,11 @@ class CheckTranslationProviderAction
      * @param  array<string, mixed>|null  $configuration
      */
     public function handle(
-        SystemContext $systemContext,
         string $providerSlug,
         FormCheckTranslationProviderData $data,
         ?array $configuration = null,
     ): TranslationCheckResultData {
-        $provider = $this->findProvider($systemContext, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
 
         // 临时叠加未保存的凭据：直接在内存对象上覆盖，不调 save()。
         // Eloquent 模型按引用传递，driver 实例化时会拿到这份新凭据。
@@ -96,7 +95,6 @@ class CheckTranslationProviderAction
         }
 
         return response()->json($this->handle(
-            $systemContext,
             $provider,
             $data,
             is_array($configuration) ? $configuration : null,
@@ -106,9 +104,9 @@ class CheckTranslationProviderAction
     /**
      * 按 slug 在当前系统下定位 provider；不存在抛 404。
      */
-    private function findProvider(SystemContext $systemContext, string $slug): TranslationProvider
+    private function findProvider(string $slug): TranslationProvider
     {
-        return $systemContext->translationProviders()->where('slug', $slug)->firstOrFail();
+        return TranslationProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

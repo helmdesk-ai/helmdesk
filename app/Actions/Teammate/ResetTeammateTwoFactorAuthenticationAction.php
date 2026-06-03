@@ -4,7 +4,6 @@ namespace App\Actions\Teammate;
 
 use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,15 +21,15 @@ class ResetTeammateTwoFactorAuthenticationAction
     /**
      * 清空指定客服账号的两步验证密钥和恢复码。
      */
-    public function handle(SystemContext $systemContext, User $actor, string $id): void
+    public function handle(User $actor, string $id): void
     {
         Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersEdit);
 
-        $user = $systemContext->users()
+        $user = User::query()
             ->where('is_super_admin', false)
             ->findOrFail($id);
 
-        Gate::forUser($actor)->authorize('systemContext-users.updateProfile', [$systemContext, $user]);
+        Gate::forUser($actor)->authorize('users.updateProfile', $user);
 
         $user->forceFill([
             'two_factor_secret' => null,
@@ -47,7 +46,7 @@ class ResetTeammateTwoFactorAuthenticationAction
         $ctx = SystemUserContextData::fromRequest($request);
         $actor = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($ctx->systemContext(), $actor, $teammate);
+        $this->handle($actor, $teammate);
 
         Inertia::flash('toast', [
             'type' => 'success',

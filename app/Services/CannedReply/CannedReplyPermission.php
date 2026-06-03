@@ -4,7 +4,6 @@ namespace App\Services\CannedReply;
 
 use App\Enums\UserPermission;
 use App\Models\CannedReply;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
@@ -18,7 +17,7 @@ class CannedReplyPermission
     /**
      * 当前用户能否管理（创建 / 编辑 / 删除）系统共享模版。
      */
-    public function canManageSystemShared(SystemContext $systemContext, User $user): bool
+    public function canManageSystemShared(User $user): bool
     {
         return Gate::forUser($user)->allows('user.permission', UserPermission::CannedRepliesManage);
     }
@@ -26,14 +25,14 @@ class CannedReplyPermission
     /**
      * 判断用户对某条模版是否可编辑。
      */
-    public function canEdit(CannedReply $reply, SystemContext $systemContext, User $user): bool
+    public function canEdit(CannedReply $reply, User $user): bool
     {
         if ($reply->isOwnedBy($user)) {
             return true;
         }
 
         if ($reply->isSystemShared()) {
-            return $this->canManageSystemShared($systemContext, $user);
+            return $this->canManageSystemShared($user);
         }
 
         return false;
@@ -42,15 +41,15 @@ class CannedReplyPermission
     /**
      * 删除策略与编辑相同。
      */
-    public function canDelete(CannedReply $reply, SystemContext $systemContext, User $user): bool
+    public function canDelete(CannedReply $reply, User $user): bool
     {
-        return $this->canEdit($reply, $systemContext, $user);
+        return $this->canEdit($reply, $user);
     }
 
     /**
      * 当前用户能看到的模版（自己个人 + 系统共享）。
      */
-    public function canView(CannedReply $reply, SystemContext $systemContext, User $user): bool
+    public function canView(CannedReply $reply, User $user): bool
     {
         return $reply->isSystemShared() || $reply->isOwnedBy($user);
     }

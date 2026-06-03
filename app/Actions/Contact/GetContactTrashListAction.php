@@ -6,10 +6,8 @@ use App\Data\Contact\ShowContactTrashPagePropsData;
 use App\Data\Contact\TrashContactItemData;
 use App\Data\EnumOptionData;
 use App\Data\SimplePaginationData;
-use App\Data\SystemUserContextData;
 use App\Enums\ContactListType;
 use App\Models\Contact;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +24,6 @@ class GetContactTrashListAction
      * 查询系统联系人回收站列表页 props。
      */
     public function handle(
-        SystemContext $systemContext,
         int $page = 1,
         int $perPage = 15,
     ): ShowContactTrashPagePropsData {
@@ -54,14 +51,12 @@ class GetContactTrashListAction
      */
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('per_page', 15);
 
         return Inertia::render(
             'contacts/Trash',
-            $this->handle($systemContext, $page, $perPage)->toArray(),
+            $this->handle($page, $perPage)->toArray(),
         );
     }
 }

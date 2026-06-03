@@ -2,9 +2,8 @@
 
 namespace App\Actions\Mcp;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
+use App\Models\McpServer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -29,9 +28,9 @@ class SyncAllMcpServerToolsAction
      *
      * @return array{queued: int}
      */
-    public function handle(SystemContext $systemContext): array
+    public function handle(): array
     {
-        $servers = $systemContext->mcpServers()
+        $servers = McpServer::query()
             ->orderBy('sort_order')
             ->get(['id']);
 
@@ -47,10 +46,9 @@ class SyncAllMcpServerToolsAction
      */
     public function asController(Request $request): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $result = $this->handle($systemContext);
+        $result = $this->handle();
 
         return response()->json([
             'success' => true,

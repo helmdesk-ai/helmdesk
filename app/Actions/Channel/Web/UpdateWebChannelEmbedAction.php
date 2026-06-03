@@ -5,7 +5,6 @@ namespace App\Actions\Channel\Web;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelEmbedData;
 use App\Data\Channel\Web\WebChannelQueryParamMappingData;
-use App\Data\SystemUserContextData;
 use App\Enums\Channel\Web\WebChannelParamTarget;
 use App\Enums\UserPermission;
 use App\Models\Channel;
@@ -58,10 +57,9 @@ class UpdateWebChannelEmbedAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
-        $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
+        $channelModel = $this->resolution->findSystemChannel($channel);
 
         $this->handle($channelModel, FormUpdateWebChannelEmbedData::from($request));
 

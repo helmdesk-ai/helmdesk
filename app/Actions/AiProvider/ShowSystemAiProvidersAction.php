@@ -5,10 +5,8 @@ namespace App\Actions\AiProvider;
 use App\Data\AiProvider\AiProviderData;
 use App\Data\AiProvider\BrandOptionData;
 use App\Data\AiProvider\ShowAiProviderPagePropsData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\SystemContext;
 use App\Services\AiProvider\AiProviderCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -27,9 +25,9 @@ class ShowSystemAiProvidersAction
         private readonly AiProviderCatalog $catalog,
     ) {}
 
-    public function handle(SystemContext $systemContext): ShowAiProviderPagePropsData
+    public function handle(): ShowAiProviderPagePropsData
     {
-        $providers = $systemContext->aiProviders()
+        $providers = AiProvider::query()
             ->with([
                 'models' => fn ($q) => $q
                     ->orderBy('sort_order'),
@@ -52,9 +50,8 @@ class ShowSystemAiProvidersAction
 
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsView);
 
-        return Inertia::render('systemSettings/aiProviders/Index', $this->handle($systemContext)->toArray());
+        return Inertia::render('systemSettings/aiProviders/Index', $this->handle()->toArray());
     }
 }

@@ -9,7 +9,6 @@ use App\Enums\AttachmentPurpose;
 use App\Enums\UserOnlineStatus;
 use App\Enums\UserPermission;
 use App\Models\Attachment;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,7 +26,7 @@ class CreateTeammateAction
     /**
      * 新建客服账号、保存权限并绑定头像。
      */
-    public function handle(SystemContext $systemContext, User $actor, FormCreateTeammateData $data): User
+    public function handle(User $actor, FormCreateTeammateData $data): User
     {
         Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersCreate);
 
@@ -59,7 +58,7 @@ class CreateTeammateAction
         $ctx = SystemUserContextData::fromRequest($request);
         $actor = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($ctx->systemContext(), $actor, FormCreateTeammateData::from($request));
+        $this->handle($actor, FormCreateTeammateData::from($request));
 
         return redirect()->route('admin.manage.teammates.index');
     }

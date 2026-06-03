@@ -9,7 +9,6 @@ use App\Data\Teammate\FormUpdateTeammateData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\UserPermission;
 use App\Models\Attachment;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,16 +26,16 @@ class UpdateTeammateAction
     /**
      * 保存客服资料、密码、头像和权限变更。
      */
-    public function handle(SystemContext $systemContext, User $actor, string $id, FormUpdateTeammateData $data): void
+    public function handle(User $actor, string $id, FormUpdateTeammateData $data): void
     {
         Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersEdit);
 
-        DB::transaction(function () use ($systemContext, $actor, $id, $data): void {
-            $user = $systemContext->users()
+        DB::transaction(function () use ($actor, $id, $data): void {
+            $user = User::query()
                 ->where('is_super_admin', false)
                 ->findOrFail($id);
 
-            Gate::forUser($actor)->authorize('systemContext-users.updateProfile', [$systemContext, $user]);
+            Gate::forUser($actor)->authorize('users.updateProfile', $user);
 
             $originalAvatar = $user->avatarAttachment()->first();
             $user->update([
@@ -63,7 +62,7 @@ class UpdateTeammateAction
         $ctx = SystemUserContextData::fromRequest($request);
         $actor = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($ctx->systemContext(), $actor, $teammate, FormUpdateTeammateData::from($request));
+        $this->handle($actor, $teammate, FormUpdateTeammateData::from($request));
 
         return redirect()->route('admin.manage.teammates.index');
     }

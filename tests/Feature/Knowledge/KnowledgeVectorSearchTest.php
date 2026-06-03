@@ -55,7 +55,6 @@ beforeEach(function (): void {
  * @param  list<float>  $embedding
  */
 function seedVectorNode(
-    SystemContext $systemContext,
     KnowledgeBase $kb,
     AiModel $embeddingModel,
     array $embedding,
@@ -97,7 +96,7 @@ test('VectorRetriever 跨 systemContext 时仍能从小集合的目标 systemCon
 
     // 目标 systemContext 只有 1 个与 query 完全一致的节点；其它 systemContext 灌 200 条略远的节点。
     // VectorRetriever 应当先按 scope 取允许集合，再让 KNN 在该集合内排序，目标节点保持命中。
-    $targetNode = seedVectorNode($this->systemContext, $this->kb, $this->embeddingModel, [1.0, 0.0, 0.0, 0.0], '目标节点');
+    $targetNode = seedVectorNode($this->kb, $this->embeddingModel, [1.0, 0.0, 0.0, 0.0], '目标节点');
 
     $otherSystem = SystemContext::factory()->create();
     $otherProvider = AiProvider::query()->create([
@@ -120,7 +119,7 @@ test('VectorRetriever 跨 systemContext 时仍能从小集合的目标 systemCon
     ]);
     $otherKb = KnowledgeBase::factory()->create([]);
     for ($i = 0; $i < 200; $i++) {
-        seedVectorNode($otherSystem, $otherKb, $otherModel, [0.99, 0.01 * $i, 0.0, 0.0]);
+        seedVectorNode($otherKb, $otherModel, [0.99, 0.01 * $i, 0.0, 0.0]);
     }
 
     $hits = app(VectorRetriever::class)->retrieve(
@@ -138,7 +137,7 @@ test('VectorRetriever 跨 systemContext 时仍能从小集合的目标 systemCon
 
 test('VectorRetriever 按 embedding_model_id 隔离：切换模型后不同模型向量不会参与召回', function (): void {
     $dim = 4;
-    seedVectorNode($this->systemContext, $this->kb, $this->embeddingModel, [1.0, 0.0, 0.0, 0.0]);
+    seedVectorNode($this->kb, $this->embeddingModel, [1.0, 0.0, 0.0, 0.0]);
 
     // systemContext 切到新的 embedding 模型，既有节点 embedding_model_id 仍是原模型。
     $newModel = AiModel::query()->create([

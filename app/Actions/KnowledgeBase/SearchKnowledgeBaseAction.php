@@ -71,7 +71,7 @@ class SearchKnowledgeBaseAction
             throw new BusinessException(__('knowledge_search.errors.query_required'));
         }
 
-        $knowledgeBases = $this->resolveAccessibleKnowledgeBases($systemContext, $input->knowledge_base_ids);
+        $knowledgeBases = $this->resolveAccessibleKnowledgeBases($input->knowledge_base_ids);
         if ($knowledgeBases === []) {
             throw new BusinessException(__('knowledge_search.errors.knowledge_base_inaccessible'));
         }
@@ -206,7 +206,7 @@ class SearchKnowledgeBaseAction
      * @param  list<string>  $candidateIds
      * @return array<string, KnowledgeBase>
      */
-    private function resolveAccessibleKnowledgeBases(SystemContext $systemContext, array $candidateIds): array
+    private function resolveAccessibleKnowledgeBases(array $candidateIds): array
     {
         $cleanIds = [];
         foreach ($candidateIds as $id) {

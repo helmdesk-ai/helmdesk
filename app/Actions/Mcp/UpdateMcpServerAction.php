@@ -3,10 +3,8 @@
 namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormUpdateMcpServerData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\McpServer;
-use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -35,9 +33,9 @@ class UpdateMcpServerAction
     /**
      * 更新一台 MCP 服务，并派发异步工具同步任务。
      */
-    public function handle(SystemContext $systemContext, string $slug, FormUpdateMcpServerData $data): McpServer
+    public function handle(string $slug, FormUpdateMcpServerData $data): McpServer
     {
-        $server = $this->findServer($systemContext, $slug);
+        $server = $this->findServer($slug);
 
         $server->name = $data->name;
         $server->endpoint_url = $data->endpoint_url;
@@ -60,11 +58,10 @@ class UpdateMcpServerAction
      */
     public function asController(Request $request, string $server): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormUpdateMcpServerData::from($request);
-        $this->handle($systemContext, $server, $data);
+        $this->handle($server, $data);
 
         return redirect()->route('admin.manage.mcp.servers.index');
     }
@@ -72,9 +69,9 @@ class UpdateMcpServerAction
     /**
      * 加载目标服务，找不到时 404。
      */
-    private function findServer(SystemContext $systemContext, string $slug): McpServer
+    private function findServer(string $slug): McpServer
     {
-        return $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
+        return McpServer::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

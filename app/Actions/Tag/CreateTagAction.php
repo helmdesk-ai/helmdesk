@@ -2,10 +2,8 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\FormCreateTagData;
 use App\Enums\TagSource;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\User;
@@ -23,7 +21,7 @@ class CreateTagAction
     /**
      * 校验标签组归属与名称唯一后，在该组下创建标签。
      */
-    public function handle(SystemContext $systemContext, FormCreateTagData $data, ?User $actor = null): Tag
+    public function handle(FormCreateTagData $data, ?User $actor = null): Tag
     {
         $group = TagGroup::query()
             ->find($data->tag_group_id);
@@ -61,10 +59,8 @@ class CreateTagAction
 
     public function asController(Request $request)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $currentSystem = $ctx->systemContext();
         $data = FormCreateTagData::from($request);
-        $this->handle($currentSystem, $data, $request->user());
+        $this->handle($data, $request->user());
 
         return back();
     }

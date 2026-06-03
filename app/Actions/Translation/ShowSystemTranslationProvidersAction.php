@@ -3,12 +3,10 @@
 namespace App\Actions\Translation;
 
 use App\Data\EnumOptionData;
-use App\Data\SystemUserContextData;
 use App\Data\Translation\ShowTranslationProviderPagePropsData;
 use App\Data\Translation\TranslationProviderData;
 use App\Enums\TranslationProviderType;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\Translation\TranslationProviderCatalog;
 use Illuminate\Http\Request;
@@ -37,9 +35,9 @@ class ShowSystemTranslationProvidersAction
     /**
      * 组装供应商列表 + 协议下拉的页面 props。
      */
-    public function handle(SystemContext $systemContext): ShowTranslationProviderPagePropsData
+    public function handle(): ShowTranslationProviderPagePropsData
     {
-        $providers = $systemContext->translationProviders()
+        $providers = TranslationProvider::query()
             ->orderBy('sort_order')
             ->get()
             ->map(fn (TranslationProvider $p) => TranslationProviderData::fromModel($p))
@@ -57,9 +55,8 @@ class ShowSystemTranslationProvidersAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsView);
 
-        return Inertia::render('systemSettings/translationProviders/Index', $this->handle($systemContext)->toArray());
+        return Inertia::render('systemSettings/translationProviders/Index', $this->handle()->toArray());
     }
 }

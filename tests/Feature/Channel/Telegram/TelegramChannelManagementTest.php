@@ -37,7 +37,7 @@ function fakeTelegramApiOk(): void
 
 test('超级管理员可以创建 Telegram 渠道并注册 webhook', function () {
     fakeTelegramApiOk();
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
 
     $response = $this->actingAs($this->user)
         ->from(route('admin.manage.channels.telegram.create'))
@@ -83,7 +83,7 @@ test('Telegram 注册 webhook 使用后台保存的最新主机地址', function
     $settings->base_url = 'https://support.example.test';
     $settings->save();
 
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
 
     $response = $this->actingAs($this->user)
         ->from(route('admin.manage.channels.telegram.create'))
@@ -105,7 +105,7 @@ test('Telegram 注册 webhook 使用后台保存的最新主机地址', function
 });
 
 test('Telegram 渠道创建需要 Token 和方案版本', function () {
-    createTelegramDeployablePlanVersion($this->systemContext);
+    createTelegramDeployablePlanVersion();
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.channels.telegram.create'))
@@ -119,7 +119,7 @@ test('Telegram 拒绝非法 Token 时创建失败且不落库', function () {
     Http::fake([
         '*/getMe' => Http::response(['ok' => false, 'error_code' => 401, 'description' => 'Unauthorized'], 401),
     ]);
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.channels.telegram.create'))
@@ -137,7 +137,7 @@ test('webhook 注册失败时回滚已创建的渠道', function () {
         '*/getMe' => Http::response(['ok' => true, 'result' => ['id' => 1, 'username' => 'b', 'first_name' => 'B']]),
         '*/setWebhook' => Http::response(['ok' => false, 'error_code' => 400, 'description' => 'Bad webhook: HTTPS url must be provided'], 400),
     ]);
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.channels.telegram.create'))
@@ -152,7 +152,7 @@ test('webhook 注册失败时回滚已创建的渠道', function () {
 
 test('列表页与详情页正常渲染', function () {
     fakeTelegramApiOk();
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
         'name' => '官方客服 Bot',
@@ -181,7 +181,7 @@ test('列表页与详情页正常渲染', function () {
 });
 
 test('创建页正常渲染', function () {
-    createTelegramDeployablePlanVersion($this->systemContext);
+    createTelegramDeployablePlanVersion();
 
     $this->actingAs($this->user)
         ->get(route('admin.manage.channels.telegram.create'))
@@ -194,7 +194,7 @@ test('创建页正常渲染', function () {
 
 test('超级管理员可以软删除 Telegram 渠道并撤销 webhook', function () {
     fakeTelegramApiOk();
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
     ]);
@@ -212,7 +212,7 @@ test('Telegram 撤销 webhook 失败仍可删除渠道', function () {
     Http::fake([
         '*/deleteWebhook' => Http::response(['ok' => false, 'error_code' => 401, 'description' => 'Unauthorized'], 401),
     ]);
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
     ]);
@@ -227,7 +227,7 @@ test('Telegram 撤销 webhook 失败仍可删除渠道', function () {
 
 test('回收站列出已删除的 Telegram 渠道', function () {
     fakeTelegramApiOk();
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
         'name' => '待恢复 Bot',
@@ -247,7 +247,7 @@ test('回收站列出已删除的 Telegram 渠道', function () {
 
 test('从回收站恢复 Telegram 渠道并重注册 webhook', function () {
     fakeTelegramApiOk();
-    $version = createTelegramDeployablePlanVersion($this->systemContext);
+    $version = createTelegramDeployablePlanVersion();
     $channel = Channel::factory()->telegram()->create([
         'reception_plan_id' => $version->reception_plan_id,
     ]);

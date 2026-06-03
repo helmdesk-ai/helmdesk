@@ -5,7 +5,6 @@ namespace App\Actions\KnowledgeBase\Document;
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormUploadKnowledgeDocumentData;
 use App\Data\KnowledgeBase\ListKnowledgeDocumentItemData;
-use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\AttachmentStatus;
 use App\Enums\AttachmentVisibility;
@@ -124,7 +123,6 @@ class UploadKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase): RedirectResponse|JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()

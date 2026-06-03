@@ -47,9 +47,9 @@ class UpdateSystemKnowledgeSettingsAction
         // 启用 vector 或 raptor 中任意一个都需要嵌入模型——RAPTOR 现在也会给摘要节点
         // 走嵌入用于向量召回，所以同样依赖嵌入模型。
         $embeddingRequired = $data->vector_index_enabled || $data->raptor_index_enabled;
-        $embeddingModel = $this->resolveActiveModel($systemContext, $data->embedding_model_id, AiModelType::Embedding, 'embedding_model_id', $embeddingRequired);
-        $rerankModel = $this->resolveActiveModel($systemContext, $data->rerank_model_id, AiModelType::Rerank, 'rerank_model_id');
-        $summaryModel = $this->resolveActiveModel($systemContext, $data->summary_model_id, AiModelType::Llm, 'summary_model_id', $data->raptor_index_enabled);
+        $embeddingModel = $this->resolveActiveModel($data->embedding_model_id, AiModelType::Embedding, 'embedding_model_id', $embeddingRequired);
+        $rerankModel = $this->resolveActiveModel($data->rerank_model_id, AiModelType::Rerank, 'rerank_model_id');
+        $summaryModel = $this->resolveActiveModel($data->summary_model_id, AiModelType::Llm, 'summary_model_id', $data->raptor_index_enabled);
 
         $previousDimension = $this->settings->embedding_dimension !== null
             ? (int) $this->settings->embedding_dimension
@@ -60,7 +60,7 @@ class UpdateSystemKnowledgeSettingsAction
         $dimensionChanged = $newDimension !== $previousDimension;
 
         $rebuildVectorIndex = $this->shouldRebuildVectorIndex($systemContext, $data, $embeddingModel, $dimensionChanged);
-        $rebuildQaVectorIndex = $this->shouldRebuildQaVectorIndex($systemContext, $data, $embeddingModel, $dimensionChanged);
+        $rebuildQaVectorIndex = $this->shouldRebuildQaVectorIndex($data, $embeddingModel, $dimensionChanged);
         $rebuildRaptorIndex = $this->shouldRebuildRaptorIndex($systemContext, $data, $embeddingModel, $summaryModel, $dimensionChanged);
 
         $this->settings->embedding_model_id = filled($embeddingModel?->id) ? (string) $embeddingModel->id : null;
@@ -105,13 +105,13 @@ class UpdateSystemKnowledgeSettingsAction
      * 当启用条件满足且有 ID 时，解析为当前系统可用的模型；否则返回 null。
      * resolver 内部对不存在 / 已停用的模型会抛字段级 ValidationException。
      */
-    private function resolveActiveModel(SystemContext $systemContext, ?string $modelId, AiModelType $type, string $field, bool $enabled = true): ?AiModel
+    private function resolveActiveModel(?string $modelId, AiModelType $type, string $field, bool $enabled = true): ?AiModel
     {
         if (! $enabled || ! filled($modelId)) {
             return null;
         }
 
-        return $this->resolver->resolveActiveKnowledgeBaseModel($systemContext, (string) $modelId, $type, $field);
+        return $this->resolver->resolveActiveKnowledgeBaseModel((string) $modelId, $type, $field);
     }
 
     /**
@@ -119,7 +119,7 @@ class UpdateSystemKnowledgeSettingsAction
      */
     private function shouldRebuildVectorIndex(SystemContext $systemContext, FormUpdateSystemKnowledgeSettingsData $data, ?AiModel $embeddingModel, bool $dimensionChanged): bool
     {
-        return $this->shouldRebuildQaVectorIndex($systemContext, $data, $embeddingModel, $dimensionChanged)
+        return $this->shouldRebuildQaVectorIndex($data, $embeddingModel, $dimensionChanged)
             || $systemContext->knowledge_chunking_strategy !== $data->chunking_strategy
             || (int) $systemContext->knowledge_chunk_max_tokens !== $data->chunk_max_tokens
             || (int) $systemContext->knowledge_chunk_overlap_tokens !== $data->chunk_overlap_tokens;
@@ -129,7 +129,7 @@ class UpdateSystemKnowledgeSettingsAction
      * 判断问答条目向量索引配置是否发生了需要重建的变更。
      * 维度变化（即便嵌入模型 id 未变）也会让既有向量与新查询不可比，必须重建。
      */
-    private function shouldRebuildQaVectorIndex(SystemContext $systemContext, FormUpdateSystemKnowledgeSettingsData $data, ?AiModel $embeddingModel, bool $dimensionChanged): bool
+    private function shouldRebuildQaVectorIndex(FormUpdateSystemKnowledgeSettingsData $data, ?AiModel $embeddingModel, bool $dimensionChanged): bool
     {
         return (bool) $this->settings->vector_index_enabled !== $data->vector_index_enabled
             || $this->modelIdChanged($this->settings->embedding_model_id, $embeddingModel)

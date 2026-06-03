@@ -2,10 +2,9 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
-use App\Models\SystemContext;
+use App\Models\AiProvider;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,9 +17,9 @@ class DeleteAiProviderAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $providerSlug): void
+    public function handle(string $providerSlug): void
     {
-        $provider = $systemContext->aiProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = AiProvider::query()->where('slug', $providerSlug)->firstOrFail();
 
         $resolver = app(AiModelResolver::class);
 
@@ -38,10 +37,9 @@ class DeleteAiProviderAction
 
     public function asController(Request $request, string $provider)
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($systemContext, $provider);
+        $this->handle($provider);
 
         return back();
     }

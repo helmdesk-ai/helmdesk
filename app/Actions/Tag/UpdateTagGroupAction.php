@@ -2,9 +2,7 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\FormUpdateTagGroupData;
-use App\Models\SystemContext;
 use App\Models\TagGroup;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,7 +19,7 @@ class UpdateTagGroupAction
     /**
      * 校验新组名唯一后重命名标签组。
      */
-    public function handle(SystemContext $systemContext, string $id, FormUpdateTagGroupData $data, ?User $actor = null): TagGroup
+    public function handle(string $id, FormUpdateTagGroupData $data, ?User $actor = null): TagGroup
     {
         $group = TagGroup::query()
             ->findOrFail($id);
@@ -54,9 +52,8 @@ class UpdateTagGroupAction
      */
     public function asController(Request $request, string $id)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormUpdateTagGroupData::from($request);
-        $this->handle($ctx->systemContext(), $id, $data, $request->user());
+        $this->handle($id, $data, $request->user());
 
         return back();
     }

@@ -2,10 +2,8 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Data\Tag\FormMergeTagData;
 use App\Models\Contact;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +17,7 @@ class MergeTagsAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, FormMergeTagData $data): Tag
+    public function handle(FormMergeTagData $data): Tag
     {
         return DB::transaction(function () use ($data): Tag {
             if ($data->target_tag_id === $data->merged_tag_id) {
@@ -73,9 +71,8 @@ class MergeTagsAction
 
     public function asController(Request $request)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormMergeTagData::from($request);
-        $this->handle($ctx->systemContext(), $data);
+        $this->handle($data);
 
         return back();
     }

@@ -7,7 +7,6 @@ use App\Data\SystemUserContextData;
 use App\Enums\MessageRole;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Search\ConversationMessageSearch;
 use App\Services\Search\ConversationMessageVisibleTextResolver;
@@ -37,7 +36,7 @@ class SearchInboxMessagesAction
      *
      * @return InboxMessageSearchResultData[]
      */
-    public function handle(SystemContext $systemContext, User $viewer, string $contactId, string $search): array
+    public function handle(User $viewer, string $contactId, string $search): array
     {
         $conversationIds = Conversation::query()
             ->where('contact_id', $contactId)
@@ -98,14 +97,13 @@ class SearchInboxMessagesAction
     public function asController(Request $request, string $contactId): JsonResponse
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $viewer = User::query()->findOrFail($ctx->user_id);
 
         $validated = $request->validate([
             'search' => ['required', 'string', 'min:1', 'max:200'],
         ]);
 
-        $results = $this->handle($systemContext, $viewer, $contactId, $validated['search']);
+        $results = $this->handle($viewer, $contactId, $validated['search']);
 
         return response()->json(['results' => $results]);
     }

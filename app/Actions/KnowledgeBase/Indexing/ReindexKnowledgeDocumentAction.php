@@ -2,7 +2,6 @@
 
 namespace App\Actions\KnowledgeBase\Indexing;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
@@ -38,7 +37,6 @@ class ReindexKnowledgeDocumentAction
      */
     public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()

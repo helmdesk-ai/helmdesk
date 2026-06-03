@@ -4,7 +4,6 @@ namespace App\Actions\Channel\Telegram;
 
 use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Telegram\FormUpdateTelegramChannelTokenData;
-use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
@@ -67,7 +66,6 @@ class UpdateTelegramChannelTokenAction
      */
     public function asController(Request $request, string $channel): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()

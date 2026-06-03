@@ -2,7 +2,6 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
@@ -58,7 +57,6 @@ class DeleteReceptionPlanAction
      */
     public function asController(Request $request, string $plan): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ReceptionPlansDelete);
 
         $planModel = ReceptionPlan::query()

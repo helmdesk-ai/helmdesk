@@ -296,7 +296,7 @@ test('编译方案时服务场景写入 compiled_config，方案级 KB 作为快
         ],
     ]);
 
-    $compiled = app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($plan);
 
     expect($compiled['compiled_config']['service_scenarios'])->toHaveCount(2)
         ->and($compiled['compiled_config']['service_scenarios'][0]['name'])->toBe('订单查询')
@@ -393,7 +393,7 @@ test('编译方案时方案级 MCP 工具写入 compiled_config 快照', functio
         ],
     ]);
 
-    $compiled = app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($plan);
 
     expect($compiled['compiled_config']['mcp_tools'])->toHaveCount(1)
         ->and($compiled['compiled_config']['mcp_tools'][0]['id'])->toBe($tool->id)
@@ -419,7 +419,7 @@ test('编译时方案级引用悬空 MCP 工具会抛 BusinessException', functi
         ],
     ]);
 
-    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan))
+    expect(fn () => app(CompileReceptionPlanAction::class)->handle($plan))
         ->toThrow(BusinessException::class);
 });
 
@@ -440,7 +440,7 @@ test('编译时方案级引用不可用 MCP 工具会抛 BusinessException', fun
         ],
     ]);
 
-    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan))
+    expect(fn () => app(CompileReceptionPlanAction::class)->handle($plan))
         ->toThrow(BusinessException::class);
 });
 
@@ -461,7 +461,7 @@ test('编译时方案级引用任意可用 MCP 工具会写入快照', function 
         ],
     ]);
 
-    $compiled = app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan);
+    $compiled = app(CompileReceptionPlanAction::class)->handle($plan);
 
     expect($compiled['compiled_config']['mcp_tools'])->toHaveCount(1);
 });
@@ -481,6 +481,6 @@ test('编译时方案级引用悬空知识库会抛 BusinessException', function
         ],
     ]);
 
-    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan))
+    expect(fn () => app(CompileReceptionPlanAction::class)->handle($plan))
         ->toThrow(BusinessException::class);
 });

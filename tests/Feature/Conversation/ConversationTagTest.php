@@ -126,7 +126,7 @@ test('联系人咨询概况按标签聚合计数且忽略被抑制标签', funct
         ['conversation_id' => $secondConversation->id, 'tag_id' => $tech->id, 'source' => 'ai', 'removed_at' => $now, 'created_at' => $now, 'updated_at' => $now],
     ]);
 
-    $aggregates = GetContactConversationTagAggregatesAction::run($this->systemContext, $this->contact->id);
+    $aggregates = GetContactConversationTagAggregatesAction::run($this->contact->id);
 
     expect($aggregates)->toHaveCount(2);
     expect($aggregates[0]->name)->toBe('退款');

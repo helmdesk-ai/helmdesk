@@ -12,7 +12,6 @@ use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactIdentity;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Services\Channel\WebChannelUserTokenVerifier;
 use App\Services\Contact\ContactIdentityNormalizer;
 use App\Services\Reception\ReceptionSession;
@@ -78,7 +77,6 @@ class ResolveReceptionContextAction
         $contact = $signedIdentity !== null
             ? $this->resolveSignedContact($channel, $signedIdentity)
             : $this->resolveContactIdentityAction->handle(
-                SystemContext::current(),
                 ['type' => IdentityType::Session, 'value' => $token],
                 ContactSource::Web,
             );
@@ -156,7 +154,6 @@ class ResolveReceptionContextAction
         $namespace = $this->userTokenVerifier->identityNamespace($channel);
 
         $contact = $this->resolveContactIdentityAction->handle(
-            SystemContext::current(),
             [
                 'type' => IdentityType::ExternalId,
                 'value' => $signedIdentity['external_id'],

@@ -58,7 +58,7 @@ class SendAiAssistantMessageAction
             ]);
         }
 
-        $model = $this->resolveActiveModel($systemContext, trim($modelId));
+        $model = $this->resolveActiveModel(trim($modelId));
         $provider = $model->provider;
 
         $protocol = $provider->protocol instanceof AiProviderProtocol
@@ -88,7 +88,7 @@ class SendAiAssistantMessageAction
             ],
             'messages' => $messages,
             'mcp_servers' => $this->collectMcpServers->handle(),
-            'knowledge_bases' => $this->collectKnowledgeBases->handle($systemContext),
+            'knowledge_bases' => $this->collectKnowledgeBases->handle(),
         ];
 
         try {
@@ -160,9 +160,9 @@ class SendAiAssistantMessageAction
     /**
      * 选出当前系统应当使用的有效 LLM 模型。
      */
-    private function resolveActiveModel(SystemContext $systemContext, string $modelId): AiModel
+    private function resolveActiveModel(string $modelId): AiModel
     {
-        if (! $this->modelResolver->isValidActiveLlmModel($systemContext, $modelId)) {
+        if (! $this->modelResolver->isValidActiveLlmModel($modelId)) {
             throw ValidationException::withMessages([
                 'model_id' => __('ai.chat.selected_model_unavailable'),
             ]);

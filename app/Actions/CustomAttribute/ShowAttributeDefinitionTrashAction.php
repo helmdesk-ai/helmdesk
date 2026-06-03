@@ -5,9 +5,7 @@ namespace App\Actions\CustomAttribute;
 use App\Data\CustomAttribute\ListAttributeDefinitionItemData;
 use App\Data\CustomAttribute\ShowAttributeDefinitionTrashPagePropsData;
 use App\Data\SimplePaginationData;
-use App\Data\SystemUserContextData;
 use App\Models\AttributeDefinition;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +19,6 @@ class ShowAttributeDefinitionTrashAction
     use AsAction;
 
     public function handle(
-        SystemContext $systemContext,
         int $page = 1,
         int $perPage = 15,
     ): ShowAttributeDefinitionTrashPagePropsData {
@@ -45,10 +42,8 @@ class ShowAttributeDefinitionTrashAction
 
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
 
         return Inertia::render('systemSettings/datas/AttributeTrash', $this->handle(
-            systemContext: $systemContext,
             page: (int) $request->query('page', 1),
             perPage: (int) $request->query('per_page', 15),
         )->toArray());

@@ -2,9 +2,7 @@
 
 namespace App\Actions\CustomAttribute;
 
-use App\Data\SystemUserContextData;
 use App\Models\AttributeDefinition;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,9 +14,9 @@ class ArchiveAttributeDefinitionAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $definitionId): AttributeDefinition
+    public function handle(string $definitionId): AttributeDefinition
     {
-        $definition = $systemContext->attributeDefinitions()->findOrFail($definitionId);
+        $definition = AttributeDefinition::query()->findOrFail($definitionId);
 
         $definition->delete();
 
@@ -27,9 +25,8 @@ class ArchiveAttributeDefinitionAction
 
     public function asController(Request $request, string $id): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
 
-        $this->handle($systemContext, $id);
+        $this->handle($id);
 
         return back();
     }

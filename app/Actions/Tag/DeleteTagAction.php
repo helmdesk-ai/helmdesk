@@ -2,10 +2,8 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\Contact;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +16,7 @@ class DeleteTagAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, string $id): void
+    public function handle(string $id): void
     {
         $tag = Tag::query()
             ->findOrFail($id);
@@ -44,9 +42,7 @@ class DeleteTagAction
 
     public function asController(Request $request, string $id)
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $currentSystem = $ctx->systemContext();
-        $this->handle($currentSystem, $id);
+        $this->handle($id);
 
         return back();
     }

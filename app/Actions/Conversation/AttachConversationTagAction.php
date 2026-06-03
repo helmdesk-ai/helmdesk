@@ -3,11 +3,9 @@
 namespace App\Actions\Conversation;
 
 use App\Data\Conversation\FormAttachConversationTagData;
-use App\Data\SystemUserContextData;
 use App\Enums\TagScope;
 use App\Enums\TagSource;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +24,7 @@ class AttachConversationTagAction
     /**
      * 校验标签为会话维度后，以人工来源附加到会话（复用同一行，清除抑制墓碑）。
      */
-    public function handle(SystemContext $systemContext, string $conversationId, FormAttachConversationTagData $data, ?User $actor = null): void
+    public function handle(string $conversationId, FormAttachConversationTagData $data, ?User $actor = null): void
     {
         $conversation = Conversation::query()
             ->findOrFail($conversationId);
@@ -66,9 +64,8 @@ class AttachConversationTagAction
      */
     public function asController(Request $request, string $conversation): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormAttachConversationTagData::from($request);
-        $this->handle($ctx->systemContext(), $conversation, $data, $request->user());
+        $this->handle($conversation, $data, $request->user());
 
         return response()->json(['success' => true]);
     }

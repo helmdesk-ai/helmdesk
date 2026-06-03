@@ -113,7 +113,7 @@ test('创建新的翻译供应商后保持待配置状态', function () {
         ])
         ->assertRedirect(route('admin.manage.translation.providers.index'));
 
-    $provider = $this->systemContext->translationProviders()->first();
+    $provider = TranslationProvider::query()->first();
     expect($provider)->not->toBeNull()
         ->and($provider->is_builtin)->toBeFalse()
         ->and($provider->credentials)->toBe(['api_key' => 'created-key']);

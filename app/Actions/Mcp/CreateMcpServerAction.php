@@ -3,10 +3,8 @@
 namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormCreateMcpServerData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\McpServer;
-use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,13 +28,13 @@ class CreateMcpServerAction
     /**
      * 创建新的 MCP 服务，并派发异步工具同步任务。
      */
-    public function handle(SystemContext $systemContext, FormCreateMcpServerData $data): McpServer
+    public function handle(FormCreateMcpServerData $data): McpServer
     {
-        $maxSort = $systemContext->mcpServers()->max('sort_order') ?? 0;
+        $maxSort = McpServer::query()->max('sort_order') ?? 0;
 
         /** @var McpServer $server */
-        $server = $systemContext->mcpServers()->create([
-            'slug' => $this->generateSlug($systemContext, $data->name),
+        $server = McpServer::query()->create([
+            'slug' => $this->generateSlug($data->name),
             'name' => $data->name,
             'transport' => $data->transport,
             'endpoint_url' => $data->endpoint_url,
@@ -56,11 +54,10 @@ class CreateMcpServerAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateMcpServerData::from($request);
-        $this->handle($systemContext, $data);
+        $this->handle($data);
 
         return redirect()->route('admin.manage.mcp.servers.index');
     }
@@ -115,7 +112,7 @@ class CreateMcpServerAction
     /**
      * 在 system 范围内生成唯一 slug。
      */
-    private function generateSlug(SystemContext $systemContext, string $name): string
+    private function generateSlug(string $name): string
     {
         $base = Str::slug($name);
         if ($base === '') {
@@ -124,7 +121,7 @@ class CreateMcpServerAction
 
         do {
             $candidate = $base.'-'.Str::lower(Str::random(6));
-            $exists = $systemContext->mcpServers()->where('slug', $candidate)->exists();
+            $exists = McpServer::query()->where('slug', $candidate)->exists();
         } while ($exists);
 
         return $candidate;

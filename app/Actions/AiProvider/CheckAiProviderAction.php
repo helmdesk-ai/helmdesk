@@ -2,10 +2,8 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\SystemContext;
 use App\Services\AiRuntime\GoAiRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,9 +25,9 @@ class CheckAiProviderAction
      * @param  array<string, mixed>|null  $configuration
      * @return array{success: bool, message: string}
      */
-    public function handle(SystemContext $systemContext, string $providerSlug, ?array $configuration = null): array
+    public function handle(string $providerSlug, ?array $configuration = null): array
     {
-        $provider = $this->findProvider($systemContext, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
 
         if (! $this->hasActiveLlmModel($provider)) {
             return ['success' => false, 'message' => __('ai.check_no_model')];
@@ -48,9 +46,9 @@ class CheckAiProviderAction
         ];
     }
 
-    private function findProvider(SystemContext $systemContext, string $slug): AiProvider
+    private function findProvider(string $slug): AiProvider
     {
-        return $systemContext->aiProviders()->where('slug', $slug)->firstOrFail();
+        return AiProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     private function hasActiveLlmModel(AiProvider $provider): bool
@@ -63,13 +61,11 @@ class CheckAiProviderAction
 
     public function asController(Request $request, string $provider): JsonResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $configuration = $request->input('configuration');
 
         return response()->json($this->handle(
-            $systemContext,
             $provider,
             is_array($configuration) ? $configuration : null,
         ));

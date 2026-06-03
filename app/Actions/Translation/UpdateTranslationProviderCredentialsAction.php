@@ -2,10 +2,8 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\SystemUserContextData;
 use App\Data\Translation\FormUpdateTranslationProviderData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,9 +23,9 @@ class UpdateTranslationProviderCredentialsAction
     /**
      * 校验后保存名称，并用 mergeCredentials 合并凭据。
      */
-    public function handle(SystemContext $systemContext, string $providerSlug, FormUpdateTranslationProviderData $data): TranslationProvider
+    public function handle(string $providerSlug, FormUpdateTranslationProviderData $data): TranslationProvider
     {
-        $provider = $this->findProvider($systemContext, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
         $this->validateConfiguration($provider, $data->configuration);
 
         $credentials = $provider->mergeCredentials($data->configuration);
@@ -44,11 +42,10 @@ class UpdateTranslationProviderCredentialsAction
      */
     public function asController(Request $request, string $provider): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormUpdateTranslationProviderData::from($request);
-        $this->handle($systemContext, $provider, $data);
+        $this->handle($provider, $data);
 
         return redirect()->route('admin.manage.translation.providers.index');
     }
@@ -56,9 +53,9 @@ class UpdateTranslationProviderCredentialsAction
     /**
      * 按 provider 的 credential_fields 动态生成校验规则。
      */
-    private function findProvider(SystemContext $systemContext, string $slug): TranslationProvider
+    private function findProvider(string $slug): TranslationProvider
     {
-        return $systemContext->translationProviders()->where('slug', $slug)->firstOrFail();
+        return TranslationProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

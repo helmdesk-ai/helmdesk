@@ -5,7 +5,6 @@ namespace App\Services\DemoData;
 use App\Enums\ContactSource;
 use App\Models\Contact;
 use App\Models\ContactIdentity;
-use App\Models\SystemContext;
 use App\Services\Contact\ContactAiContext;
 
 /**
@@ -16,7 +15,7 @@ class ContactDemoGenerator
     /**
      * 按数量生成一批联系人演示数据。
      */
-    public function generate(SystemContext $systemContext, int $count): int
+    public function generate(int $count): int
     {
         if ($count <= 0) {
             return 0;
@@ -26,9 +25,9 @@ class ContactDemoGenerator
         $knownVisitorCount = (int) floor($count * 0.3);
         $contactCount = $count - $anonymousVisitorCount - $knownVisitorCount;
 
-        $this->createAnonymousVisitors($systemContext, $anonymousVisitorCount);
-        $this->createKnownVisitors($systemContext, $knownVisitorCount);
-        $this->createContacts($systemContext, $contactCount);
+        $this->createAnonymousVisitors($anonymousVisitorCount);
+        $this->createKnownVisitors($knownVisitorCount);
+        $this->createContacts($contactCount);
 
         return $count;
     }
@@ -36,17 +35,17 @@ class ContactDemoGenerator
     /**
      * 生成固定比例的联系人演示数据。
      */
-    public function generatePreset(SystemContext $systemContext): int
+    public function generatePreset(): int
     {
         $contactCount = 20;
         $anonymousVisitorCount = 15;
         $knownVisitorCount = 10;
         $multiIdentityCount = 5;
 
-        $this->createContacts($systemContext, $contactCount);
-        $this->createAnonymousVisitors($systemContext, $anonymousVisitorCount);
-        $this->createKnownVisitors($systemContext, $knownVisitorCount);
-        $this->createMultiIdentityContacts($systemContext, $multiIdentityCount);
+        $this->createContacts($contactCount);
+        $this->createAnonymousVisitors($anonymousVisitorCount);
+        $this->createKnownVisitors($knownVisitorCount);
+        $this->createMultiIdentityContacts($multiIdentityCount);
 
         return $contactCount + $anonymousVisitorCount + $knownVisitorCount + $multiIdentityCount;
     }
@@ -54,7 +53,7 @@ class ContactDemoGenerator
     /**
      * 生成带多种身份的正式联系人。
      */
-    private function createContacts(SystemContext $systemContext, int $count): void
+    private function createContacts(int $count): void
     {
         if ($count <= 0) {
             return;
@@ -103,7 +102,7 @@ class ContactDemoGenerator
     /**
      * 生成只有会话身份的匿名访客。
      */
-    private function createAnonymousVisitors(SystemContext $systemContext, int $count): void
+    private function createAnonymousVisitors(int $count): void
     {
         if ($count <= 0) {
             return;
@@ -126,7 +125,7 @@ class ContactDemoGenerator
     /**
      * 生成带邮箱和会话身份的访客。
      */
-    private function createKnownVisitors(SystemContext $systemContext, int $count): void
+    private function createKnownVisitors(int $count): void
     {
         if ($count <= 0) {
             return;
@@ -152,7 +151,7 @@ class ContactDemoGenerator
     /**
      * 生成身份更完整的联系人样本。
      */
-    private function createMultiIdentityContacts(SystemContext $systemContext, int $count): void
+    private function createMultiIdentityContacts(int $count): void
     {
         if ($count <= 0) {
             return;

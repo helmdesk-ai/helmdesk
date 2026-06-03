@@ -4,10 +4,8 @@ namespace App\Actions\Mcp;
 
 use App\Data\Mcp\McpServerData;
 use App\Data\Mcp\ShowSystemMcpServersPagePropsData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\McpServer;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -24,9 +22,9 @@ class ShowSystemMcpServersAction
     /**
      * 装配 MCP 服务列表与工具子项。
      */
-    public function handle(SystemContext $systemContext): ShowSystemMcpServersPagePropsData
+    public function handle(): ShowSystemMcpServersPagePropsData
     {
-        $servers = $systemContext->mcpServers()
+        $servers = McpServer::query()
             ->with(['tools' => fn ($q) => $q->orderBy('name')])
             ->orderBy('sort_order')
             ->orderBy('created_at')
@@ -44,9 +42,8 @@ class ShowSystemMcpServersAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsView);
 
-        return Inertia::render('systemSettings/mcpServers/Index', $this->handle($systemContext)->toArray());
+        return Inertia::render('systemSettings/mcpServers/Index', $this->handle()->toArray());
     }
 }

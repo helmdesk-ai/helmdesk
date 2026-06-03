@@ -122,9 +122,9 @@ function fakeSystemAiRuntimeBridge(): void
 /**
  * 显式构造一个带活跃 LLM 模型的 OpenAI 供应商，供需要「可用模型」的用例复用。
  */
-function createOpenAiProviderWithModel(SystemContext $systemContext, string $slug = 'openai-test'): AiProvider
+function createOpenAiProviderWithModel(string $slug = 'openai-test'): AiProvider
 {
-    $provider = $systemContext->aiProviders()->create([
+    $provider = AiProvider::query()->create([
         'brand' => 'openai',
         'slug' => $slug,
         'name' => 'OpenAI',
@@ -212,10 +212,10 @@ test('列表页下发品牌目录选项', function () {
 });
 
 test('单租户下超级管理员可以看到全部供应商', function () {
-    createOpenAiProviderWithModel($this->systemContext, 'mine');
+    createOpenAiProviderWithModel('mine');
 
     [$otherSystem] = createSystemWithOwner();
-    createOpenAiProviderWithModel($otherSystem, 'theirs');
+    createOpenAiProviderWithModel('theirs');
 
     $this->actingAs($this->user)
         ->get(route('admin.manage.ai.providers.index'))
@@ -374,7 +374,7 @@ test('创建供应商时缺少必填凭据报校验错误', function () {
 // ---------------------------------------------------------------------------
 
 test('超级管理员可以配置提供商凭证', function () {
-    $provider = createOpenAiProviderWithModel($this->systemContext);
+    $provider = createOpenAiProviderWithModel();
 
     $this->actingAs($this->user)
         ->put(route('admin.manage.ai.providers.update', ['provider' => $provider->slug,
@@ -390,7 +390,7 @@ test('超级管理员可以配置提供商凭证', function () {
 });
 
 test('单独更新API Key时保留已有端点配置', function () {
-    $provider = $this->systemContext->aiProviders()->create([
+    $provider = AiProvider::query()->create([
         'brand' => 'deepseek',
         'slug' => 'deepseek-single-key-update',
         'name' => 'DeepSeek Main',
@@ -423,7 +423,7 @@ test('单独更新API Key时保留已有端点配置', function () {
 });
 
 test('创建后不能通过凭据更新修改 Base URI', function () {
-    $provider = $this->systemContext->aiProviders()->create([
+    $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
         'slug' => 'locked-endpoint-provider',
         'name' => 'Locked Endpoint Provider',
@@ -457,7 +457,7 @@ test('创建后不能通过凭据更新修改 Base URI', function () {
 
 test('更新凭证校验必需字段', function () {
     // 未配置凭据的供应商，清空必填 key 时应触发字段级校验错误。
-    $provider = $this->systemContext->aiProviders()->create([
+    $provider = AiProvider::query()->create([
         'brand' => 'custom-openai',
         'slug' => 'no-creds-provider',
         'name' => 'No Creds Provider',
@@ -492,7 +492,7 @@ test('更新凭证校验必需字段', function () {
 // ---------------------------------------------------------------------------
 
 test('超级管理员可以删除任意供应商', function () {
-    $provider = createOpenAiProviderWithModel($this->systemContext);
+    $provider = createOpenAiProviderWithModel();
 
     $this->actingAs($this->user)
         ->delete(route('admin.manage.ai.providers.destroy', ['provider' => $provider->slug,
@@ -507,7 +507,7 @@ test('超级管理员可以删除任意供应商', function () {
 // ---------------------------------------------------------------------------
 
 test('超级管理员可以添加自定义模型到提供商在其系统', function () {
-    $provider = createOpenAiProviderWithModel($this->systemContext);
+    $provider = createOpenAiProviderWithModel();
 
     $this->actingAs($this->user)
         ->post(route('admin.manage.ai.models.store', ['provider' => $provider->slug,
@@ -525,7 +525,7 @@ test('超级管理员可以添加自定义模型到提供商在其系统', funct
 });
 
 test('超级管理员可以切换模型活跃状态', function () {
-    $provider = createOpenAiProviderWithModel($this->systemContext);
+    $provider = createOpenAiProviderWithModel();
     // 额外建一个 LLM，确保切换被测模型时仍保留至少一个活跃 LLM。
     $provider->models()->create([
         'model_id' => 'gpt-secondary',
@@ -548,7 +548,7 @@ test('超级管理员可以切换模型活跃状态', function () {
 });
 
 test('超级管理员可以更新内置模型显示名称且保持内置状态', function () {
-    $provider = createOpenAiProviderWithModel($this->systemContext);
+    $provider = createOpenAiProviderWithModel();
     $model = $provider->models()->where('is_builtin', true)->firstOrFail();
 
     $this->actingAs($this->user)
@@ -566,7 +566,7 @@ test('超级管理员可以更新内置模型显示名称且保持内置状态',
 });
 
 test('超级管理员可以删除自定义模型', function () {
-    $provider = createOpenAiProviderWithModel($this->systemContext);
+    $provider = createOpenAiProviderWithModel();
 
     $model = $provider->models()->create([
         'model_id' => 'custom-model-to-delete',
@@ -707,7 +707,7 @@ function buildKnowledgeBaseReferenceProvider(string $modelType = 'embedding'): A
 /**
  * 构造一个引用指定 AI 模型的已发布接待方案版本，模拟运行时正在使用该模型的场景。
  */
-function referenceReceptionPlanVersion(SystemContext $systemContext, string $modelId): ReceptionPlanVersion
+function referenceReceptionPlanVersion(string $modelId): ReceptionPlanVersion
 {
     $plan = ReceptionPlan::factory()->create([
         'name' => '引用接待方案-'.Str::lower(Str::random(6)),
@@ -723,7 +723,7 @@ test('不能删除被接待方案版本引用的模型', function () {
     $provider = buildReferenceProvider();
     $model = $provider->models->first();
 
-    referenceReceptionPlanVersion($this->systemContext, $model->id);
+    referenceReceptionPlanVersion($model->id);
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.ai.providers.index'))
@@ -767,7 +767,7 @@ test('不能禁用被接待方案版本引用的模型', function () {
     $provider = buildReferenceProvider();
     $model = $provider->models->first();
 
-    referenceReceptionPlanVersion($this->systemContext, $model->id);
+    referenceReceptionPlanVersion($model->id);
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.ai.providers.index'))
@@ -801,7 +801,7 @@ test('不能删除被接待方案版本引用的提供商', function () {
     $provider = buildReferenceProvider();
     $model = $provider->models->first();
 
-    referenceReceptionPlanVersion($this->systemContext, $model->id);
+    referenceReceptionPlanVersion($model->id);
 
     $this->actingAs($this->user)
         ->from(route('admin.manage.ai.providers.index'))
@@ -829,7 +829,7 @@ test('不能删除被知识库引用了模型的提供商', function () {
 // ---------------------------------------------------------------------------
 
 test('检查连接返回no_model当提供商没有活跃LLM', function () {
-    $provider = $this->systemContext->aiProviders()->create([
+    $provider = AiProvider::query()->create([
         'brand' => 'azure-openai',
         'slug' => 'azure-no-model',
         'name' => 'Azure OpenAI',
@@ -862,7 +862,7 @@ test('检查连接返回no_model当提供商没有活跃LLM', function () {
 });
 
 test('检查连接接受未保存的嵌套配置当存在活跃LLM时', function () {
-    $provider = $this->systemContext->aiProviders()->create([
+    $provider = AiProvider::query()->create([
         'brand' => 'azure-openai',
         'slug' => 'azure-with-model',
         'name' => 'Azure OpenAI',

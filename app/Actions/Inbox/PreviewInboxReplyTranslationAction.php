@@ -6,7 +6,6 @@ use App\Actions\Translation\TranslateConversationMessageAction;
 use App\Data\Inbox\FormPreviewInboxReplyTranslationData;
 use App\Data\SystemUserContextData;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Conversation\ConversationReplyPermission;
 use App\Services\Localization\LocalePreference;
@@ -37,7 +36,7 @@ class PreviewInboxReplyTranslationAction
      *
      * @return array{visitor_content: ?string, visitor_locale: ?string, source_locale: ?string}
      */
-    public function handle(SystemContext $systemContext, User $user, string $conversationId, string $content): array
+    public function handle(User $user, string $conversationId, string $content): array
     {
         $conversation = Conversation::query()
             ->with(['channel'])
@@ -91,6 +90,6 @@ class PreviewInboxReplyTranslationAction
         $user = User::query()->findOrFail($ctx->user_id);
         $data = FormPreviewInboxReplyTranslationData::from($request);
 
-        return response()->json($this->handle($ctx->systemContext(), $user, $conversationId, $data->content));
+        return response()->json($this->handle($user, $conversationId, $data->content));
     }
 }

@@ -2,9 +2,7 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,9 +21,9 @@ class ClearTranslationProviderCredentialsAction
     /**
      * 清空凭据。
      */
-    public function handle(SystemContext $systemContext, string $providerSlug): TranslationProvider
+    public function handle(string $providerSlug): TranslationProvider
     {
-        $provider = $systemContext->translationProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = TranslationProvider::query()->where('slug', $providerSlug)->firstOrFail();
 
         $provider->credentials = null;
         $provider->save();
@@ -38,10 +36,9 @@ class ClearTranslationProviderCredentialsAction
      */
     public function asController(Request $request, string $provider): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($systemContext, $provider);
+        $this->handle($provider);
 
         return back();
     }

@@ -23,7 +23,6 @@ beforeEach(function () {
     $this->user = $this->createUserWithSystem();
     $this->runList = function (array $overrides = []): array {
         $props = ShowConversationListAction::run(...array_merge([
-            'systemContext' => $this->systemContext,
             'currentUserId' => $this->user->id,
         ], $overrides));
 
@@ -108,7 +107,6 @@ test('会话列表筛选按状态inbox_status和访客回复状态独立', funct
 
 test('会话列表序列化当前枚举筛选作为标量值', function () {
     $props = ShowConversationListAction::run(
-        systemContext: $this->systemContext,
         status: ConversationStatus::Open,
         inboxStatus: ConversationInboxStatus::TeammateHandling,
         visitorReplyStatus: ConversationVisitorReplyStatus::Waiting,

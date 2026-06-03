@@ -7,7 +7,6 @@ use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
@@ -32,7 +31,7 @@ class UpdateCannedReplyAction
      * 写入更新字段；权限不足或 shortcut 冲突会抛业务异常 / 校验异常。
      * 切换归属（个人 <-> 共享）需要系统共享管理权限。
      */
-    public function handle(SystemContext $systemContext, User $user, string $cannedReplyId, FormUpdateCannedReplyData $data): CannedReply
+    public function handle(User $user, string $cannedReplyId, FormUpdateCannedReplyData $data): CannedReply
     {
         Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesEdit);
 
@@ -43,7 +42,7 @@ class UpdateCannedReplyAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->policy->canEdit($reply, $systemContext, $user)) {
+        if (! $this->policy->canEdit($reply, $user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
@@ -51,14 +50,14 @@ class UpdateCannedReplyAction
         $willBeShared = ! $data->is_personal;
         $isScopeChange = $wasShared !== $willBeShared;
 
-        if ($isScopeChange && ! $this->policy->canManageSystemShared($systemContext, $user)) {
+        if ($isScopeChange && ! $this->policy->canManageSystemShared($user)) {
             throw new BusinessException(__('canned_reply.errors.forbidden'));
         }
 
         $targetUserId = $willBeShared ? null : ($wasShared ? $user->id : $reply->user_id);
 
         $shortcut = $this->normalizeShortcut($data->shortcut);
-        $this->guardShortcutUnique($systemContext, $reply, $shortcut, $targetUserId);
+        $this->guardShortcutUnique($reply, $shortcut, $targetUserId);
 
         $reply->fill([
             'name' => trim($data->name),
@@ -77,10 +76,9 @@ class UpdateCannedReplyAction
     public function asController(Request $request, string $cannedReply): RedirectResponse
     {
         $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
 
-        $this->handle($systemContext, $user, $cannedReply, FormUpdateCannedReplyData::from($request));
+        $this->handle($user, $cannedReply, FormUpdateCannedReplyData::from($request));
 
         return redirect()->route('admin.canned-replies.index');
     }
@@ -103,7 +101,7 @@ class UpdateCannedReplyAction
      * 排除自身后检查目标归属（targetUserId）下 shortcut 唯一。
      * targetUserId 为 null 表示系统共享范围。
      */
-    private function guardShortcutUnique(SystemContext $systemContext, CannedReply $current, ?string $shortcut, ?string $targetUserId): void
+    private function guardShortcutUnique(CannedReply $current, ?string $shortcut, ?string $targetUserId): void
     {
         if ($shortcut === null) {
             return;

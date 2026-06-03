@@ -5,10 +5,8 @@ namespace App\Actions\Channel\Web;
 use App\Actions\Reception\Plan\ListReceptionPlansForChannelSelectionAction;
 use App\Data\Channel\Web\ShowCreateWebChannelPagePropsData;
 use App\Data\EnumOptionData;
-use App\Data\SystemUserContextData;
 use App\Enums\ReceptionLanguage;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -32,10 +30,10 @@ class ShowCreateWebChannelPageAction
     /**
      * 组装创建网站渠道页面需要的表单选项。
      */
-    public function handle(SystemContext $systemContext): ShowCreateWebChannelPagePropsData
+    public function handle(): ShowCreateWebChannelPagePropsData
     {
         return new ShowCreateWebChannelPagePropsData(
-            reception_plan_options: $this->listReceptionPlans->handle($systemContext),
+            reception_plan_options: $this->listReceptionPlans->handle(),
             reception_language_options: EnumOptionData::fromCases(ReceptionLanguage::cases()),
         );
     }
@@ -45,9 +43,8 @@ class ShowCreateWebChannelPageAction
      */
     public function asController(Request $request): Response
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ChannelsCreate);
 
-        return Inertia::render('channel/web/Create', $this->handle($systemContext)->toArray());
+        return Inertia::render('channel/web/Create', $this->handle()->toArray());
     }
 }

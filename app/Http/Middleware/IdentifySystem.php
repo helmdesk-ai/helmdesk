@@ -6,6 +6,7 @@ use App\Actions\User\TouchSystemUserLastActiveAtAction;
 use App\Data\AiRuntime\AiModelOptionData;
 use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Closure;
 use Illuminate\Http\Request;
@@ -34,10 +35,10 @@ class IdentifySystem
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $this->touchSystemUserLastActiveAtAction->handle((string) $user->id);
+        $this->touchSystemUserLastActiveAtAction->handle($user);
 
-        $systemUserContext = SystemUserContextData::fromUser($user->fresh());
-        $systemContext = $systemUserContext->systemContext();
+        $systemContext = SystemContext::current();
+        $systemUserContext = SystemUserContextData::fromUser($user, $systemContext);
 
         $request->attributes->set(SystemUserContextData::class, $systemUserContext);
         Inertia::share('systemUserContext', $systemUserContext->toArray());
@@ -55,7 +56,7 @@ class IdentifySystem
             'aiAssistantLlmModelOptions',
             array_map(
                 fn (AiModelOptionData $option): array => $option->toArray(),
-                $this->modelResolver->getActiveLlmModelOptions($systemContext),
+                $this->modelResolver->getActiveLlmModelOptions(),
             ),
         );
 

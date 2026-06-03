@@ -3,14 +3,12 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormCreateContactData;
-use App\Data\SystemUserContextData;
 use App\Enums\ContactSource;
 use App\Enums\ContactType;
 use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
-use App\Models\SystemContext;
 use App\Models\User;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
@@ -27,7 +25,7 @@ class CreateContactAction
 {
     use AsAction;
 
-    public function handle(SystemContext $systemContext, FormCreateContactData $data, ?User $actor = null): Contact
+    public function handle(FormCreateContactData $data, ?User $actor = null): Contact
     {
         if ($data->phone !== null && ! ContactIdentityNormalizer::isPhoneInputFormatValid($data->phone)) {
             throw ValidationException::withMessages([
@@ -54,8 +52,8 @@ class CreateContactAction
             ]);
         }
 
-        $this->checkDuplicateIdentity($systemContext, IdentityType::Email, $email);
-        $this->checkDuplicateIdentity($systemContext, IdentityType::Phone, $phone);
+        $this->checkDuplicateIdentity(IdentityType::Email, $email);
+        $this->checkDuplicateIdentity(IdentityType::Phone, $phone);
 
         return DB::transaction(function () use ($data, $email, $phone, $actor) {
             $contact = Contact::query()->create([
@@ -105,16 +103,14 @@ class CreateContactAction
 
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $systemContext = $ctx->systemContext();
         $data = FormCreateContactData::from($request);
 
-        $this->handle($systemContext, $data, $request->user());
+        $this->handle($data, $request->user());
 
         return back();
     }
 
-    private function checkDuplicateIdentity(SystemContext $systemContext, IdentityType $type, ?string $value): void
+    private function checkDuplicateIdentity(IdentityType $type, ?string $value): void
     {
         if (! $value) {
             return;

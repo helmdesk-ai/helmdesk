@@ -2,11 +2,10 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\ReceptionPlan;
-use App\Models\SystemContext;
+use App\Models\TranslationProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,15 +24,15 @@ class DeleteTranslationProviderAction
     /**
      * 删除一条 translation_providers 记录。
      */
-    public function handle(SystemContext $systemContext, string $providerSlug): void
+    public function handle(string $providerSlug): void
     {
-        $provider = $systemContext->translationProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = TranslationProvider::query()->where('slug', $providerSlug)->firstOrFail();
 
         if ($provider->is_builtin) {
             throw new BusinessException(__('translation.cannot_delete_builtin'));
         }
 
-        if ($this->isReferencedByReceptionPlan($systemContext, $provider->id)) {
+        if ($this->isReferencedByReceptionPlan($provider->id)) {
             throw new BusinessException(__('translation.cannot_delete_in_use'));
         }
 
@@ -43,7 +42,7 @@ class DeleteTranslationProviderAction
     /**
      * 判断该供应商是否被本系统任意接待方案选用。
      */
-    private function isReferencedByReceptionPlan(SystemContext $systemContext, string $providerId): bool
+    private function isReferencedByReceptionPlan(string $providerId): bool
     {
         return ReceptionPlan::query()
             ->where('translation_config->provider_id', $providerId)
@@ -55,10 +54,9 @@ class DeleteTranslationProviderAction
      */
     public function asController(Request $request, string $provider): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($systemContext, $provider);
+        $this->handle($provider);
 
         return back();
     }

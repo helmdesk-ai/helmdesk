@@ -7,7 +7,6 @@ use App\Data\SystemUserContextData;
 use App\Enums\InboxView;
 use App\Exceptions\BusinessException;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +24,7 @@ class CloseInboxConversationAction
         private readonly CloseConversationAction $closeConversationAction,
     ) {}
 
-    public function handle(SystemContext $systemContext, User $user, string $conversationId): Conversation
+    public function handle(User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
             ->find($conversationId);
@@ -45,7 +44,6 @@ class CloseInboxConversationAction
     {
         $ctx = SystemUserContextData::fromRequest($request);
         $conversation = $this->handle(
-            systemContext: $ctx->systemContext(),
             user: User::query()->findOrFail($ctx->user_id),
             conversationId: $conversationId,
         );

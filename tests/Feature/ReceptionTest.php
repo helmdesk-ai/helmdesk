@@ -65,7 +65,7 @@ beforeEach(function () {
     ]);
 });
 
-function createReceptionModel(SystemContext $systemContext, array $providerAttributes = [], array $modelAttributes = []): AiModel
+function createReceptionModel(array $providerAttributes = [], array $modelAttributes = []): AiModel
 {
     $provider = AiProvider::query()->create(array_merge([
         'brand' => 'custom-openai',
@@ -104,7 +104,7 @@ function createReceptionChannel(
         'is_super_admin' => true,
         'online_status' => UserOnlineStatus::Online->value,
     ]);
-    $model ??= createReceptionModel($systemContext);
+    $model ??= createReceptionModel();
     $plan = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
@@ -1588,7 +1588,7 @@ test('人工已接待会话在非营业时间保持人工接待', function () {
 
 test('AI 优先接待在接待默认模型失效时降级为人工待接而不是 404', function () {
     $systemContext = SystemContext::factory()->create();
-    $model = createReceptionModel($systemContext, [], ['is_active' => false]);
+    $model = createReceptionModel([], ['is_active' => false]);
     $channel = createReceptionChannel(null, versionAttributes: [
         'snapshot_config' => [
             'strategy_config' => receptionStrategyConfig([
@@ -1607,7 +1607,7 @@ test('AI 优先接待在接待默认模型失效时降级为人工待接而不�
 
 test('同事优先未分配接管在默认模型失效时保持人工待接', function () {
     $systemContext = SystemContext::factory()->create();
-    $model = createReceptionModel($systemContext, [], ['is_active' => false]);
+    $model = createReceptionModel([], ['is_active' => false]);
     $channel = createReceptionChannel(null, versionAttributes: [
         'snapshot_config' => [
             'strategy_config' => receptionStrategyConfig([

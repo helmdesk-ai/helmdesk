@@ -6,10 +6,9 @@ use App\Data\Reception\Plan\AutoMessagesConfigData;
 use App\Data\Reception\Plan\FormCreateReceptionPlanData;
 use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Data\Reception\Plan\ReceptionStrategyConfigData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
-use App\Models\SystemContext;
+use App\Models\TranslationProvider;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\AutoMessageTemplateRenderer;
 use Illuminate\Http\RedirectResponse;
@@ -36,29 +35,27 @@ class CreateReceptionPlanAction
     /**
      * 创建方案配置并保证同一系统内方案名称唯一、所选模型合法。
      */
-    public function handle(SystemContext $systemContext, FormCreateReceptionPlanData $data): ReceptionPlan
+    public function handle(FormCreateReceptionPlanData $data): ReceptionPlan
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($systemContext, $name);
+        $this->ensureNameIsAvailable($name);
 
-        $this->resolver->assertActiveLlmModelOrFail($systemContext, $data->reception_ai_model_id, 'reception.messages.invalid_reception_model');
-        $this->resolver->assertActiveLlmModelOrFail($systemContext, $data->task_ai_model_id, 'reception.messages.invalid_task_model');
+        $this->resolver->assertActiveLlmModelOrFail($data->reception_ai_model_id, 'reception.messages.invalid_reception_model');
+        $this->resolver->assertActiveLlmModelOrFail($data->task_ai_model_id, 'reception.messages.invalid_task_model');
 
         $receptionModelCandidates = $this->buildModelCandidates(
-            $systemContext,
             $data->reception_ai_model_id,
             $data->reception_model_candidates,
             'reception_model_candidates',
         );
         $taskModelCandidates = $this->buildModelCandidates(
-            $systemContext,
             $data->task_ai_model_id,
             $data->task_model_candidates,
             'task_model_candidates',
         );
         $autoMessagesConfig = $this->buildAutoMessagesConfig($data->auto_messages_config);
         $translationSettings = ReceptionMessageTranslationConfigData::fromArray($data->translation_config);
-        $this->assertTranslationProviderValid($systemContext, $translationSettings);
+        $this->assertTranslationProviderValid($translationSettings);
         $translationConfig = $translationSettings->toConfigArray();
         $strategyConfig = ReceptionStrategyConfigData::fromArray($data->strategy_config)->toConfigArray();
 
@@ -86,7 +83,7 @@ class CreateReceptionPlanAction
             'translation_config' => $translationConfig,
         ]);
 
-        $this->ensureReceptionPlanVersion->handle($systemContext, $plan, Auth::user());
+        $this->ensureReceptionPlanVersion->handle($plan, Auth::user());
 
         return $plan;
     }
@@ -120,13 +117,13 @@ class CreateReceptionPlanAction
      * 校验方案选用的翻译供应商：必须属于本系统且必填凭据齐全。
      * provider_id 为空（未启用翻译）时跳过。
      */
-    private function assertTranslationProviderValid(SystemContext $systemContext, ReceptionMessageTranslationConfigData $settings): void
+    private function assertTranslationProviderValid(ReceptionMessageTranslationConfigData $settings): void
     {
         if ($settings->provider_id === null) {
             return;
         }
 
-        $provider = $systemContext->translationProviders()->whereKey($settings->provider_id)->first();
+        $provider = TranslationProvider::query()->whereKey($settings->provider_id)->first();
 
         if ($provider === null || ! $provider->hasCompleteCredentials()) {
             throw ValidationException::withMessages([
@@ -140,10 +137,9 @@ class CreateReceptionPlanAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::ReceptionPlansCreate);
 
-        $plan = $this->handle($systemContext, FormCreateReceptionPlanData::from($request));
+        $plan = $this->handle(FormCreateReceptionPlanData::from($request));
 
         return redirect()->route('admin.manage.reception.plans.show', [
             'plan' => $plan->id,
@@ -153,7 +149,7 @@ class CreateReceptionPlanAction
     /**
      * 同一系统内方案名称必须唯一。
      */
-    private function ensureNameIsAvailable(SystemContext $systemContext, string $name): void
+    private function ensureNameIsAvailable(string $name): void
     {
         $exists = ReceptionPlan::query()
             ->where('name', $name)
@@ -172,7 +168,7 @@ class CreateReceptionPlanAction
      * @param  list<array<string, mixed>>  $rawCandidates
      * @return list<array{ai_model_id: string, priority: int}>
      */
-    private function buildModelCandidates(SystemContext $systemContext, string $primaryModelId, array $rawCandidates, string $field): array
+    private function buildModelCandidates(string $primaryModelId, array $rawCandidates, string $field): array
     {
         $seen = [$primaryModelId => true];
         $backups = [];
@@ -188,7 +184,7 @@ class CreateReceptionPlanAction
                 ]);
             }
 
-            if (! $this->resolver->isValidActiveLlmModel($systemContext, $modelId)) {
+            if (! $this->resolver->isValidActiveLlmModel($modelId)) {
                 throw ValidationException::withMessages([
                     "{$field}.{$index}.ai_model_id" => __('reception.messages.invalid_reception_model'),
                 ]);

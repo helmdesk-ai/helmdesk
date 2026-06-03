@@ -2,9 +2,8 @@
 
 namespace App\Actions\Mcp;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
+use App\Models\McpServer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +20,9 @@ class DeleteMcpServerAction
     /**
      * 删除服务，工具记录在事务里一并清理。
      */
-    public function handle(SystemContext $systemContext, string $slug): void
+    public function handle(string $slug): void
     {
-        $server = $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
+        $server = McpServer::query()->where('slug', $slug)->firstOrFail();
 
         DB::transaction(function () use ($server): void {
             $server->tools()->delete();
@@ -36,10 +35,9 @@ class DeleteMcpServerAction
      */
     public function asController(Request $request, string $server): RedirectResponse
     {
-        $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($systemContext, $server);
+        $this->handle($server);
 
         return back();
     }

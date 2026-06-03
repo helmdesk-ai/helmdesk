@@ -3,11 +3,9 @@
 namespace App\Actions\Tag;
 
 use App\Data\EnumOptionData;
-use App\Data\SystemUserContextData;
 use App\Data\Tag\ListTagGroupItemData;
 use App\Data\Tag\ShowListTagPagePropsData;
 use App\Enums\TagScope;
-use App\Models\SystemContext;
 use App\Models\TagGroup;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,9 +22,9 @@ class ShowTagListAction
     /**
      * 查询当前系统标签组及组内标签。
      */
-    public function handle(SystemContext $systemContext): ShowListTagPagePropsData
+    public function handle(): ShowListTagPagePropsData
     {
-        $groups = $systemContext->tagGroups()
+        $groups = TagGroup::query()
             ->with(['tags' => function ($query) {
                 $query->withCount(['contacts', 'conversations'])->orderBy('name', 'asc');
             }])
@@ -46,8 +44,7 @@ class ShowTagListAction
      */
     public function asController(Request $request): Response
     {
-        $currentSystem = SystemUserContextData::fromRequest($request)->systemContext();
-        $props = $this->handle($currentSystem);
+        $props = $this->handle();
 
         return Inertia::render('tags/Index', $props->toArray());
     }

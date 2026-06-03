@@ -7,7 +7,6 @@ use App\Data\Inbox\FormTransferInboxConversationData;
 use App\Data\SystemUserContextData;
 use App\Enums\InboxView;
 use App\Models\Conversation;
-use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,7 +32,6 @@ class TransferInboxConversationAction
      * 转接当前系统内的指定会话。
      */
     public function handle(
-        SystemContext $systemContext,
         User $user,
         string $conversationId,
         FormTransferInboxConversationData $data,
@@ -45,7 +43,7 @@ class TransferInboxConversationAction
             throw new NotFoundHttpException;
         }
 
-        $target = $systemContext->users()
+        $target = User::query()
             ->whereKey($data->target_user_id)
             ->first();
 
@@ -66,7 +64,6 @@ class TransferInboxConversationAction
         $ctx = SystemUserContextData::fromRequest($request);
         $data = FormTransferInboxConversationData::from($request);
         $conversation = $this->handle(
-            systemContext: $ctx->systemContext(),
             user: User::query()->findOrFail($ctx->user_id),
             conversationId: $conversationId,
             data: $data,
