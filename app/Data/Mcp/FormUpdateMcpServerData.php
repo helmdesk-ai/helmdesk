@@ -6,7 +6,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 编辑 MCP 服务表单数据。
- * 来自右侧 MCP 服务表单面板的连接配置保存。
+ * 来自 resources/js/pages/systemSettings/mcpServers/Edit.vue 的连接配置保存。
  *
  * 认证 header 合并语义（敏感字段不会随表单回显，所以采用"留空 = 保留原值"约定）：
  *  - clear_auth_credentials = true：显式清空整组认证 header（用户切到"无认证" preset）；

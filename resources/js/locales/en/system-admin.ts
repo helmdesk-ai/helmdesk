@@ -99,8 +99,12 @@ export default {
     'Are you sure you want to delete this system? It will be moved to the recycle bin and can only be restored by a super admin.',
 
   // 多客服
+  客服管理: 'Teammate management',
   管理客服账号: 'Manage teammates',
+  '管理可登录后台并参与会话接待的客服账号。':
+    'Manage teammate accounts that can sign in to the admin and handle conversations.',
   新增客服: 'Add teammate',
+  编辑客服: 'Edit teammate',
   客服回收站: 'Teammate recycle bin',
   查看已删除的客服并可恢复: 'View deleted teammates and restore',
   删除时间: 'Deleted at',
@@ -117,13 +121,13 @@ export default {
   助手名称: 'Assistant name',
   头像: 'Avatar',
   头像预览: 'Avatar preview',
-  角色: 'Role',
-  请选择角色: 'Please select a role',
+  权限: 'Permissions',
+  权限数: 'Permissions',
   邮箱: 'Email',
   登录密码: 'Password',
   确认密码: 'Confirm password',
-  创建一个新的客服账号并分配角色:
-    'Create a new teammate account and assign a role',
+  创建一个新的客服账号并分配权限:
+    'Create a new teammate account and assign permissions',
   '更新客服资料，密码可选不填表示不修改':
     'Update teammate profile. Leave password blank to keep it unchanged',
   当前登录用户不允许删除: 'You cannot delete the currently logged in user',
@@ -875,10 +879,12 @@ export default {
     'Connect external capabilities via MCP for different business workflows.',
   '暂无 MCP 服务': 'No MCP servers',
   '添加 MCP 服务': 'Add MCP server',
+  '新增 MCP 服务': 'Add MCP server',
   '编辑 MCP 服务': 'Edit MCP server',
   '调整 MCP 服务的连接配置和认证信息。':
     'Adjust the MCP server connection and authentication settings.',
   '该 MCP 服务暂无工具': 'No tools on this MCP server.',
+  工具明细: 'Tool details',
   连接配置: 'Connection settings',
   已配置: 'Configured',
   传输协议: 'Transport',
@@ -894,6 +900,7 @@ export default {
   自定义请求头: 'Custom header',
   测试连接: 'Test connection',
   同步: 'Sync',
+  同步中: 'Syncing',
   同步成功: 'Synced',
   同步失败: 'Sync failed',
   重新同步工具: 'Re-sync tools',
@@ -934,6 +941,11 @@ export default {
     'Adjust the translation provider name and credentials.',
   凭据: 'Credentials',
   未配置: 'Not configured',
+  新增翻译供应商: 'Add translation provider',
+  类型: 'Type',
+  自定义: 'Custom',
+  '清空后已保存的凭据将被移除，接待方案将无法继续使用该供应商翻译。':
+    'Saved credentials will be removed, and reception plans will no longer be able to use this provider for translation.',
   '例如：Google 翻译': 'e.g., Google Translate',
   '确认删除该翻译供应商吗？删除后无法恢复。':
     'Are you sure you want to delete this translation provider? This cannot be undone.',

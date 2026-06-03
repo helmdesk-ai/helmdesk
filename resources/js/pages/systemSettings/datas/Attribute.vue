@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
-import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import admin from '@/routes/admin';
 import type {
   FormCreateAttributeDefinitionData,
@@ -308,9 +307,8 @@ const moveDefinition = (definitionId: string, direction: 'up' | 'down') => {
   <AppLayout>
     <Head :title="t('自定义属性')" />
 
-    <SystemSettingsLayout>
-      <section class="mx-auto w-full max-w-none space-y-12">
-        <div class="space-y-6">
+    <section class="w-full space-y-12 px-4 py-6 sm:px-6">
+      <div class="space-y-6">
           <div class="flex items-start justify-between gap-4">
             <HeadingSmall
               :title="t('自定义属性')"
@@ -643,9 +641,8 @@ const moveDefinition = (definitionId: string, direction: 'up' | 'down') => {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
-      </section>
-    </SystemSettingsLayout>
+      </div>
+    </section>
 
     <ConfirmDeleteDialog
       :open="archiveTarget !== null"

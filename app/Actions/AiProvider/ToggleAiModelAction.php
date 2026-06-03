@@ -3,6 +3,7 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
 use App\Models\SystemContext;
@@ -58,7 +59,7 @@ class ToggleAiModelAction
     public function asController(Request $request, string $provider, string $model)
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($systemContext, $provider, $model);
 

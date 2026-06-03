@@ -27,8 +27,16 @@ export type AppPageProps<T extends object = Record<string, never>> = T & {
   auth: Auth;
   sidebarOpen: boolean;
   generalSettings: GeneralSettingsData;
-  canAccessManageCenter?: boolean;
-  canManageAi?: boolean;
+  canAccessUsers?: boolean;
+  canAccessContacts?: boolean;
+  canAccessConversations?: boolean;
+  canAccessTags?: boolean;
+  canAccessAttributes?: boolean;
+  canAccessCannedReplies?: boolean;
+  canAccessKnowledgeBases?: boolean;
+  canAccessReceptionPlans?: boolean;
+  canAccessChannels?: boolean;
+  canManageSystemSettings?: boolean;
   aiAssistantLlmModelOptions?: AiModelOptionData[];
   systemUserContext?: SystemUserContextData;
 };

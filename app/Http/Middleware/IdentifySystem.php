@@ -5,9 +5,11 @@ namespace App\Http\Middleware;
 use App\Actions\User\TouchSystemUserLastActiveAtAction;
 use App\Data\AiRuntime\AiModelOptionData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Services\AiRuntime\AiModelResolver;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -39,8 +41,16 @@ class IdentifySystem
 
         $request->attributes->set(SystemUserContextData::class, $systemUserContext);
         Inertia::share('systemUserContext', $systemUserContext->toArray());
-        Inertia::share('canAccessManageCenter', true);
-        Inertia::share('canManageAi', true);
+        Inertia::share('canAccessUsers', Gate::allows('user.permission', UserPermission::UsersView));
+        Inertia::share('canAccessContacts', Gate::allows('user.permission', UserPermission::ContactsView));
+        Inertia::share('canAccessConversations', Gate::allows('user.permission', UserPermission::ConversationsView));
+        Inertia::share('canAccessTags', Gate::allows('user.permission', UserPermission::TagsView));
+        Inertia::share('canAccessAttributes', Gate::allows('user.permission', UserPermission::AttributesView));
+        Inertia::share('canAccessCannedReplies', Gate::allows('user.permission', UserPermission::CannedRepliesView));
+        Inertia::share('canAccessKnowledgeBases', Gate::allows('user.permission', UserPermission::KnowledgeBasesView));
+        Inertia::share('canAccessReceptionPlans', Gate::allows('user.permission', UserPermission::ReceptionPlansView));
+        Inertia::share('canAccessChannels', Gate::allows('user.permission', UserPermission::ChannelsView));
+        Inertia::share('canManageSystemSettings', Gate::allows('user.permission', UserPermission::SystemSettingsView));
         Inertia::share(
             'aiAssistantLlmModelOptions',
             array_map(

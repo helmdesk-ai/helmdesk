@@ -11,6 +11,7 @@ use App\Contracts\LabeledEnum;
 enum McpSyncStatus: string implements LabeledEnum
 {
     case Pending = 'pending';
+    case Syncing = 'syncing';
     case Success = 'success';
     case Failed = 'failed';
 
@@ -21,6 +22,7 @@ enum McpSyncStatus: string implements LabeledEnum
     {
         return match ($this) {
             self::Pending => __('mcp.sync_statuses.pending'),
+            self::Syncing => __('mcp.sync_statuses.syncing'),
             self::Success => __('mcp.sync_statuses.success'),
             self::Failed => __('mcp.sync_statuses.failed'),
         };

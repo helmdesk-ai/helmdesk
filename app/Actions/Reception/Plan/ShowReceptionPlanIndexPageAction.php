@@ -6,6 +6,7 @@ use App\Data\Reception\Plan\ReceptionPlanData;
 use App\Data\Reception\Plan\ShowReceptionPlanListPagePropsData;
 use App\Data\SimplePaginationData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
@@ -62,7 +63,7 @@ class ShowReceptionPlanIndexPageAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansView);
 
         return Inertia::render('reception/plans/List', $this->handle(
             systemContext: $systemContext,

@@ -3,6 +3,7 @@
 namespace App\Actions\Reception\Plan;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class RestoreReceptionPlanAction
     public function asController(Request $request, string $plan): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansEdit);
 
         $planModel = ReceptionPlan::query()
             ->onlyTrashed()

@@ -41,7 +41,7 @@ beforeEach(function () {
     ]);
 });
 
-test('所有者可以将 .md 文件上传到知识库默认分组下', function () {
+test('超级管理员可以将 .md 文件上传到知识库默认分组下', function () {
     Storage::fake('local');
 
     $content = "# 退款政策\n\n本文档说明退款流程，仅供测试。";
@@ -190,7 +190,7 @@ test('可以以内联方式读取知识库文档原文件', function () {
         ->and($response->streamedContent())->toBe($content);
 });
 
-test('单租户下管理员可以读取任意知识库文档原文件', function () {
+test('单租户下超级管理员可以读取任意知识库文档原文件', function () {
     Storage::fake('local');
 
     $content = '# Guide';
@@ -306,7 +306,7 @@ test('未提供文件时返回字段级校验错误', function () {
         ->assertSessionHasErrors(['files']);
 });
 
-test('单租户下管理员可以上传到任意知识库', function () {
+test('单租户下超级管理员可以上传到任意知识库', function () {
     $outsider = $this->createUserWithSystem();
 
     $file = UploadedFile::fake()->createWithContent('intro.md', '# Hi');
@@ -419,7 +419,7 @@ test('删除文档会一并清空 sqlite_rag 中的节点 / 全文 / 大纲', fu
             ->table('knowledge_outlines')->where('document_id', (string) $document->id)->exists())->toBeFalse();
 });
 
-test('单租户下管理员可以删除任意知识库文档', function () {
+test('单租户下超级管理员可以删除任意知识库文档', function () {
     $outsider = $this->createUserWithSystem();
 
     /** @var KnowledgeDocument $document */
@@ -670,7 +670,7 @@ test('未选中知识库时分页元信息为空集合', function () {
         );
 });
 
-test('所有者可以将文档移动到另一个分组', function () {
+test('超级管理员可以将文档移动到另一个分组', function () {
     $defaultGroup = $this->kb->defaultDocumentGroup()->firstOrFail();
     $targetGroup = KnowledgeGroup::query()->create([
         'knowledge_base_id' => $this->kb->id,
@@ -713,7 +713,7 @@ test('移动文档时不能使用其它知识库的分组', function () {
         ->assertSessionHasErrors(['group_id']);
 });
 
-test('所有者可以在知识库下手动添加 Markdown 文档', function () {
+test('超级管理员可以在知识库下手动添加 Markdown 文档', function () {
     $content = "# 退款政策\n\n这是一份手动录入的文档，仅供测试。";
 
     $this->actingAs($this->user)
@@ -818,7 +818,7 @@ test('手动添加文档时不属于当前知识库的分组返回校验错误',
     expect(KnowledgeDocument::query()->where('knowledge_base_id', $this->kb->id)->count())->toBe(0);
 });
 
-test('单租户下管理员可以在任意知识库手动添加内容', function () {
+test('单租户下超级管理员可以在任意知识库手动添加内容', function () {
     $outsider = $this->createUserWithSystem();
 
     $this->actingAs($outsider)
@@ -947,7 +947,7 @@ test('编辑手动文档时校验标题和正文必填', function () {
         ->assertSessionHasErrors(['title', 'content']);
 });
 
-test('单租户下管理员可以编辑任意知识库手动文档', function () {
+test('单租户下超级管理员可以编辑任意知识库手动文档', function () {
     $outsider = $this->createUserWithSystem();
 
     /** @var KnowledgeDocument $document */

@@ -7,6 +7,7 @@ use App\Data\Reception\Plan\FormUpdateReceptionPlanData;
 use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
@@ -150,7 +151,7 @@ class UpdateReceptionPlanAction
     public function asController(Request $request, string $plan): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansEdit);
 
         $planModel = ReceptionPlan::query()
             ->findOrFail($plan);
@@ -276,7 +277,7 @@ class UpdateReceptionPlanAction
     }
 
     /**
-     * 校验方案级 MCP 工具 ID 必须属于当前系统下启用的 server。
+     * 校验方案级 MCP 工具 ID 必须来自可用工具列表。
      *
      * @param  list<string>  $mcpToolIds
      */
@@ -289,7 +290,11 @@ class UpdateReceptionPlanAction
 
         $validCount = McpTool::query()
             ->whereIn('id', $unique)
-            ->whereHas('server')
+            ->whereNull('removed_at')
+            ->whereHas('server', fn ($q) => $q
+                ->whereNotNull('endpoint_url')
+                ->where('endpoint_url', '!=', '')
+            )
             ->count();
 
         if ($validCount !== count($unique)) {

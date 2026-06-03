@@ -7,6 +7,7 @@ use App\Data\Channel\Web\FormUpdateWebChannelEmbedData;
 use App\Data\Channel\Web\WebChannelQueryParamMappingData;
 use App\Data\SystemUserContextData;
 use App\Enums\Channel\Web\WebChannelParamTarget;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelResolutionService;
 use Illuminate\Http\RedirectResponse;
@@ -58,7 +59,7 @@ class UpdateWebChannelEmbedAction
     public function asController(Request $request, string $channel): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 

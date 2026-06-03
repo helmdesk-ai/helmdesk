@@ -5,6 +5,7 @@ namespace App\Actions\KnowledgeBase;
 use App\Data\KnowledgeBase\KnowledgeBaseData;
 use App\Data\KnowledgeBase\ShowEditKnowledgeBasePagePropsData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\SystemContext;
 use Illuminate\Http\Request;
@@ -40,7 +41,7 @@ class ShowEditKnowledgeBasePageAction
     public function asController(Request $request, string $knowledgeBase): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         return Inertia::render('knowledgeBase/Edit', $this->handle($systemContext, $knowledgeBase)->toArray());
     }

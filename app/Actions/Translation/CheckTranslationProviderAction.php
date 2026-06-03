@@ -6,6 +6,7 @@ use App\Data\SystemUserContextData;
 use App\Data\Translation\FormCheckTranslationProviderData;
 use App\Data\Translation\TranslationCheckResultData;
 use App\Enums\TranslationProviderType;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\Translation\Exceptions\TranslationException;
@@ -80,7 +81,7 @@ class CheckTranslationProviderAction
     public function asController(Request $request, ?string $provider = null): JsonResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCheckTranslationProviderData::from($request);
         $configuration = $request->input('configuration');

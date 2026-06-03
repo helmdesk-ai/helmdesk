@@ -3,6 +3,7 @@
 namespace App\Actions\CannedReply;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
 use App\Models\SystemContext;
@@ -10,6 +11,7 @@ use App\Models\User;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -29,6 +31,8 @@ class DeleteCannedReplyAction
      */
     public function handle(SystemContext $systemContext, User $user, string $cannedReplyId): void
     {
+        Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesDelete);
+
         $reply = CannedReply::query()
             ->find($cannedReplyId);
 

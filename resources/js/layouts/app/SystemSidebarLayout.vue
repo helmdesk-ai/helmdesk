@@ -1,5 +1,5 @@
 <!--
-  文件说明：单租户总管理后台布局片段，承接统一侧边栏、顶部状态和系统上下文。
+  文件说明：单租户后台布局片段，承接统一侧边栏、顶部状态和系统上下文。
 -->
 <script setup lang="ts">
 import KnowledgeBase from '@/actions/App/Actions/KnowledgeBase';
@@ -11,8 +11,8 @@ import SidebarShell, {
   type SidebarShellNavItem,
 } from '@/layouts/app/SidebarShell.vue';
 import SidebarUserMenuWithOnlineStatus from '@/layouts/app/SidebarUserMenuWithOnlineStatus.vue';
+import { logout } from '@/routes';
 import admin from '@/routes/admin';
-import logout from '@/routes/logout';
 import { edit } from '@/routes/settings/profile';
 import type { AppPageProps } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -21,10 +21,14 @@ import {
   ClipboardList,
   GitBranch,
   Globe,
+  Headset,
   Inbox,
   LayoutGrid,
+  MessageSquareText,
   MessagesSquare,
   Settings,
+  SlidersHorizontal,
+  Tags,
   Users,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -44,6 +48,28 @@ const user = computed(() => page.props.auth.user);
 const notificationPreferences = computed(
   () => page.props.auth.user.notification_preferences,
 );
+const canAccessUsers = computed(() => page.props.canAccessUsers === true);
+const canAccessContacts = computed(() => page.props.canAccessContacts === true);
+const canAccessConversations = computed(
+  () => page.props.canAccessConversations === true,
+);
+const canAccessTags = computed(() => page.props.canAccessTags === true);
+const canAccessAttributes = computed(
+  () => page.props.canAccessAttributes === true,
+);
+const canAccessCannedReplies = computed(
+  () => page.props.canAccessCannedReplies === true,
+);
+const canAccessKnowledgeBases = computed(
+  () => page.props.canAccessKnowledgeBases === true,
+);
+const canAccessReceptionPlans = computed(
+  () => page.props.canAccessReceptionPlans === true,
+);
+const canAccessChannels = computed(() => page.props.canAccessChannels === true);
+const canManageSystemSettings = computed(
+  () => page.props.canManageSystemSettings === true,
+);
 
 const routePath = (url: string) => {
   const origin =
@@ -61,82 +87,141 @@ const manageBaseUrl = computed(() => {
   return routePath(admin.manage.tags.index.url()).replace(/\/tags$/, '');
 });
 
-const mainNavItems = computed<SidebarShellNavItem[]>(() => [
-  {
-    title: t('仪表板'),
-    href: admin.dashboard.url(),
-    icon: LayoutGrid,
-    activeUrls: [routePath(admin.dashboard.url())],
-  },
-  {
-    title: t('收件箱'),
-    href: admin.inbox.show.url(),
-    icon: Inbox,
-    activeUrls: [routePath(admin.inbox.show.url())],
-  },
-  {
-    title: t('联系人'),
-    href: admin.contacts.index.url({ type: 'all' }),
-    icon: Users,
-    activeUrls: [contactsBaseUrl.value],
-  },
-  {
-    title: t('会话记录'),
-    href: admin.conversations.index.url(),
-    icon: MessagesSquare,
-    activeUrls: [routePath(admin.conversations.index.url())],
-  },
-  {
-    title: t('知识库'),
-    href: KnowledgeBase.ListKnowledgeBasesAction.url(),
-    icon: BookOpen,
-    activeUrls: [`${manageBaseUrl.value}/knowledge-bases`],
-  },
-  {
-    title: t('接待方案'),
-    href: Plan.ShowReceptionPlanIndexPageAction.url(),
-    icon: ClipboardList,
-    activeUrls: [`${manageBaseUrl.value}/reception`],
-  },
-  {
-    title: t('渠道管理'),
-    href: admin.manage.channels.web.index.url(),
-    icon: Globe,
-    activeUrls: [`${manageBaseUrl.value}/channels`],
-  },
-]);
+const mainNavItems = computed<SidebarShellNavItem[]>(() => {
+  const items: SidebarShellNavItem[] = [
+    {
+      title: t('仪表板'),
+      href: admin.dashboard.url(),
+      icon: LayoutGrid,
+      activeUrls: [routePath(admin.dashboard.url())],
+    },
+    {
+      title: t('收件箱'),
+      href: admin.inbox.show.url(),
+      icon: Inbox,
+      activeUrls: [routePath(admin.inbox.show.url())],
+    },
+  ];
 
-const footerNavItems = computed<SidebarShellNavItem[]>(() => [
-  {
-    title: t('GitHub仓库'),
-    href: 'https://github.com/shellphy/helmdesk',
-    icon: GitBranch,
-  },
-  {
-    title: t('文档'),
-    href: 'https://docs.helmdesk.app',
-    icon: BookOpen,
-  },
-  {
-    title: t('系统设置'),
-    href: admin.general.show.url(),
-    icon: Settings,
-    activeUrls: [
-      routePath(admin.general.show.url()),
-      routePath(admin.storage.show.url()),
-      routePath(admin.mail.show.url()),
-      `${manageBaseUrl.value}/tags`,
-      `${manageBaseUrl.value}/attributes`,
-      routePath(admin.cannedReplies.index.url()),
-      `${manageBaseUrl.value}/ai`,
-      `${manageBaseUrl.value}/mcp-servers`,
-      `${manageBaseUrl.value}/translation`,
-    ],
-  },
-]);
+  if (canAccessContacts.value) {
+    items.push({
+      title: t('联系人'),
+      href: admin.contacts.index.url({ type: 'all' }),
+      icon: Users,
+      activeUrls: [contactsBaseUrl.value],
+    });
+  }
+
+  if (canAccessConversations.value) {
+    items.push({
+      title: t('会话记录'),
+      href: admin.conversations.index.url(),
+      icon: MessagesSquare,
+      activeUrls: [routePath(admin.conversations.index.url())],
+    });
+  }
+
+  if (canAccessTags.value) {
+    items.push({
+      title: t('标签'),
+      href: admin.manage.tags.index.url(),
+      icon: Tags,
+      activeUrls: [`${manageBaseUrl.value}/tags`],
+    });
+  }
+
+  if (canAccessAttributes.value) {
+    items.push({
+      title: t('自定义属性'),
+      href: admin.manage.attributes.index.url(),
+      icon: SlidersHorizontal,
+      activeUrls: [`${manageBaseUrl.value}/attributes`],
+    });
+  }
+
+  if (canAccessCannedReplies.value) {
+    items.push({
+      title: t('快捷回复'),
+      href: admin.cannedReplies.index.url(),
+      icon: MessageSquareText,
+      activeUrls: [routePath(admin.cannedReplies.index.url())],
+    });
+  }
+
+  if (canAccessKnowledgeBases.value) {
+    items.push({
+      title: t('知识库'),
+      href: KnowledgeBase.ListKnowledgeBasesAction.url(),
+      icon: BookOpen,
+      activeUrls: [`${manageBaseUrl.value}/knowledge-bases`],
+    });
+  }
+
+  if (canAccessReceptionPlans.value) {
+    items.push({
+      title: t('接待方案'),
+      href: Plan.ShowReceptionPlanIndexPageAction.url(),
+      icon: ClipboardList,
+      activeUrls: [`${manageBaseUrl.value}/reception`],
+    });
+  }
+
+  if (canAccessChannels.value) {
+    items.push({
+      title: t('渠道管理'),
+      href: admin.manage.channels.web.index.url(),
+      icon: Globe,
+      activeUrls: [`${manageBaseUrl.value}/channels`],
+    });
+  }
+
+  if (canAccessUsers.value) {
+    items.push({
+      title: t('客服管理'),
+      href: admin.manage.teammates.index.url(),
+      icon: Headset,
+      activeUrls: [`${manageBaseUrl.value}/teammates`],
+    });
+  }
+
+  return items;
+});
+
+const footerNavItems = computed<SidebarShellNavItem[]>(() => {
+  const items: SidebarShellNavItem[] = [
+    {
+      title: t('GitHub仓库'),
+      href: 'https://github.com/shellphy/helmdesk',
+      icon: GitBranch,
+    },
+    {
+      title: t('文档'),
+      href: 'https://docs.helmdesk.app',
+      icon: BookOpen,
+    },
+  ];
+
+  if (canManageSystemSettings.value) {
+    items.push({
+      title: t('系统设置'),
+      href: admin.general.show.url(),
+      icon: Settings,
+      activeUrls: [
+        routePath(admin.general.show.url()),
+        routePath(admin.storage.show.url()),
+        routePath(admin.mail.show.url()),
+        `${manageBaseUrl.value}/ai`,
+        `${manageBaseUrl.value}/mcp-servers`,
+        `${manageBaseUrl.value}/translation`,
+      ],
+    });
+  }
+
+  return items;
+});
 
 const profileHref = computed(() => edit().url);
-const logoutHref = computed(() => logout.admin.url());
+const logoutHref = computed(() => logout.url());
 
 useSystemNotificationAlerts({
   userId: computed(() => user.value.id),
@@ -148,7 +233,6 @@ useSystemNotificationAlerts({
   <SidebarShell
     :hide-header="hideHeader"
     :header-href="admin.dashboard.url()"
-    :header-subtitle="t('总管理后台')"
     :main-nav-items="mainNavItems"
     :footer-nav-items="footerNavItems"
     :profile-href="profileHref"

@@ -4,6 +4,7 @@ namespace App\Actions\KnowledgeBase\Group;
 
 use App\Data\KnowledgeBase\FormUpdateKnowledgeGroupData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
 use Illuminate\Http\RedirectResponse;
@@ -82,7 +83,7 @@ class UpdateKnowledgeGroupAction
     public function asController(Request $request, string $knowledgeBase, string $group): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()->findOrFail($knowledgeBase);
         $groupModel = KnowledgeGroup::query()->where('knowledge_base_id', $kb->id)->findOrFail($group);

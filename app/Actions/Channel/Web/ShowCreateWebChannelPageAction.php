@@ -7,6 +7,7 @@ use App\Data\Channel\Web\ShowCreateWebChannelPagePropsData;
 use App\Data\EnumOptionData;
 use App\Data\SystemUserContextData;
 use App\Enums\ReceptionLanguage;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -45,7 +46,7 @@ class ShowCreateWebChannelPageAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsCreate);
 
         return Inertia::render('channel/web/Create', $this->handle($systemContext)->toArray());
     }

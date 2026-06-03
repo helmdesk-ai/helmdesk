@@ -3,7 +3,6 @@
 namespace App\Http\Responses;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
 use Laravel\Fortify\Fortify;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,9 +23,6 @@ class VerifyEmailResponse implements VerifyEmailResponseContract
         $user = $request->user();
 
         if ($user?->is_super_admin) {
-            Auth::guard('admin')->login($user);
-            Auth::guard('web')->logout();
-
             return redirect()->to(route('admin.home', absolute: false).'?verified=1');
         }
 

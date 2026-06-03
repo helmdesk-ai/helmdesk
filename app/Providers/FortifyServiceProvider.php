@@ -117,7 +117,7 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * 仅在系统尚未初始化管理员时开放注册入口。
+     * 仅在系统尚未初始化超级管理员时开放注册入口。
      */
     private function registrationIsAllowed(): bool
     {

@@ -5,6 +5,7 @@ namespace App\Actions\Channel\Web;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelAccessData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelEmbedHostGate;
 use App\Services\Channel\WebChannelResolutionService;
@@ -54,7 +55,7 @@ class UpdateWebChannelAccessAction
     public function asController(Request $request, string $channel): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 

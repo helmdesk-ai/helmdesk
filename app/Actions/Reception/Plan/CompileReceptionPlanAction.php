@@ -249,6 +249,11 @@ class CompileReceptionPlanAction
         McpTool::query()
             ->with('server:id,slug,name')
             ->whereIn('id', $ids)
+            ->whereNull('removed_at')
+            ->whereHas('server', fn ($q) => $q
+                ->whereNotNull('endpoint_url')
+                ->where('endpoint_url', '!=', '')
+            )
             ->get(['id', 'mcp_server_id', 'name', 'description'])
             ->each(function (McpTool $tool) use (&$snapshots): void {
                 $snapshots[(string) $tool->id] = [

@@ -21,6 +21,7 @@ use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
 use App\Enums\Channel\Web\WebChannelWidgetIconSize;
 use App\Enums\ChannelType;
 use App\Enums\ReceptionLanguage;
+use App\Enums\UserPermission;
 use App\Models\AttributeDefinition;
 use App\Models\Channel;
 use App\Models\SystemContext;
@@ -100,7 +101,7 @@ class ShowWebChannelDetailPageAction
     public function asController(Request $request, string $channel): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsView);
 
         return Inertia::render('channel/web/Show', $this->handle($systemContext, $channel)->toArray());
     }

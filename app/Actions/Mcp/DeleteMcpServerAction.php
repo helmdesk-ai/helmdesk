@@ -3,6 +3,7 @@
 namespace App\Actions\Mcp;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,12 +32,12 @@ class DeleteMcpServerAction
     }
 
     /**
-     * 路由入口：仅 manageAi 角色可调用。
+     * 路由入口：需要系统设置编辑权限。
      */
     public function asController(Request $request, string $server): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($systemContext, $server);
 

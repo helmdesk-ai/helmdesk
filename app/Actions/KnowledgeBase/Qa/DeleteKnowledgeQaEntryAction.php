@@ -3,6 +3,7 @@
 namespace App\Actions\KnowledgeBase\Qa;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeQaEntry;
 use App\Services\KnowledgeBase\KnowledgeFullTextRepository;
@@ -49,7 +50,7 @@ class DeleteKnowledgeQaEntryAction
     public function asController(Request $request, string $knowledgeBase, string $entry): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesDelete);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

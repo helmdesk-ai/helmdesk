@@ -21,8 +21,7 @@ class HandleLocale
     public function handle(Request $request, Closure $next): Response
     {
         App::setLocale(LocalePreference::normalizeLaravel(
-            $request->user('web')?->locale
-                ?? $request->user('admin')?->locale
+            $request->user()?->locale
                 ?? $request->cookie('locale')
                 ?? LocalePreference::preferredBrowserLocale($request)
         ));

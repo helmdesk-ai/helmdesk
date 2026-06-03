@@ -31,7 +31,7 @@ function createKnowledgeGroupTestNode(array $attributes = []): KnowledgeGroup
     ], $attributes));
 }
 
-test('所有者可以创建顶级分组并自动落到同级末尾', function () {
+test('超级管理员可以创建顶级分组并自动落到同级末尾', function () {
     createKnowledgeGroupTestNode(['name' => '已存在', 'sort_order' => 5]);
 
     $this->actingAs($this->user)
@@ -51,7 +51,7 @@ test('所有者可以创建顶级分组并自动落到同级末尾', function ()
         ->and($created->sort_order)->toBe(6);
 });
 
-test('所有者可以创建二级分组（受 2 级限制）', function () {
+test('超级管理员可以创建二级分组（受 2 级限制）', function () {
     $top = createKnowledgeGroupTestNode(['name' => '使用手册']);
 
     $this->actingAs($this->user)

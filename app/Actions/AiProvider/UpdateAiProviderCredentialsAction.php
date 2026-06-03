@@ -3,6 +3,7 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiProvider;
 use App\Models\SystemContext;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class UpdateAiProviderCredentialsAction
     public function asController(Request $request, string $provider)
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $configuration = $request->input('configuration');
         $this->handle($systemContext, $provider, is_array($configuration) ? $configuration : []);

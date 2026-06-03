@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class McpToolFactory extends Factory
 {
     /**
-     * 一个最小可用工具的默认状态：启用、已 last_seen，schema 为简单字符串入参。
+     * 一个最小可用工具的默认状态：已 last_seen，schema 为简单字符串入参。
      *
      * @return array<string, mixed>
      */
@@ -32,7 +32,6 @@ class McpToolFactory extends Factory
                 'required' => ['query'],
             ],
             'annotations' => null,
-            'is_enabled' => true,
             'last_seen_at' => now(),
             'removed_at' => null,
         ];
@@ -44,7 +43,6 @@ class McpToolFactory extends Factory
     public function removed(): self
     {
         return $this->state([
-            'is_enabled' => false,
             'removed_at' => now(),
         ]);
     }

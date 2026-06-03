@@ -4,6 +4,7 @@ namespace App\Actions\Mcp;
 
 use App\Data\SystemUserContextData;
 use App\Enums\McpSyncStatus;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
 use App\Models\McpTool;
 use App\Models\SystemContext;
@@ -19,9 +20,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * 拉取远端工具列表并写回 mcp_tools 缓存。
  *
  * 策略：
- *  - 新工具：写入 is_enabled=true（默认启用）；
+ *  - 新工具：写入基础描述与 schema；
  *  - 已有工具：更新描述 / schema / last_seen_at，已下线状态会被清除（remote 又出现）；
- *  - 远端不再返回的工具：置 removed_at + is_enabled=false，不物理删除（保留历史引用）；
+ *  - 远端不再返回的工具：置 removed_at，用于页面展示下线状态；
  *  - 同步成功 / 失败都会写 last_sync_status 与 last_sync_error，便于详情页提示。
  */
 class SyncMcpServerToolsAction
@@ -43,6 +44,20 @@ class SyncMcpServerToolsAction
     public function handle(SystemContext $systemContext, string $slug): array
     {
         $server = $systemContext->mcpServers()->where('slug', $slug)->firstOrFail();
+
+        return $this->syncServer($server);
+    }
+
+    /**
+     * 同步指定 MCP 服务的工具列表，并回写该服务的同步状态。
+     *
+     * @return array{success: bool, code: string, message: string, total: int, added: int, removed: int, warnings: array<int, string>}
+     */
+    public function syncServer(McpServer $server): array
+    {
+        $server->last_sync_status = McpSyncStatus::Syncing;
+        $server->last_sync_error = null;
+        $server->save();
 
         $result = $this->bridge->listServerTools(
             $server,
@@ -98,12 +113,12 @@ class SyncMcpServerToolsAction
     }
 
     /**
-     * 路由入口：仅 manageAi 角色可调用，结果交给前端直接 toast。
+     * 路由入口：需要系统设置编辑权限，结果交给前端直接 toast。
      */
     public function asController(Request $request, string $server): JsonResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $result = $this->handle($systemContext, $server);
 
@@ -149,7 +164,6 @@ class SyncMcpServerToolsAction
                     'description' => $description,
                     'input_schema' => $inputSchema,
                     'annotations' => $annotations,
-                    'is_enabled' => true,
                     'last_seen_at' => $now,
                     'removed_at' => null,
                 ]);
@@ -175,7 +189,6 @@ class SyncMcpServerToolsAction
                 continue;
             }
             $tool->removed_at = $now;
-            $tool->is_enabled = false;
             $tool->save();
             $removed++;
         }

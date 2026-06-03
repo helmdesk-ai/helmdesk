@@ -11,11 +11,11 @@ trait WithSystemContext
     public ?SystemContext $systemContext = null;
 
     /**
-     * 系统后台测试默认使用总管理后台 guard。
+     * 系统后台测试默认使用统一登录 guard。
      */
     public function actingAs(UserContract $user, $guard = null)
     {
-        return $this->be($user, $guard ?? 'admin');
+        return $this->be($user, $guard ?? 'web');
     }
 
     /**
@@ -38,13 +38,10 @@ trait WithSystemContext
     /**
      * 将用户标记为可访问单租户后台。
      */
-    protected function attachSystem(User $user, ?SystemContext $systemContext = null, string $role = 'owner'): SystemContext
+    protected function attachSystem(User $user, ?SystemContext $systemContext = null): SystemContext
     {
         $this->systemContext = $systemContext ?? SystemContext::factory()->create();
-
-        if ($role === 'owner') {
-            $user->forceFill(['is_super_admin' => true])->save();
-        }
+        $user->forceFill(['is_super_admin' => true])->save();
 
         return $this->systemContext;
     }

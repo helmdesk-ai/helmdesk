@@ -4,38 +4,36 @@ namespace App\Actions\AiChat;
 
 use App\Enums\McpTransport;
 use App\Models\McpServer;
-use App\Models\SystemContext;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 收集当前 systemContext 下"启用且配置完整"的 MCP 服务列表，附带各自的启用工具白名单。
+ * 收集配置完整的 MCP 服务列表，附带各自的工具白名单。
  *
  * Go 侧据此为本轮对话挂载 MCP 工具：
- *  - server 维度过滤 `is_active = true` 且有 endpoint；
- *  - tool 维度过滤 `is_enabled = true` 且 `removed_at IS NULL`（去掉已下线工具）；
+ *  - server 维度过滤有 endpoint；
+ *  - tool 维度过滤 `removed_at IS NULL`（去掉已下线工具）；
  *  - 工具白名单为空的 server 直接跳过，避免 Go 侧再访远端 list-tools。
  *
  * 返回值可直接作为 Go 桥接请求的 `mcp_servers` 字段下发。
  *
  * @return array<int, array<string, mixed>>
  */
-class CollectActiveMcpServersAction
+class CollectConfiguredMcpServersAction
 {
     use AsAction;
 
     /**
-     * 查询并归一化当前 systemContext 下所有可用的 MCP 服务及其工具白名单。
+     * 查询并归一化所有可用的 MCP 服务及其工具白名单。
      *
      * @return array<int, array<string, mixed>>
      */
-    public function handle(SystemContext $systemContext): array
+    public function handle(): array
     {
         $servers = McpServer::query()
-            ->where('is_active', true)
             ->whereNotNull('endpoint_url')
             ->where('endpoint_url', '!=', '')
             ->with(['tools' => function ($query): void {
-                $query->where('is_enabled', true)->whereNull('removed_at');
+                $query->whereNull('removed_at');
             }])
             ->orderBy('sort_order')
             ->get();

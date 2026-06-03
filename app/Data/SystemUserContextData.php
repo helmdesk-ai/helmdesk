@@ -2,7 +2,6 @@
 
 namespace App\Data;
 
-use App\Enums\SystemRole;
 use App\Enums\UserOnlineStatus;
 use App\Models\Attachment;
 use App\Models\SystemContext;
@@ -26,7 +25,6 @@ class SystemUserContextData extends Data
         public string $user_name,
         public string $user_email,
         public EnumOptionData $user_online_status,
-        public EnumOptionData $role,
         public bool $show_remove_button = true,
         public ?string $user_nickname = null,
         public ?string $user_last_active_at = null,
@@ -42,7 +40,6 @@ class SystemUserContextData extends Data
         $generalSettings = app(GeneralSettings::class);
         $generalSettings->refresh();
 
-        $role = $user->is_super_admin ? SystemRole::Owner : $user->role;
         $onlineStatus = $user->online_status instanceof UserOnlineStatus
             ? $user->online_status
             : UserOnlineStatus::from((int) $user->online_status);
@@ -58,7 +55,6 @@ class SystemUserContextData extends Data
             user_online_status: EnumOptionData::fromEnum($onlineStatus),
             user_nickname: filled($user->nickname) ? (string) $user->nickname : null,
             user_last_active_at: $user->last_active_at?->toIso8601String(),
-            role: EnumOptionData::fromEnum($role),
         );
     }
 

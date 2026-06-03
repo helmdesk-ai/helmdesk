@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('locale', 20)->default('zh-CN');
             $table->string('timezone', 80)->nullable();
             $table->json('notification_preferences')->nullable();
-            $table->string('role', 20)->default('owner')->comment('后台成员角色');
+            $table->json('permissions')->nullable()->comment('普通用户权限列表');
             $table->string('nickname', 50)->nullable()->comment('后台显示昵称');
             $table->unsignedTinyInteger('online_status')->default(1)->comment('在线状态');
             $table->timestamp('last_active_at')->nullable()->comment('最后活跃时间');

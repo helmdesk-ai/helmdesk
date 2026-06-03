@@ -32,7 +32,6 @@ export type SidebarShellNavItem = NavItem & {
 interface Props {
   hideHeader?: boolean;
   headerHref: string;
-  headerSubtitle: string;
   mainNavItems: SidebarShellNavItem[];
   footerNavItems: SidebarShellNavItem[];
   profileHref: string;
@@ -100,17 +99,11 @@ const isSidebarNavItemActive = (item: SidebarShellNavItem) => {
                   </Link>
 
                   <div
-                    class="flex min-w-0 flex-1 flex-col gap-1 pr-2 group-data-[collapsible=icon]:hidden"
+                    class="flex min-w-0 flex-1 items-center pr-2 group-data-[collapsible=icon]:hidden"
                   >
-                    <span class="text-sm leading-tight font-semibold">
+                    <span class="truncate text-sm leading-tight font-semibold">
                       {{ systemName }}
                     </span>
-
-                    <slot name="headerSubtitle">
-                      <span class="text-xs text-muted-foreground">
-                        {{ props.headerSubtitle }}
-                      </span>
-                    </slot>
                   </div>
 
                   <slot name="collapsedHeaderAddon" />

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\TranslationProviderType;
+use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use App\Models\TranslationProvider;
 use App\Models\User;
@@ -35,16 +36,20 @@ test('未登录用户被重定向到登录页', function () {
         ->assertRedirect('/login');
 });
 
-test('非 owner 角色无法访问翻译供应商设置', function () {
-    $admin = User::factory()->create();
+test('有系统设置查看权限的用户可以访问翻译供应商设置', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::SystemSettingsView->value],
+    ]);
 
-    $operator = User::factory()->create();
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
+    ]);
 
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('admin.manage.translation.providers.index'))
-        ->assertForbidden();
+        ->assertOk();
 
-    $this->actingAs($operator)
+    $this->actingAs($userWithoutPermission)
         ->get(route('admin.manage.translation.providers.index'))
         ->assertForbidden();
 });
@@ -53,7 +58,7 @@ test('非 owner 角色无法访问翻译供应商设置', function () {
 // 列表页
 // ---------------------------------------------------------------------------
 
-test('owner 可以查看翻译供应商列表页', function () {
+test('超级管理员可以查看翻译供应商列表页', function () {
     systemTranslationProvider();
 
     $this->actingAs($this->user)
@@ -71,6 +76,30 @@ test('owner 可以查看翻译供应商列表页', function () {
         );
 });
 
+test('超级管理员可以打开翻译供应商创建页', function () {
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.translation.providers.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('systemSettings/translationProviders/Create')
+            ->has('protocol_options', count(TranslationProviderType::cases()))
+            ->has('protocol_credential_fields'));
+});
+
+test('超级管理员可以打开翻译供应商编辑页', function () {
+    $provider = systemTranslationProvider('google-edit');
+
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.translation.providers.edit', ['provider' => $provider->slug]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('systemSettings/translationProviders/Edit')
+            ->where('provider.slug', 'google-edit')
+            ->where('provider.protocol_label', 'Google 翻译')
+            ->has('protocol_options', count(TranslationProviderType::cases()))
+            ->has('protocol_credential_fields'));
+});
+
 // ---------------------------------------------------------------------------
 // 创建
 // ---------------------------------------------------------------------------
@@ -82,7 +111,7 @@ test('创建新的翻译供应商后保持待配置状态', function () {
             'protocol' => TranslationProviderType::GoogleTranslate->value,
             'configuration' => ['api_key' => 'created-key'],
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.manage.translation.providers.index'));
 
     $provider = $this->systemContext->translationProviders()->first();
     expect($provider)->not->toBeNull()
@@ -126,7 +155,7 @@ test('更新凭据时 secret 字段提交空值会保留原值', function () {
             'name' => $provider->name,
             'configuration' => ['api_key' => ''],
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.manage.translation.providers.index'));
 
     expect($provider->fresh()->credentials)->toBe(['api_key' => 'real-key']);
 });
@@ -140,7 +169,7 @@ test('更新凭据时提交新值会覆盖', function () {
             'name' => 'Updated Google',
             'configuration' => ['api_key' => 'new-key'],
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.manage.translation.providers.index'));
 
     expect($provider->fresh()->credentials)->toBe(['api_key' => 'new-key'])
         ->and($provider->fresh()->name)->toBe('Updated Google');

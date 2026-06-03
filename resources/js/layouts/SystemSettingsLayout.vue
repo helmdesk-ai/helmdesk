@@ -1,5 +1,5 @@
 <!--
-  文件说明：系统设置区域的二级布局，承载基础、存储、邮件与 AI 能力配置页面。
+  文件说明：系统设置区域的二级布局，承载基础、存储、邮件与供应商配置页面。
 -->
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
@@ -43,18 +43,6 @@ const sidebarNavItems = computed<SubMenuItem[]>(() => [
     href: admin.mail.show.url(),
   },
   {
-    title: t('标签'),
-    href: admin.manage.tags.index.url(),
-  },
-  {
-    title: t('自定义属性'),
-    href: admin.manage.attributes.index.url(),
-  },
-  {
-    title: t('快捷回复'),
-    href: admin.cannedReplies.index.url(),
-  },
-  {
     title: t('大模型供应商'),
     href: admin.manage.ai.providers.index.url(),
   },
@@ -86,9 +74,7 @@ function isItemActive(href: string, mode: ActiveMode = 'prefix'): boolean {
             {{ t('系统设置') }}
           </h2>
           <p class="text-sm text-muted-foreground">
-            {{
-              t('管理系统基础配置、数据字段、消息模板、存储、邮件与 AI 能力')
-            }}
+            {{ t('管理系统基础配置、存储、邮件与供应商能力') }}
           </p>
         </div>
 

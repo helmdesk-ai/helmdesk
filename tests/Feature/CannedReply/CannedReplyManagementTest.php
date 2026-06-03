@@ -13,7 +13,7 @@ beforeEach(function () {
     $this->owner = $this->createUserWithSystem();
 });
 
-test('管理员可以查看快捷回复列表页面', function () {
+test('超级管理员可以查看快捷回复列表页面', function () {
     CannedReply::factory()
         ->create(['name' => '系统共享 1']);
 
@@ -33,7 +33,7 @@ test('管理员可以查看快捷回复列表页面', function () {
         );
 });
 
-test('管理员可以创建个人快捷回复', function () {
+test('超级管理员可以创建个人快捷回复', function () {
     $this->actingAs($this->owner)
         ->from(route('admin.canned-replies.index'))
         ->post(route('admin.canned-replies.store'), [
@@ -49,7 +49,7 @@ test('管理员可以创建个人快捷回复', function () {
     expect($reply->shortcut)->toBe('refund');
 });
 
-test('管理员可以创建共享快捷回复', function () {
+test('超级管理员可以创建共享快捷回复', function () {
     $this->actingAs($this->owner)
         ->from(route('admin.canned-replies.index'))
         ->post(route('admin.canned-replies.store'), [
@@ -80,7 +80,7 @@ test('shortcut 在同一归属内不可重复', function () {
         ->assertSessionHasErrors('shortcut');
 });
 
-test('管理员可以编辑自己的个人模版', function () {
+test('超级管理员可以编辑自己的个人模版', function () {
     $personal = CannedReply::factory()
         ->ownedBy($this->owner)
         ->create(['name' => 'Old']);
@@ -101,7 +101,7 @@ test('管理员可以编辑自己的个人模版', function () {
     expect($personal->fresh()->name)->toBe('New name');
 });
 
-test('管理员可以把个人模版切换为共享', function () {
+test('超级管理员可以把个人模版切换为共享', function () {
     $personal = CannedReply::factory()
         ->ownedBy($this->owner)
         ->create(['name' => 'Mine']);
@@ -122,7 +122,7 @@ test('管理员可以把个人模版切换为共享', function () {
     expect($personal->fresh()->user_id)->toBeNull();
 });
 
-test('管理员可以把共享模版切换为自己个人', function () {
+test('超级管理员可以把共享模版切换为自己个人', function () {
     $shared = CannedReply::factory()
         ->create(['name' => 'Team', 'user_id' => null]);
 

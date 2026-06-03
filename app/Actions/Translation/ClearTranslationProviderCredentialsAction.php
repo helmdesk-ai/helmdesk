@@ -3,6 +3,7 @@
 namespace App\Actions\Translation;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use Illuminate\Http\RedirectResponse;
@@ -38,7 +39,7 @@ class ClearTranslationProviderCredentialsAction
     public function asController(Request $request, string $provider): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($systemContext, $provider);
 

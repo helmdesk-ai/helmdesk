@@ -7,6 +7,7 @@ use App\Data\Channel\Telegram\TelegramChannelData;
 use App\Data\SimplePaginationData;
 use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Models\SystemContext;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
@@ -61,7 +62,7 @@ class ListTelegramChannelsAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsView);
 
         return Inertia::render('channel/telegram/List', $this->handle(
             systemContext: $systemContext,

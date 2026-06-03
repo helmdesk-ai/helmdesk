@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('按 tool ID 聚合归属同一 server 的工具白名单', function () {
-    $server = McpServer::factory()->active()->create([
+    $server = McpServer::factory()->create([
         'slug' => 'orders-mcp',
         'name' => '订单 MCP',
         'endpoint_url' => 'https://example.com/mcp',
@@ -32,21 +32,20 @@ test('按 tool ID 聚合归属同一 server 的工具白名单', function () {
         ->and($payload[0]['tool_names'])->toEqualCanonicalizing(['lookup_order', 'cancel_order']);
 });
 
-test('已禁用 / 已下线工具被排除', function () {
-    $server = McpServer::factory()->active()->create();
-    $enabled = McpTool::factory()->for($server, 'server')->create(['name' => 'enabled', 'is_enabled' => true]);
-    $disabled = McpTool::factory()->for($server, 'server')->create(['name' => 'disabled', 'is_enabled' => false]);
+test('已下线工具被排除', function () {
+    $server = McpServer::factory()->create();
+    $available = McpTool::factory()->for($server, 'server')->create(['name' => 'available']);
     $removed = McpTool::factory()->for($server, 'server')->create(['name' => 'removed', 'removed_at' => now()]);
 
     $payload = app(CollectPlanMcpServersAction::class)
-        ->handle([$enabled->id, $disabled->id, $removed->id]);
+        ->handle([$available->id, $removed->id]);
 
     expect($payload)->toHaveCount(1)
-        ->and($payload[0]['tool_names'])->toBe(['enabled']);
+        ->and($payload[0]['tool_names'])->toBe(['available']);
 });
 
-test('停用 server 上的工具整台跳过', function () {
-    $server = McpServer::factory()->create(['is_active' => false]);
+test('endpoint 不完整的服务被跳过', function () {
+    $server = McpServer::factory()->create(['endpoint_url' => '']);
     $tool = McpTool::factory()->for($server, 'server')->create(['name' => 'lookup']);
 
     $payload = app(CollectPlanMcpServersAction::class)
@@ -56,7 +55,7 @@ test('停用 server 上的工具整台跳过', function () {
 });
 
 test('单租户下指定工具会被纳入运行时白名单', function () {
-    $server = McpServer::factory()->active()->create();
+    $server = McpServer::factory()->create();
     $tool = McpTool::factory()->for($server, 'server')->create(['name' => 'lookup']);
 
     $payload = app(CollectPlanMcpServersAction::class)
@@ -66,8 +65,8 @@ test('单租户下指定工具会被纳入运行时白名单', function () {
         ->and($payload[0]['tool_names'])->toBe(['lookup']);
 });
 
-test('空 credentials / headers 序列化为 JSON 对象保证 Go map 解码兼容', function () {
-    $server = McpServer::factory()->active()->create([
+test('空 credentials 和 headers 序列化为 JSON 对象', function () {
+    $server = McpServer::factory()->create([
         'credentials' => [],
         'headers' => null,
     ]);

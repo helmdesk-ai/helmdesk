@@ -3,6 +3,7 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiProvider;
 use App\Models\SystemContext;
 use App\Services\AiRuntime\GoAiRuntimeBridge;
@@ -63,7 +64,7 @@ class CheckAiProviderAction
     public function asController(Request $request, string $provider): JsonResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $configuration = $request->input('configuration');
 

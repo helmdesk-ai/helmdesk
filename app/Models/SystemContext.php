@@ -185,7 +185,7 @@ class SystemContext extends Model
     }
 
     /**
-     * 系统所有者。
+     * 当前系统关联的超级管理员。
      */
     public function owner()
     {

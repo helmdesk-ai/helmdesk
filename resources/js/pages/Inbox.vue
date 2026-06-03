@@ -1,5 +1,5 @@
 <!--
-  文件说明：收件箱入口页面，承接总管理后台的会话收件箱。
+  文件说明：收件箱入口页面，承接后台会话收件箱。
 -->
 <script setup lang="ts">
 import ImagePreviewDialog from '@/components/common/ImagePreviewDialog.vue';

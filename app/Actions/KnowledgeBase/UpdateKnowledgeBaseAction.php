@@ -5,6 +5,7 @@ namespace App\Actions\KnowledgeBase;
 use App\Data\KnowledgeBase\FormUpdateKnowledgeBaseData;
 use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\SystemContext;
 use App\Services\Storage\AttachmentBindingService;
@@ -58,7 +59,7 @@ class UpdateKnowledgeBaseAction
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $knowledgeBaseModel = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

@@ -4,6 +4,7 @@ namespace App\Actions\KnowledgeBase\Document;
 
 use App\Data\KnowledgeBase\FormMoveKnowledgeDocumentData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeGroup;
@@ -40,7 +41,7 @@ class MoveKnowledgeDocumentAction
     public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

@@ -25,10 +25,9 @@ test('第一个注册用户是超级管理员且不创建系统', function () {
         'password_confirmation' => 'password',
     ]);
 
-    expect(Auth::guard('web')->check())->toBeFalse();
-    expect(Auth::guard('admin')->check())->toBeTrue();
+    expect(Auth::guard('web')->check())->toBeTrue();
 
-    $user = User::query()->findOrFail(Auth::guard('admin')->id());
+    $user = User::query()->findOrFail(Auth::guard('web')->id());
     expect($user->is_super_admin)->toBeTrue();
 
     Notification::assertNothingSent();

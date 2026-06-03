@@ -17,6 +17,7 @@ return [
     ],
     'sync_statuses' => [
         'pending' => 'Not synced yet',
+        'syncing' => 'Syncing',
         'success' => 'Synced',
         'failed' => 'Sync failed',
     ],
@@ -47,8 +48,7 @@ return [
         'created' => 'MCP server created.',
         'check_succeeded' => 'Connection is healthy.',
         'sync_succeeded' => 'Synced :total tools (added :added, removed :removed).',
-        'cannot_toggle_without_endpoint' => 'Please configure an endpoint URL before enabling.',
-        'tool_disabled_due_to_removal' => 'This tool has been removed from the remote server and cannot be enabled.',
+        'sync_all_queued' => 'Started syncing :count MCP servers.',
     ],
     'tool' => [
         'removed_badge' => 'Removed',

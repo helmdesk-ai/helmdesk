@@ -9,6 +9,7 @@ use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\KnowledgeDocumentStatus;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
@@ -73,7 +74,7 @@ class CreateManualKnowledgeDocumentAction
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

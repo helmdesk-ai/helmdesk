@@ -4,6 +4,7 @@ namespace App\Actions\AiProvider;
 
 use App\Data\AiProvider\FormCreateAiModelData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\SystemContext;
@@ -51,7 +52,7 @@ class CreateAiModelAction
     public function asController(Request $request, string $provider)
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateAiModelData::from($request);
         $this->handle($systemContext, $provider, $data);

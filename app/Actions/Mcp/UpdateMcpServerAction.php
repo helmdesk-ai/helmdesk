@@ -4,6 +4,7 @@ namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormUpdateMcpServerData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
 use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,14 @@ class UpdateMcpServerAction
     use AsAction;
 
     /**
-     * 更新一台 MCP 服务，只保存配置，不触发远端连接或工具同步。
+     * 注入工具同步入队动作。
+     */
+    public function __construct(
+        private readonly QueueMcpServerToolSyncAction $queueToolSync,
+    ) {}
+
+    /**
+     * 更新一台 MCP 服务，并派发异步工具同步任务。
      */
     public function handle(SystemContext $systemContext, string $slug, FormUpdateMcpServerData $data): McpServer
     {
@@ -42,21 +50,23 @@ class UpdateMcpServerAction
         $server->credentials = $this->mergeCredentials($server, $data);
         $server->save();
 
+        $this->queueToolSync->handle($server);
+
         return $server->refresh();
     }
 
     /**
-     * 路由入口：仅 manageAi 角色可调用。
+     * 路由入口：需要系统设置编辑权限。
      */
     public function asController(Request $request, string $server): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormUpdateMcpServerData::from($request);
         $this->handle($systemContext, $server, $data);
 
-        return back();
+        return redirect()->route('admin.manage.mcp.servers.index');
     }
 
     /**

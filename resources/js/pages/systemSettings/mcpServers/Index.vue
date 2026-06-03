@@ -1,5 +1,6 @@
 <!--
-  系统 MCP 服务页面：左侧服务列表，右侧承接详情、创建和编辑表单。
+  文件说明：系统 MCP 服务列表页面，承接服务列表、工具明细浮层、连接测试和全量工具同步。
+  消费后端 ShowSystemMcpServersPagePropsData。
 -->
 <script setup lang="ts">
 import Mcp from '@/actions/App/Actions/Mcp';
@@ -7,298 +8,103 @@ import ConfirmDeleteDialog from '@/components/common/ConfirmDeleteDialog.vue';
 import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { useDateTime } from '@/composables/useDateTime';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type {
   McpServerData,
+  McpToolData,
   ShowSystemMcpServersPagePropsData,
 } from '@/types/generated';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
-import { LoaderCircle, Plus, Server, Trash2 } from '@lucide/vue';
-import { computed, onMounted, ref, watch } from 'vue';
-import McpServerFormPanel from './McpServerFormPanel.vue';
-import McpToolListItem from './McpToolListItem.vue';
-
-type RightPage = 'server_detail' | 'server_form';
-type ServerFormMode = 'create' | 'edit';
+import { LoaderCircle, MoreHorizontal } from '@lucide/vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 const props = defineProps<ShowSystemMcpServersPagePropsData>();
 
 const { t } = useI18n();
 const { toast } = useToast();
-const { formatDateTime } = useDateTime();
 
-const selectedServerQueryParam = 'server';
-const panelQueryParam = 'panel';
+const deleteForm = useForm({});
+const deletingServerSlug = ref<string | null>(null);
+const checkingServerSlug = ref<string | null>(null);
+const isQueueingSync = ref(false);
+const syncStatusVisible = ref(false);
+const pollingTimer = ref<number | null>(null);
 
-function serverExists(slug: string | null): slug is string {
-  return slug !== null && props.servers.some((server) => server.slug === slug);
+const deletingServer = computed(
+  () =>
+    props.servers.find((server) => server.slug === deletingServerSlug.value) ??
+    null,
+);
+
+const hasSyncingServer = computed(() =>
+  props.servers.some((server) => server.last_sync_status === 'syncing'),
+);
+
+const isSyncButtonDisabled = computed(
+  () =>
+    isQueueingSync.value ||
+    (syncStatusVisible.value && hasSyncingServer.value) ||
+    props.servers.length === 0,
+);
+
+function toolDescription(tool: McpToolData): string {
+  return tool.description ?? t('远端未提供描述');
 }
 
-function defaultServerSlug(): string | null {
-  return props.servers[0]?.slug ?? null;
+function statusBadgeVariant(server: McpServerData): 'default' | 'secondary' {
+  return server.last_sync_status === 'success' ? 'default' : 'secondary';
 }
 
-function readSelectedServerFromUrl(): string | null {
-  if (typeof window === 'undefined') {
-    return defaultServerSlug();
-  }
-
-  const requested = new URLSearchParams(window.location.search).get(
-    selectedServerQueryParam,
-  );
-
-  return serverExists(requested) ? requested : defaultServerSlug();
+function openDeleteDialog(server: McpServerData): void {
+  deletingServerSlug.value = server.slug;
 }
 
-function readRightPanelFromUrl(selectedSlug: string | null): {
-  page: RightPage;
-  mode: ServerFormMode;
-  editingSlug: string | null;
-} {
-  if (typeof window === 'undefined') {
-    return { page: 'server_detail', mode: 'create', editingSlug: null };
+function handleDeleteDialogOpenChange(open: boolean): void {
+  if (!open) {
+    deletingServerSlug.value = null;
   }
-
-  const url = new URL(window.location.href);
-  const panel = url.searchParams.get(panelQueryParam);
-
-  if (panel === 'create') {
-    return { page: 'server_form', mode: 'create', editingSlug: null };
-  }
-
-  if (panel === 'edit' && serverExists(selectedSlug)) {
-    return { page: 'server_form', mode: 'edit', editingSlug: selectedSlug };
-  }
-
-  return { page: 'server_detail', mode: 'create', editingSlug: null };
 }
 
-function writeUrlState(
-  slug: string | null,
-  page: RightPage,
-  mode: ServerFormMode,
-  editingSlug: string | null,
-): void {
-  if (typeof window === 'undefined') {
+function confirmDelete(): void {
+  if (!deletingServer.value || deleteForm.processing) {
     return;
   }
 
-  const url = new URL(window.location.href);
-  const serverSlug =
-    page === 'server_form' && mode === 'edit' ? (editingSlug ?? slug) : slug;
-
-  if (serverSlug === null || serverSlug === defaultServerSlug()) {
-    url.searchParams.delete(selectedServerQueryParam);
-  } else {
-    url.searchParams.set(selectedServerQueryParam, serverSlug);
-  }
-
-  if (page === 'server_form') {
-    url.searchParams.set(panelQueryParam, mode);
-  } else {
-    url.searchParams.delete(panelQueryParam);
-  }
-
-  window.history.replaceState(window.history.state, '', url.toString());
-}
-
-const selectedSlug = ref<string | null>(readSelectedServerFromUrl());
-const initialRightPanel = readRightPanelFromUrl(selectedSlug.value);
-const activeRightPage = ref<RightPage>(initialRightPanel.page);
-const serverFormMode = ref<ServerFormMode>(initialRightPanel.mode);
-const editingServerSlug = ref<string | null>(initialRightPanel.editingSlug);
-const createBaselineSlugs = ref<string[] | null>(null);
-const isCheckingSavedServer = ref(false);
-const isSyncing = ref(false);
-const deleteTarget = ref<McpServerData | null>(null);
-const isDeleting = ref(false);
-
-const selectedServer = computed<McpServerData | null>(
-  () =>
-    props.servers.find((server) => server.slug === selectedSlug.value) ?? null,
-);
-
-const editingServer = computed<McpServerData | null>(() => {
-  if (editingServerSlug.value) {
-    return (
-      props.servers.find((server) => server.slug === editingServerSlug.value) ??
-      null
-    );
-  }
-
-  return selectedServer.value;
-});
-
-const formattedLastSync = computed(() => {
-  if (!selectedServer.value?.last_synced_at) {
-    return null;
-  }
-
-  return formatDateTime(selectedServer.value.last_synced_at);
-});
-
-watch(
-  [selectedSlug, activeRightPage, serverFormMode, editingServerSlug],
-  () => {
-    writeUrlState(
-      selectedSlug.value,
-      activeRightPage.value,
-      serverFormMode.value,
-      editingServerSlug.value,
-    );
-  },
-);
-
-watch(
-  () => props.servers,
-  (servers) => {
-    if (
-      selectedSlug.value &&
-      !servers.find((server) => server.slug === selectedSlug.value)
-    ) {
-      selectedSlug.value = servers[0]?.slug ?? null;
-      activeRightPage.value = 'server_detail';
-    } else if (!selectedSlug.value && servers.length > 0) {
-      selectedSlug.value = servers[0].slug;
-    }
-
-    if (editingServerSlug.value) {
-      const editingStillExists = servers.some(
-        (server) => server.slug === editingServerSlug.value,
-      );
-      if (!editingStillExists) {
-        editingServerSlug.value = null;
-        activeRightPage.value = 'server_detail';
-      }
-    }
-
-    selectCreatedServerIfAvailable();
-    writeUrlState(
-      selectedSlug.value,
-      activeRightPage.value,
-      serverFormMode.value,
-      editingServerSlug.value,
-    );
-  },
-);
-
-onMounted(() => {
-  writeUrlState(
-    selectedSlug.value,
-    activeRightPage.value,
-    serverFormMode.value,
-    editingServerSlug.value,
-  );
-});
-
-function handleActionError(errors: Record<string, string | undefined>): void {
-  const message = Object.values(errors).find(
-    (value): value is string =>
-      typeof value === 'string' && value.trim().length > 0,
-  );
-
-  if (message) {
-    toast.warning(message);
-  }
-}
-
-function selectServer(server: McpServerData): void {
-  selectedSlug.value = server.slug;
-  activeRightPage.value = 'server_detail';
-  editingServerSlug.value = null;
-}
-
-function isServerRowActive(server: McpServerData): boolean {
-  if (
-    activeRightPage.value === 'server_form' &&
-    serverFormMode.value === 'edit'
-  ) {
-    return editingServerSlug.value === server.slug;
-  }
-
-  return selectedSlug.value === server.slug;
-}
-
-function openCreateForm(): void {
-  createBaselineSlugs.value = props.servers.map((server) => server.slug);
-  serverFormMode.value = 'create';
-  editingServerSlug.value = null;
-  activeRightPage.value = 'server_form';
-}
-
-function openEditForm(server: McpServerData): void {
-  selectedSlug.value = server.slug;
-  createBaselineSlugs.value = null;
-  serverFormMode.value = 'edit';
-  editingServerSlug.value = server.slug;
-  activeRightPage.value = 'server_form';
-}
-
-function closeServerForm(): void {
-  activeRightPage.value = 'server_detail';
-  editingServerSlug.value = null;
-  createBaselineSlugs.value = null;
-}
-
-function selectCreatedServerIfAvailable(): boolean {
-  if (!createBaselineSlugs.value) {
-    return false;
-  }
-
-  const baseline = new Set(createBaselineSlugs.value);
-  const created = props.servers.find((server) => !baseline.has(server.slug));
-
-  if (!created) {
-    return false;
-  }
-
-  selectedSlug.value = created.slug;
-  createBaselineSlugs.value = null;
-
-  return true;
-}
-
-function handleServerFormSaved(): void {
-  if (serverFormMode.value === 'create') {
-    selectCreatedServerIfAvailable();
-  }
-
-  activeRightPage.value = 'server_detail';
-  editingServerSlug.value = null;
-}
-
-function toggleServer(server: McpServerData): void {
-  router.put(
-    Mcp.ToggleMcpServerAction.url({
-      server: server.slug,
+  deleteForm.delete(
+    Mcp.DeleteMcpServerAction.url({
+      server: deletingServer.value.slug,
     }),
-    {},
     {
       preserveScroll: true,
-      onError: (errors) =>
-        handleActionError(errors as Record<string, string | undefined>),
+      onSuccess: () => {
+        deletingServerSlug.value = null;
+      },
     },
   );
 }
 
-async function checkSavedServerConnection(): Promise<void> {
-  if (!selectedServer.value) {
-    return;
-  }
-
-  isCheckingSavedServer.value = true;
+async function checkConnection(server: McpServerData): Promise<void> {
+  checkingServerSlug.value = server.slug;
 
   try {
     const { data } = await axios.post(
       Mcp.CheckMcpServerAction['/admin/manage/mcp-servers/{server}/check'].url({
-        server: selectedServer.value.slug,
+        server: server.slug,
       }),
     );
 
@@ -313,364 +119,295 @@ async function checkSavedServerConnection(): Promise<void> {
       toast.error(message || t('连接测试失败'));
     }
   } catch {
-    // 网络/5xx 等异常由全局 axios interceptor 统一 toast，这里不再重复。
+    // 失败响应由全局 axios interceptor 统一处理。
   } finally {
-    isCheckingSavedServer.value = false;
+    checkingServerSlug.value = null;
   }
 }
 
-async function syncTools(): Promise<void> {
-  if (!selectedSlug.value) {
+function reloadServers(onFinish?: () => void): void {
+  router.reload({
+    only: ['servers'],
+    preserveScroll: true,
+    onFinish,
+  });
+}
+
+function clearPollingTimer(): void {
+  if (pollingTimer.value !== null) {
+    window.clearTimeout(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+}
+
+function scheduleSyncPolling(): void {
+  clearPollingTimer();
+
+  if (!syncStatusVisible.value || !hasSyncingServer.value) {
     return;
   }
 
-  isSyncing.value = true;
+  pollingTimer.value = window.setTimeout(() => {
+    reloadServers(() => window.setTimeout(scheduleSyncPolling, 0));
+  }, 2000);
+}
+
+async function syncAllTools(): Promise<void> {
+  if (isSyncButtonDisabled.value) {
+    return;
+  }
+
+  syncStatusVisible.value = true;
+  isQueueingSync.value = true;
 
   try {
-    const { data } = await axios.post(
-      Mcp.SyncMcpServerToolsAction.url({
-        server: selectedSlug.value,
-      }),
-    );
-
+    const { data } = await axios.post(Mcp.SyncAllMcpServerToolsAction.url());
     const message =
       typeof data?.message === 'string' && data.message.length > 0
         ? data.message
         : '';
 
-    if (data?.success) {
-      toast.success(message || t('同步成功'));
-    } else {
-      toast.error(message || t('同步失败'));
-    }
-
-    router.reload({
-      only: ['servers'],
-    });
+    toast.success(message || t('已开始同步'));
+    reloadServers(() => window.setTimeout(scheduleSyncPolling, 0));
   } catch {
-    // 网络/5xx 等异常由全局 axios interceptor 统一 toast，这里不再重复。
+    // 失败响应由全局 axios interceptor 统一处理。
   } finally {
-    isSyncing.value = false;
+    isQueueingSync.value = false;
   }
 }
 
-function openDeleteDialog(server: McpServerData): void {
-  deleteTarget.value = server;
-}
+watch(
+  () => props.servers.map((server) => server.last_sync_status).join('|'),
+  scheduleSyncPolling,
+);
 
-function closeDeleteDialog(open: boolean): void {
-  if (open || isDeleting.value) {
-    return;
-  }
-
-  deleteTarget.value = null;
-}
-
-function confirmDelete(): void {
-  if (!deleteTarget.value || isDeleting.value) {
-    return;
-  }
-
-  isDeleting.value = true;
-
-  router.delete(
-    Mcp.DeleteMcpServerAction.url({
-      server: deleteTarget.value.slug,
-    }),
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        if (deleteTarget.value?.slug === editingServerSlug.value) {
-          editingServerSlug.value = null;
-          activeRightPage.value = 'server_detail';
-        }
-        deleteTarget.value = null;
-      },
-      onFinish: () => {
-        isDeleting.value = false;
-      },
-      onError: (errors) =>
-        handleActionError(errors as Record<string, string | undefined>),
-    },
-  );
-}
+onBeforeUnmount(clearPollingTimer);
 </script>
 
 <template>
   <AppLayout>
     <Head :title="t('MCP 服务')" />
 
-    <SystemSettingsLayout>
-      <section class="mx-auto w-full max-w-none space-y-12">
-        <div
-          class="flex h-[calc(100svh-7rem)] flex-col space-y-6 overflow-hidden md:h-[calc(100svh-4rem)]"
-        >
+    <SystemSettingsLayout content-class="max-w-none">
+      <div class="space-y-6">
+        <div class="flex items-start justify-between gap-4">
           <HeadingSmall
             :title="t('MCP 服务')"
             :description="t('用 MCP 协议接入外部能力，供不同业务场景调用')"
           />
 
-          <div class="flex min-h-0 flex-1 rounded-xl border">
-            <div class="flex w-64 shrink-0 flex-col border-r">
-              <div class="flex items-center justify-between p-4">
-                <h3 class="text-sm font-semibold">
-                  {{ t('MCP 服务') }}
-                </h3>
-                <Button
-                  type="button"
-                  :variant="
-                    activeRightPage === 'server_form' &&
-                    serverFormMode === 'create'
-                      ? 'secondary'
-                      : 'ghost'
-                  "
-                  size="icon"
-                  class="h-7 w-7"
-                  :aria-label="t('添加 MCP 服务')"
-                  @click="openCreateForm"
-                >
-                  <Plus class="h-4 w-4" />
-                </Button>
-              </div>
+          <div class="flex items-center gap-2">
+            <Button as-child>
+              <Link :href="Mcp.ShowCreateMcpServerPageAction.url()">
+                {{ t('新增 MCP 服务') }}
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              :disabled="isSyncButtonDisabled"
+              @click="syncAllTools"
+            >
+              {{
+                syncStatusVisible && (isQueueingSync || hasSyncingServer)
+                  ? t('同步中')
+                  : t('同步')
+              }}
+            </Button>
+          </div>
+        </div>
 
-              <div class="flex-1 overflow-y-auto px-2 pb-4">
-                <div
-                  v-if="props.servers.length === 0"
-                  class="px-4 py-8 text-center text-sm text-muted-foreground"
-                >
-                  {{ t('暂无 MCP 服务') }}
-                </div>
+        <div class="rounded-lg border">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="border-b bg-muted/30 text-muted-foreground">
+                <tr class="text-left">
+                  <th class="px-4 py-3">{{ t('名称') }}</th>
+                  <th class="px-4 py-3">{{ t('端点地址') }}</th>
+                  <th class="px-4 py-3">{{ t('认证方式') }}</th>
+                  <th class="px-4 py-3">{{ t('工具数') }}</th>
+                  <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="server in props.servers" :key="server.id">
+                  <tr class="border-t bg-background align-middle">
+                    <td class="px-4 py-3">
+                      <span class="font-medium">{{ server.name }}</span>
+                    </td>
 
-                <div v-else class="space-y-0.5">
-                  <div
-                    v-for="server in props.servers"
-                    :key="server.slug"
-                    class="flex items-center gap-2 rounded-md text-sm transition-colors"
-                    :class="
-                      isServerRowActive(server)
-                        ? 'bg-accent text-accent-foreground'
-                        : 'hover:bg-muted'
-                    "
-                  >
-                    <button
-                      type="button"
-                      class="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
-                      @click="selectServer(server)"
-                    >
-                      <Server class="h-5 w-5 shrink-0 text-muted-foreground" />
-                      <div class="min-w-0 flex-1 space-y-0.5">
-                        <span class="block truncate font-medium">
-                          {{ server.name }}
-                        </span>
-                        <span
-                          class="block truncate text-[11px] text-muted-foreground"
+                    <td class="max-w-md px-4 py-3">
+                      <span class="block truncate text-muted-foreground">
+                        {{ server.endpoint_url }}
+                      </span>
+                    </td>
+
+                    <td class="px-4 py-3 text-muted-foreground">
+                      {{ server.auth_method_label }}
+                    </td>
+
+                    <td class="px-4 py-3">
+                      <Popover>
+                        <PopoverTrigger as-child>
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-2 text-left"
+                          >
+                            <span
+                              class="font-medium underline-offset-4 hover:underline"
+                            >
+                              {{ server.tools_count }}
+                            </span>
+                            <template v-if="syncStatusVisible">
+                              <LoaderCircle
+                                v-if="server.last_sync_status === 'syncing'"
+                                class="h-3.5 w-3.5 animate-spin text-muted-foreground"
+                              />
+                              <Badge
+                                v-else
+                                :variant="statusBadgeVariant(server)"
+                                class="text-[10px]"
+                              >
+                                {{ server.last_sync_status_label }}
+                              </Badge>
+                            </template>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="start"
+                          side="bottom"
+                          class="w-96 max-w-[calc(100vw-2rem)] p-0"
                         >
-                          {{ server.tools_count }}
-                          {{ t('工具数') }}
-                        </span>
-                      </div>
-                    </button>
-                    <Switch
-                      class="mr-3"
-                      :model-value="server.is_active"
-                      :title="server.is_active ? t('停用') : t('启用')"
-                      @update:model-value="() => toggleServer(server)"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+                          <div
+                            v-if="server.tools.length > 0"
+                            class="max-h-80 divide-y overflow-y-auto"
+                          >
+                            <div
+                              v-for="tool in server.tools"
+                              :key="tool.id"
+                              class="px-4 py-3"
+                            >
+                              <div class="flex items-center gap-2">
+                                <span class="font-mono text-sm font-medium">
+                                  {{ tool.name }}
+                                </span>
+                                <Badge
+                                  v-if="tool.removed_at"
+                                  variant="secondary"
+                                  class="text-[10px]"
+                                >
+                                  {{ t('已下线') }}
+                                </Badge>
+                              </div>
+                              <p class="mt-1 text-sm text-muted-foreground">
+                                {{ toolDescription(tool) }}
+                              </p>
+                            </div>
+                          </div>
 
-            <div class="flex-1 overflow-y-auto">
-              <div
-                v-if="activeRightPage === 'server_form'"
-                class="space-y-6 p-6"
-              >
-                <McpServerFormPanel
-                  :mode="serverFormMode"
-                  :server="serverFormMode === 'edit' ? editingServer : null"
-                  :transport-options="props.transport_options"
-                  @cancel="closeServerForm"
-                  @saved="handleServerFormSaved"
-                />
-              </div>
-
-              <template v-else-if="selectedServer">
-                <div class="space-y-6 p-6">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 space-y-2">
-                      <div class="flex min-w-0 flex-wrap items-center gap-2">
-                        <h3 class="truncate text-sm font-semibold">
-                          {{ selectedServer.name }}
-                        </h3>
-                        <Badge variant="outline">
-                          {{ selectedServer.transport_label }}
-                        </Badge>
-                      </div>
-                      <p class="text-sm break-all text-muted-foreground">
-                        {{ selectedServer.endpoint_url }}
-                      </p>
-                    </div>
-
-                    <div class="flex shrink-0 items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        :disabled="isCheckingSavedServer"
-                        @click="checkSavedServerConnection"
+                          <div
+                            v-else
+                            class="px-4 py-6 text-sm text-muted-foreground"
+                          >
+                            {{ t('该 MCP 服务暂无工具') }}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <div
+                        v-if="
+                          syncStatusVisible &&
+                          server.last_sync_status === 'failed' &&
+                          server.last_sync_error
+                        "
+                        class="mt-1 max-w-xs truncate text-xs text-muted-foreground"
+                        :title="server.last_sync_error"
                       >
-                        <LoaderCircle
-                          v-if="isCheckingSavedServer"
-                          class="mr-2 h-4 w-4 animate-spin"
-                        />
-                        {{ t('测试') }}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        @click="openEditForm(selectedServer)"
-                      >
-                        {{ t('编辑') }}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        class="text-destructive hover:text-destructive"
-                        :title="t('删除')"
-                        :aria-label="t('删除')"
-                        @click="openDeleteDialog(selectedServer)"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div class="space-y-3">
-                    <h3 class="text-sm font-semibold">
-                      {{ t('连接配置') }}
-                    </h3>
-                    <div class="space-y-3 text-sm">
-                      <div class="flex items-start gap-3">
-                        <div
-                          class="w-24 shrink-0 text-xs text-muted-foreground"
-                        >
-                          {{ t('认证方式') }}
-                        </div>
-                        <div class="min-w-0 flex-1 break-words">
-                          {{
-                            selectedServer.has_auth_credentials
-                              ? (selectedServer.auth_header_name ?? t('已配置'))
-                              : t('不认证')
-                          }}
-                        </div>
+                        {{ server.last_sync_error }}
                       </div>
-                      <div class="flex items-start gap-3">
-                        <div
-                          class="w-24 shrink-0 text-xs text-muted-foreground"
-                        >
-                          {{ t('超时（秒）') }}
-                        </div>
-                        <div class="min-w-0 flex-1 break-words">
-                          {{ selectedServer.timeout_seconds }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    </td>
 
-                  <Separator />
+                    <td class="px-4 py-3">
+                      <div class="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" as-child>
+                          <Link
+                            :href="
+                              Mcp.ShowEditMcpServerPageAction.url({
+                                server: server.slug,
+                              })
+                            "
+                          >
+                            {{ t('编辑') }}
+                          </Link>
+                        </Button>
 
-                  <div class="space-y-3">
-                    <div class="space-y-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-sm font-semibold">
-                          {{ t('工具数') }}
-                          ({{ selectedServer.tools_count }})
-                        </h3>
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
-                          :disabled="isSyncing"
-                          @click="syncTools"
+                          variant="outline"
+                          :disabled="checkingServerSlug === server.slug"
+                          @click="checkConnection(server)"
                         >
                           <LoaderCircle
-                            v-if="isSyncing"
+                            v-if="checkingServerSlug === server.slug"
                             class="mr-2 h-4 w-4 animate-spin"
                           />
-                          {{ t('同步') }}
+                          {{ t('测试') }}
                         </Button>
-                        <Badge
-                          v-if="selectedServer.last_sync_status === 'failed'"
-                          variant="destructive"
-                        >
-                          {{ selectedServer.last_sync_status_label }}
-                        </Badge>
-                        <span
-                          v-if="formattedLastSync"
-                          class="text-xs text-muted-foreground"
-                        >
-                          {{ t('最后同步时间') }}:
-                          {{ formattedLastSync }}
-                        </span>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger as-child>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              class="h-8 w-8"
+                              :aria-label="t('更多操作')"
+                            >
+                              <MoreHorizontal class="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" class="w-36">
+                            <DropdownMenuItem
+                              class="text-destructive focus:text-destructive"
+                              @select="openDeleteDialog(server)"
+                            >
+                              {{ t('删除') }}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <p
-                        v-if="
-                          selectedServer.last_sync_status === 'failed' &&
-                          selectedServer.last_sync_error
-                        "
-                        class="text-xs text-destructive"
-                      >
-                        {{ selectedServer.last_sync_error }}
-                      </p>
-                    </div>
+                    </td>
+                  </tr>
+                </template>
 
-                    <div
-                      v-if="selectedServer.tools.length > 0"
-                      class="space-y-2"
-                    >
-                      <McpToolListItem
-                        v-for="tool in selectedServer.tools"
-                        :key="tool.id"
-                        :tool="tool"
-                      />
-                    </div>
-                    <div v-else class="text-sm text-muted-foreground">
-                      {{ t('该 MCP 服务暂无工具') }}
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <div
-                v-else
-                class="flex h-full items-center justify-center text-sm text-muted-foreground"
-              >
-                {{ t('暂无 MCP 服务') }}
-              </div>
-            </div>
+                <tr v-if="props.servers.length === 0">
+                  <td
+                    colspan="5"
+                    class="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    {{ t('暂无 MCP 服务') }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          <ConfirmDeleteDialog
-            :open="deleteTarget !== null"
-            :title="
-              t('删除 MCP 服务 “{name}”？', { name: deleteTarget?.name ?? '' })
-            "
-            :detail-description="
-              t('删除后将同时移除已缓存的 {count} 个工具记录。', {
-                count: deleteTarget?.tools_count ?? 0,
-              })
-            "
-            :processing="isDeleting"
-            @update:open="closeDeleteDialog"
-            @confirm="confirmDelete"
-          />
         </div>
-      </section>
+
+        <ConfirmDeleteDialog
+          :open="deletingServerSlug !== null"
+          :title="
+            t('删除 MCP 服务 “{name}”？', {
+              name: deletingServer?.name ?? '',
+            })
+          "
+          :detail-description="
+            t('删除后将同时移除已缓存的 {count} 个工具记录。', {
+              count: deletingServer?.tools_count ?? 0,
+            })
+          "
+          :processing="deleteForm.processing"
+          @update:open="handleDeleteDialogOpenChange"
+          @confirm="confirmDelete"
+        />
+      </div>
     </SystemSettingsLayout>
   </AppLayout>
 </template>

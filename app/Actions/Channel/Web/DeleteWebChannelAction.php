@@ -3,6 +3,7 @@
 namespace App\Actions\Channel\Web;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelResolutionService;
 use Illuminate\Http\RedirectResponse;
@@ -32,7 +33,7 @@ class DeleteWebChannelAction
     public function asController(Request $request, string $channel): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsDelete);
 
         $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 

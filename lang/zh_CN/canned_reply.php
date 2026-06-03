@@ -29,7 +29,7 @@ return [
     ],
     'errors' => [
         'forbidden' => '没有权限管理这个快捷回复',
-        'system_create_forbidden' => '只有系统管理员可以创建系统共享的快捷回复',
+        'system_create_forbidden' => '需要快捷回复管理权限才能创建系统共享的快捷回复',
         'shortcut_exists' => '同范围下已经有相同短码的快捷回复',
     ],
 ];

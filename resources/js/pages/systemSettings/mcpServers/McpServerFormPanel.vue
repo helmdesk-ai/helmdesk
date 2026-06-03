@@ -1,5 +1,5 @@
 <!--
-  MCP 服务创建/编辑表单面板，内嵌在 MCP 服务页右侧主内容区。
+  MCP 服务创建/编辑表单，供创建页和编辑页复用。
 -->
 <script setup lang="ts">
 import Mcp from '@/actions/App/Actions/Mcp';
@@ -40,10 +40,10 @@ const props = defineProps<{
   mode: 'create' | 'edit';
   server?: McpServerData | null;
   transportOptions: EnumOptionData[];
+  returnHref: string;
 }>();
 
 const emit = defineEmits<{
-  cancel: [];
   saved: [];
 }>();
 
@@ -286,7 +286,7 @@ async function checkConnection(): Promise<void> {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-none space-y-6">
+  <div class="w-full space-y-6">
     <HeadingSmall :title="title" :description="description" />
 
     <form class="space-y-6" @submit.prevent="submit">
@@ -294,6 +294,7 @@ async function checkConnection(): Promise<void> {
         :label="t('名称')"
         label-for="mcp-server-name"
         :error="fieldError('name')"
+        required
       >
         <Input
           id="mcp-server-name"
@@ -301,6 +302,7 @@ async function checkConnection(): Promise<void> {
           class="mt-1 block w-full"
           autocomplete="off"
           maxlength="128"
+          required
         />
       </FormField>
 
@@ -309,6 +311,7 @@ async function checkConnection(): Promise<void> {
         :label="t('传输协议')"
         label-for="mcp-server-transport"
         :error="fieldError('transport')"
+        required
       >
         <Select v-model="form.transport">
           <SelectTrigger id="mcp-server-transport" class="mt-1 w-full">
@@ -336,6 +339,7 @@ async function checkConnection(): Promise<void> {
         :label="t('端点地址')"
         label-for="mcp-server-endpoint-url"
         :error="fieldError('endpoint_url')"
+        required
       >
         <Input
           id="mcp-server-endpoint-url"
@@ -344,6 +348,7 @@ async function checkConnection(): Promise<void> {
           type="url"
           autocomplete="off"
           maxlength="2048"
+          required
         />
       </FormField>
 
@@ -433,6 +438,8 @@ async function checkConnection(): Promise<void> {
         :submit-label="submitLabel"
         :processing="form.processing"
         :submit-disabled="isChecking"
+        :cancel-href="props.returnHref"
+        :cancel-label="t('返回')"
       >
         <Button
           type="button"
@@ -442,14 +449,6 @@ async function checkConnection(): Promise<void> {
         >
           <LoaderCircle v-if="isChecking" class="mr-2 h-4 w-4 animate-spin" />
           {{ t('测试') }}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          :disabled="form.processing || isChecking"
-          @click="emit('cancel')"
-        >
-          {{ t('取消') }}
         </Button>
       </FormActions>
     </form>

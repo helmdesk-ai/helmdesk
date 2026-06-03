@@ -5,6 +5,7 @@ use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\Reception\ReceptionRoutingMode;
 use App\Enums\ReceptionPlanVersionStatus;
+use App\Enums\UserPermission;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Channel;
@@ -112,7 +113,7 @@ test('接待方案访客侧文案自动翻译默认关闭', function () {
         ->and(ReceptionMessageTranslationConfigData::fromArray(null)->provider_id)->toBeNull();
 });
 
-test('所有者可以查看接待方案列表页', function () {
+test('超级管理员可以查看接待方案列表页', function () {
     $provider = createReceptionTestProvider();
     $model = createReceptionTestModel($provider);
 
@@ -264,7 +265,7 @@ test('创建接待方案即生成初始版本快照', function () {
         ->and($version->compiled_config['reception_config']['default_model']['ai_model_id'])->toBe($model->id);
 });
 
-test('所有者可以创建接待方案草稿', function () {
+test('超级管理员可以创建接待方案草稿', function () {
     $provider = createReceptionTestProvider();
     $model = createReceptionTestModel($provider);
     $task = createReceptionTestModel($provider, [
@@ -416,7 +417,7 @@ test('创建接待方案时未指定模型校验失败', function () {
         ->assertSessionHasErrors(['reception_ai_model_id']);
 });
 
-test('所有者可以更新接待方案草稿', function () {
+test('超级管理员可以更新接待方案草稿', function () {
     $provider = createReceptionTestProvider();
     $model = createReceptionTestModel($provider);
     $updatedModel = createReceptionTestModel($provider, [
@@ -666,7 +667,7 @@ test('更新接待方案时备用模型不能重复主模型', function () {
         ->assertSessionHasErrors(['reception_model_candidates.0.ai_model_id']);
 });
 
-test('所有者可以删除接待方案当没有版本引用时', function () {
+test('超级管理员可以删除接待方案当没有版本引用时', function () {
     $plan = ReceptionPlan::factory()->create([
     ]);
 
@@ -677,7 +678,7 @@ test('所有者可以删除接待方案当没有版本引用时', function () {
     $this->assertSoftDeleted('reception_plans', ['id' => $plan->id]);
 });
 
-test('所有者可以查看接待方案回收站并恢复方案', function () {
+test('超级管理员可以查看接待方案回收站并恢复方案', function () {
     $provider = createReceptionTestProvider();
     $model = createReceptionTestModel($provider);
     $taskModel = createReceptionTestModel($provider, [
@@ -867,30 +868,24 @@ test('保存接待方案时主模型失效会被阻止且不生成版本', funct
     expect(ReceptionPlanVersion::query()->where('reception_plan_id', $plan->id)->exists())->toBeFalse();
 });
 
-test('非所有者无法访问接待方案管理页', function () {
-    $admin = User::factory()->create();
+test('有接待方案查看权限的用户可以访问接待方案一级菜单', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::ReceptionPlansView->value],
+    ]);
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
+    ]);
 
-    $operator = User::factory()->create();
-
-    $plan = ReceptionPlan::factory()->create([]);
-
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('admin.manage.reception.plans.index'))
-        ->assertForbidden();
+        ->assertOk();
 
-    $this->actingAs($operator)
+    $this->actingAs($userWithoutPermission)
         ->get(route('admin.manage.reception.plans.index'))
-        ->assertForbidden();
-
-    $this->actingAs($admin)
-        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id]), [
-            'name' => '非法更新',
-            'reception_ai_model_id' => 'x',
-        ])
         ->assertForbidden();
 });
 
-test('单租户下管理员可以访问任意方案详情', function () {
+test('单租户下超级管理员可以访问任意方案详情', function () {
     $localPlan = ReceptionPlan::factory()->create([]);
     $otherPlan = ReceptionPlan::factory()->create([]);
 

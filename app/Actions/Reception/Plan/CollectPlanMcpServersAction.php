@@ -10,8 +10,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
 /**
  * 按接待方案选中的 mcp_tool_ids 收集运行时可挂载的 MCP 服务列表。
  *
- * 与 chat_stream 路径上的 CollectActiveMcpServersAction 不同：这里以「方案级 tool 白名单」为入口，
- * 反查工具所属 server 并把同台 server 的工具聚合，再过滤掉 server 已停用 / 工具被禁用或下线的项，
+ * 与 chat_stream 路径上的 CollectConfiguredMcpServersAction 不同：这里以「方案级 tool 白名单」为入口，
+ * 反查工具所属 server 并把同台 server 的工具聚合，再过滤掉 endpoint 不完整或工具已下线的项，
  * 返回结构与 Go aitools.McpServerSpec 一一对应，可直接通过 Bridge 下发给任务 agent。
  */
 class CollectPlanMcpServersAction
@@ -33,9 +33,8 @@ class CollectPlanMcpServersAction
         $tools = McpTool::query()
             ->with('server')
             ->whereIn('id', $mcpToolIds)
-            ->where('is_enabled', true)
             ->whereNull('removed_at')
-            ->whereHas('server', fn ($q) => $q->where('is_active', true)
+            ->whereHas('server', fn ($q) => $q
                 ->whereNotNull('endpoint_url')
                 ->where('endpoint_url', '!=', '')
             )
@@ -86,7 +85,7 @@ class CollectPlanMcpServersAction
     }
 
     /**
-     * 空 string map 序列化为 JSON `{}` 而不是 `[]`，与 Go map[string]string 解码兼容。
+     * 空 string map 序列化为 JSON `{}`，保持 Go map[string]string 的对象形态。
      *
      * @param  array<string, string>  $map
      */

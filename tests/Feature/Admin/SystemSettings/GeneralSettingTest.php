@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UserPermission;
 use App\Models\User;
 use App\Services\SystemSetting\SystemBaseUrl;
 use App\Settings\GeneralSettings;
@@ -19,14 +20,14 @@ beforeEach(function () {
 test('超级管理员可以查看通用设置页面', function () {
     $this->withoutExceptionHandling();
 
-    actingAs($this->user, 'admin')
+    actingAs($this->user)
         ->get(route('admin.general.show'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('admin/generalSetting/Index'));
 });
 
 test('超级管理员可以查看静态系统设置页面', function (string $routeName, string $component) {
-    actingAs($this->user, 'admin')
+    actingAs($this->user)
         ->get(route($routeName))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component($component));
@@ -34,12 +35,24 @@ test('超级管理员可以查看静态系统设置页面', function (string $ro
     ['admin.mail.show', 'admin/systemSettings/MailSetting'],
 ]);
 
-test('非超级管理员不能视图通用设置页面', function () {
-    $user = User::factory()->create([
+test('有系统设置查看权限的用户可以查看通用设置页面', function () {
+    $viewer = User::factory()->create([
         'is_super_admin' => false,
+        'permissions' => [UserPermission::SystemSettingsView->value],
     ]);
 
-    actingAs($user, 'admin')
+    actingAs($viewer)
+        ->get(route('admin.general.show'))
+        ->assertOk();
+});
+
+test('没有系统设置查看权限的用户不能查看通用设置页面', function () {
+    $userWithoutPermission = User::factory()->create([
+        'is_super_admin' => false,
+        'permissions' => [],
+    ]);
+
+    actingAs($userWithoutPermission)
         ->get(route('admin.general.show'))
         ->assertForbidden();
 });
@@ -58,7 +71,7 @@ test('通用设置默认品牌是HelmDesk', function () {
 });
 
 test('超级管理员第一个访问填充默认库URL来自请求主机', function () {
-    actingAs($this->user, 'admin')
+    actingAs($this->user)
         ->get('https://support.example.test/admin/general')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -76,7 +89,7 @@ test('超级管理员访问不会覆盖自定义库URL', function () {
     $settings->base_url = 'https://custom.example.test';
     $settings->save();
 
-    actingAs($this->user, 'admin')
+    actingAs($this->user)
         ->get('https://support.example.test/admin/general')
         ->assertOk();
 
@@ -88,7 +101,7 @@ test('超级管理员访问不会覆盖自定义库URL', function () {
 test('超级管理员可以更新通用设置且包含全部字段', function () {
     config(['app.url' => 'https://old.example.test']);
 
-    $response = actingAs($this->user, 'admin')
+    $response = actingAs($this->user)
         ->put(route('admin.general.update'), [
             'base_url' => 'https://support.example.test',
             'name' => 'HelmDesk',
@@ -111,7 +124,7 @@ test('超级管理员可以更新通用设置且包含全部字段', function ()
 });
 
 test('超级管理员可以更新通用设置且只有必填字段', function () {
-    actingAs($this->user, 'admin')
+    actingAs($this->user)
         ->put(route('admin.general.update'), [
             'base_url' => GeneralSettings::DEFAULT_BASE_URL,
             'name' => 'HelmDesk',
@@ -124,7 +137,7 @@ test('超级管理员可以更新通用设置且只有必填字段', function ()
 });
 
 test('通用设置更新校验无效载荷', function (array $payload, string $field) {
-    actingAs($this->user, 'admin')
+    actingAs($this->user)
         ->put(route('admin.general.update'), $payload)
         ->assertSessionHasErrors($field);
 })->with([

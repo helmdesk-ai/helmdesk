@@ -7,6 +7,7 @@ use App\Data\SystemUserContextData;
 use App\Data\Translation\ShowTranslationProviderPagePropsData;
 use App\Data\Translation\TranslationProviderData;
 use App\Enums\TranslationProviderType;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\Translation\TranslationProviderCatalog;
@@ -26,6 +27,9 @@ class ShowSystemTranslationProvidersAction
 {
     use AsAction;
 
+    /**
+     * 注入翻译供应商目录。
+     */
     public function __construct(
         private readonly TranslationProviderCatalog $catalog,
     ) {}
@@ -44,7 +48,7 @@ class ShowSystemTranslationProvidersAction
         return new ShowTranslationProviderPagePropsData(
             providers: $providers,
             protocolOptions: EnumOptionData::fromCases(TranslationProviderType::cases()),
-            protocolCredentialFields: $this->credentialFieldsByProtocol(),
+            protocolCredentialFields: $this->catalog->credentialFieldsByProtocol(),
         );
     }
 
@@ -54,22 +58,8 @@ class ShowSystemTranslationProvidersAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsView);
 
         return Inertia::render('systemSettings/translationProviders/Index', $this->handle($systemContext)->toArray());
-    }
-
-    /**
-     * @return array<string, array<int, array<string, mixed>>>
-     */
-    private function credentialFieldsByProtocol(): array
-    {
-        $fields = [];
-
-        foreach (TranslationProviderType::cases() as $protocol) {
-            $fields[$protocol->value] = $this->catalog->credentialFieldsForProtocol($protocol);
-        }
-
-        return $fields;
     }
 }

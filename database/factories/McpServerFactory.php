@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 class McpServerFactory extends Factory
 {
     /**
-     * MCP 服务的默认状态：禁用、无凭据，便于测试控制启用时机和凭据走读。
+     * MCP 服务的默认状态：无凭据，便于测试控制凭据走读。
      *
      * @return array<string, mixed>
      */
@@ -29,7 +29,6 @@ class McpServerFactory extends Factory
             'endpoint_url' => 'https://'.fake()->domainName().'/mcp',
             'credentials' => null,
             'headers' => null,
-            'is_active' => false,
             'timeout_seconds' => 30,
             'last_synced_at' => null,
             'last_sync_status' => McpSyncStatus::Pending,
@@ -62,14 +61,6 @@ class McpServerFactory extends Factory
                 'auth_header_value' => $value,
             ],
         ]);
-    }
-
-    /**
-     * 切换到已启用状态。
-     */
-    public function active(): self
-    {
-        return $this->state(['is_active' => true]);
     }
 
     /**

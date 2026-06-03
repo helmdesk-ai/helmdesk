@@ -2,11 +2,10 @@
 
 namespace App\Actions\Mcp;
 
-use App\Data\EnumOptionData;
 use App\Data\Mcp\McpServerData;
 use App\Data\Mcp\ShowSystemMcpServersPagePropsData;
 use App\Data\SystemUserContextData;
-use App\Enums\McpTransport;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
 use App\Models\SystemContext;
 use Illuminate\Http\Request;
@@ -16,14 +15,14 @@ use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 加载当前系统下的 MCP 服务和工具列表页面数据。
+ * 加载 MCP 服务列表页数据。
  */
 class ShowSystemMcpServersAction
 {
     use AsAction;
 
     /**
-     * 装配 MCP 服务列表 + 工具子项 + 表单下拉选项。
+     * 装配 MCP 服务列表与工具子项。
      */
     public function handle(SystemContext $systemContext): ShowSystemMcpServersPagePropsData
     {
@@ -37,17 +36,16 @@ class ShowSystemMcpServersAction
 
         return new ShowSystemMcpServersPagePropsData(
             servers: $servers,
-            transport_options: EnumOptionData::fromCases(McpTransport::cases()),
         );
     }
 
     /**
-     * 渲染系统 MCP 服务页。
+     * 渲染系统 MCP 服务列表页。
      */
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsView);
 
         return Inertia::render('systemSettings/mcpServers/Index', $this->handle($systemContext)->toArray());
     }

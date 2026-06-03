@@ -60,7 +60,7 @@ function createKnowledgeBaseQaTestEmbeddingModel(): AiModel
     ]);
 }
 
-test('所有者可以创建带相似问法和多答案的问答条目', function () {
+test('超级管理员可以创建带相似问法和多答案的问答条目', function () {
     $defaultGroup = $this->qaKnowledgeBase->defaultDocumentGroup()->firstOrFail();
 
     $this->actingAs($this->user)

@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('endpoint_url');
             $table->text('credentials')->nullable();
             $table->json('headers')->nullable();
-            $table->boolean('is_active')->default(false);
             $table->unsignedSmallInteger('timeout_seconds')->default(30);
             $table->timestamp('last_synced_at')->nullable();
             $table->string('last_sync_status')->default('pending');

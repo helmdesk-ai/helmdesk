@@ -22,7 +22,6 @@ use Illuminate\Support\Carbon;
  * @property string $endpoint_url
  * @property string|null $credentials
  * @property array|null $headers
- * @property bool $is_active
  * @property int $timeout_seconds
  * @property Carbon|null $last_synced_at
  * @property McpSyncStatus $last_sync_status
@@ -60,7 +59,6 @@ class McpServer extends Model
             'transport' => McpTransport::class,
             'credentials' => 'encrypted:array',
             'headers' => 'array',
-            'is_active' => 'boolean',
             'timeout_seconds' => 'integer',
             'last_synced_at' => 'datetime',
             'last_sync_status' => McpSyncStatus::class,

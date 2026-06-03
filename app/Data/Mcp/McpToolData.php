@@ -20,7 +20,6 @@ class McpToolData extends Data
         public ?array $input_schema,
         /** @var array<string, mixed>|null */
         public ?array $annotations,
-        public bool $is_enabled,
         public ?string $last_seen_at,
         public ?string $removed_at,
     ) {}
@@ -36,7 +35,6 @@ class McpToolData extends Data
             description: $tool->description,
             input_schema: $tool->input_schema,
             annotations: $tool->annotations,
-            is_enabled: (bool) $tool->is_enabled,
             last_seen_at: $tool->last_seen_at?->toIso8601String(),
             removed_at: $tool->removed_at?->toIso8601String(),
         );

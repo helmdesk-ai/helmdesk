@@ -4,6 +4,7 @@ namespace App\Actions\Channel\Web;
 
 use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ class RestoreWebChannelAction
     public function asController(Request $request, string $channel): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()
             ->onlyTrashed()

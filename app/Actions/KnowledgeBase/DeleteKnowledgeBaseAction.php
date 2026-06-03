@@ -3,6 +3,7 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaAnswer;
@@ -73,7 +74,7 @@ class DeleteKnowledgeBaseAction
     public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesDelete);
 
         $knowledgeBaseModel = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

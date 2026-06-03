@@ -7,6 +7,7 @@ use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Web\FormUpdateWebChannelBasicData;
 use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
 use App\Models\SystemContext;
@@ -66,7 +67,7 @@ class UpdateWebChannelBasicAction
     public function asController(Request $request, string $channel): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = $this->resolution->findSystemChannel($systemContext, $channel);
 

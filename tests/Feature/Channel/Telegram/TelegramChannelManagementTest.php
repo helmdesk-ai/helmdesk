@@ -35,7 +35,7 @@ function fakeTelegramApiOk(): void
     ]);
 }
 
-test('所有者可以创建 Telegram 渠道并注册 webhook', function () {
+test('超级管理员可以创建 Telegram 渠道并注册 webhook', function () {
     fakeTelegramApiOk();
     $version = createTelegramDeployablePlanVersion($this->systemContext);
 
@@ -192,7 +192,7 @@ test('创建页正常渲染', function () {
         );
 });
 
-test('所有者可以软删除 Telegram 渠道并撤销 webhook', function () {
+test('超级管理员可以软删除 Telegram 渠道并撤销 webhook', function () {
     fakeTelegramApiOk();
     $version = createTelegramDeployablePlanVersion($this->systemContext);
     $channel = Channel::factory()->telegram()->create([

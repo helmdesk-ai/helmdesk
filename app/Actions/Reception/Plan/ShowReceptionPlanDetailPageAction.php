@@ -12,6 +12,7 @@ use App\Data\SystemUserContextData;
 use App\Data\Translation\TranslationProviderOptionData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\ReceptionPersonaTone;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
@@ -66,7 +67,7 @@ class ShowReceptionPlanDetailPageAction
     public function asController(Request $request, string $plan): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansView);
 
         $planModel = ReceptionPlan::query()
             ->findOrFail($plan);
@@ -89,7 +90,7 @@ class ShowReceptionPlanDetailPageAction
     }
 
     /**
-     * 加载系统可用 MCP 工具（server 已启用、tool 已启用且未下线），供方案级 MCP 工具多选项使用。
+     * 加载系统可用 MCP 工具（endpoint 完整且工具未下线），供方案级 MCP 工具多选项使用。
      *
      * @return list<PlanMcpToolOptionData>
      */
@@ -98,9 +99,9 @@ class ShowReceptionPlanDetailPageAction
         return McpTool::query()
             ->with('server')
             ->whereHas('server', fn ($q) => $q
-                ->where('is_active', true)
+                ->whereNotNull('endpoint_url')
+                ->where('endpoint_url', '!=', '')
             )
-            ->where('is_enabled', true)
             ->whereNull('removed_at')
             ->orderBy('name')
             ->get()

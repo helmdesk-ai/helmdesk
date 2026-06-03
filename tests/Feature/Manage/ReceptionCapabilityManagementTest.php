@@ -107,7 +107,7 @@ function receptionPlanUpdatePayload(
     ];
 }
 
-test('所有者可以打开接待方案详情页并看到服务场景模板', function () {
+test('超级管理员可以打开接待方案详情页并看到服务场景模板', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
 
     $this->actingAs($this->user)
@@ -215,7 +215,7 @@ test('单租户下方案可以引用任意知识库', function () {
     expect($plan->fresh()->knowledge_base_ids)->toBe([$knowledgeBase->id]);
 });
 
-test('所有者可以更新服务场景', function () {
+test('超级管理员可以更新服务场景', function () {
     $plan = createCapabilityTestPlan([
         'capabilities' => [[
             'name' => '订单查询',
@@ -259,7 +259,7 @@ test('更新方案草稿时可移除单个服务场景', function () {
         ->and($plan->capabilities[0]['name'])->toBe('常见问题');
 });
 
-test('单租户下管理员可以更新任意方案', function () {
+test('单租户下超级管理员可以更新任意方案', function () {
     $foreignProvider = createCapabilityTestProvider(['slug' => 'foreign-provider']);
     $foreignModel = createCapabilityTestModel($foreignProvider);
     $foreignPlan = ReceptionPlan::factory()->create([
@@ -318,7 +318,7 @@ test('编译方案时服务场景写入 compiled_config，方案级 KB 作为快
 
 test('保存方案时可写入方案级 MCP 工具引用', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
-    $server = McpServer::factory()->active()->create();
+    $server = McpServer::factory()->create();
     $tool = McpTool::factory()->for($server, 'server')->create(['name' => 'lookup_order']);
 
     $this->actingAs($this->user)
@@ -335,9 +335,27 @@ test('保存方案时可写入方案级 MCP 工具引用', function () {
     expect($plan->always_on_tools)->toBe([$tool->id]);
 });
 
-test('单租户下方案可以引用任意 MCP 工具', function () {
+test('保存方案时拒绝不可用 MCP 工具引用', function () {
     $plan = createCapabilityTestPlan(['capabilities' => []]);
-    $server = McpServer::factory()->active()->create();
+    $server = McpServer::factory()->create();
+    $tool = McpTool::factory()->removed()->for($server, 'server')->create();
+
+    $this->actingAs($this->user)
+        ->put(route('admin.manage.reception.plans.update', ['plan' => $plan->id,
+        ]), receptionPlanUpdatePayload(
+            $plan,
+            [['name' => '订单查询', 'description' => '', 'instructions' => '指令']],
+            [],
+            [$tool->id],
+        ))
+        ->assertSessionHasErrors(['mcp_tool_ids']);
+
+    expect($plan->fresh()->always_on_tools)->toBe([]);
+});
+
+test('单租户下方案可以引用任意可用 MCP 工具', function () {
+    $plan = createCapabilityTestPlan(['capabilities' => []]);
+    $server = McpServer::factory()->create();
     $tool = McpTool::factory()->for($server, 'server')->create();
 
     $this->actingAs($this->user)
@@ -357,7 +375,6 @@ test('编译方案时方案级 MCP 工具写入 compiled_config 快照', functio
     $provider = createCapabilityTestProvider();
     $model = createCapabilityTestModel($provider);
     $server = McpServer::factory()
-        ->active()
         ->create(['slug' => 'orders-mcp', 'name' => '订单 MCP']);
     $tool = McpTool::factory()->for($server, 'server')->create([
         'name' => 'lookup_order',
@@ -406,10 +423,31 @@ test('编译时方案级引用悬空 MCP 工具会抛 BusinessException', functi
         ->toThrow(BusinessException::class);
 });
 
-test('编译时方案级引用任意 MCP 工具会写入快照', function () {
+test('编译时方案级引用不可用 MCP 工具会抛 BusinessException', function () {
     $provider = createCapabilityTestProvider();
     $model = createCapabilityTestModel($provider);
-    $server = McpServer::factory()->active()->create();
+    $server = McpServer::factory()->create();
+    $tool = McpTool::factory()->removed()->for($server, 'server')->create();
+
+    $plan = ReceptionPlan::factory()->create([
+        'reception_config' => [
+            'default_model' => ['ai_model_id' => $model->id],
+        ],
+        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
+        'always_on_tools' => [$tool->id],
+        'capabilities' => [
+            ['name' => '订单查询', 'description' => '', 'instructions' => ''],
+        ],
+    ]);
+
+    expect(fn () => app(CompileReceptionPlanAction::class)->handle($this->systemContext, $plan))
+        ->toThrow(BusinessException::class);
+});
+
+test('编译时方案级引用任意可用 MCP 工具会写入快照', function () {
+    $provider = createCapabilityTestProvider();
+    $model = createCapabilityTestModel($provider);
+    $server = McpServer::factory()->create();
     $tool = McpTool::factory()->for($server, 'server')->create();
 
     $plan = ReceptionPlan::factory()->create([

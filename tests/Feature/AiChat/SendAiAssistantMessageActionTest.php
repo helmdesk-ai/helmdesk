@@ -89,7 +89,7 @@ test('它拒绝过大的聊天历史来自系统路由', function () {
     $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->postJson(route('admin.ai-chat.messages.store'), [
             'prompt' => 'hello',
             'model_id' => $model->id,
@@ -186,14 +186,14 @@ test('系统路由是限流到合理数字的请求每分钟', function () {
 
     // 30 是当前 throttle:30,1 的阈值；第 31 次必须被 RateLimiter 截下来。
     for ($i = 0; $i < 30; $i++) {
-        $this->actingAs($user, 'admin')
+        $this->actingAs($user)
             ->postJson(route('admin.ai-chat.messages.store'), [
                 'prompt' => 'hi',
                 'model_id' => $model->id,
             ]);
     }
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->postJson(route('admin.ai-chat.messages.store'), [
             'prompt' => 'hi',
             'model_id' => $model->id,
@@ -244,38 +244,32 @@ test('它拒绝无效历史角色在触及桥接前', function () {
     Http::assertNothingSent();
 });
 
-test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function () {
+test('它转发已配置的 MCP 服务和工具白名单到 Go 桥接', function () {
     $systemContext = SystemContext::factory()->create();
     $provider = createAiChatTestProvider($systemContext);
     $model = createAiChatTestModel($provider);
 
-    // 期望被推送的服务：is_active = true 且至少有 1 个 is_enabled 工具。
-    $activeServer = McpServer::factory()
+    $configuredServer = McpServer::factory()
         ->withBearerToken('mcp-token')
         ->create([
-            'is_active' => true,
-            'endpoint_url' => 'https://mcp.example.com/active',
+            'endpoint_url' => 'https://mcp.example.com/configured',
             'headers' => ['X-Context' => 'wsx'],
             'timeout_seconds' => 45,
             'sort_order' => 1,
         ]);
-    McpTool::factory()->for($activeServer, 'server')->create(['name' => 'search_orders', 'is_enabled' => true]);
-    McpTool::factory()->for($activeServer, 'server')->create(['name' => 'cancel_order', 'is_enabled' => true]);
+    McpTool::factory()->for($configuredServer, 'server')->create(['name' => 'search_orders']);
+    McpTool::factory()->for($configuredServer, 'server')->create(['name' => 'cancel_order']);
     // 已下线工具不应进入白名单。
-    McpTool::factory()->removed()->for($activeServer, 'server')->create(['name' => 'removed_op']);
-    // is_enabled = false 工具不应进入白名单。
-    McpTool::factory()->for($activeServer, 'server')->create(['name' => 'paused_op', 'is_enabled' => false]);
+    McpTool::factory()->removed()->for($configuredServer, 'server')->create(['name' => 'removed_op']);
 
-    // 期望被跳过的服务：is_active = false。
-    $inactiveServer = McpServer::factory()->create([
-        'is_active' => false,
-        'endpoint_url' => 'https://mcp.example.com/inactive',
+    // 期望被跳过的服务：endpoint 不完整。
+    $missingEndpointServer = McpServer::factory()->create([
+        'endpoint_url' => '',
     ]);
-    McpTool::factory()->for($inactiveServer, 'server')->create(['name' => 'noop']);
+    McpTool::factory()->for($missingEndpointServer, 'server')->create(['name' => 'noop']);
 
-    // 期望被跳过的服务：is_active = true 但没有可用工具。
+    // 期望被跳过的服务：没有未下线工具。
     $emptyServer = McpServer::factory()->create([
-        'is_active' => true,
         'endpoint_url' => 'https://mcp.example.com/empty',
         'sort_order' => 0,
     ]);
@@ -295,7 +289,7 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
 
     app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
 
-    Http::assertSent(function ($request) use ($activeServer): bool {
+    Http::assertSent(function ($request) use ($configuredServer): bool {
         $mcpServers = $request['mcp_servers'] ?? null;
         if (! is_array($mcpServers) || count($mcpServers) !== 1) {
             return false;
@@ -303,9 +297,9 @@ test('它转发已启用的 MCP 服务和工具白名单到 Go 桥接', function
 
         $server = $mcpServers[0];
 
-        return ($server['id'] ?? null) === (string) $activeServer->id
-            && ($server['slug'] ?? null) === (string) $activeServer->slug
-            && ($server['endpoint_url'] ?? null) === 'https://mcp.example.com/active'
+        return ($server['id'] ?? null) === (string) $configuredServer->id
+            && ($server['slug'] ?? null) === (string) $configuredServer->slug
+            && ($server['endpoint_url'] ?? null) === 'https://mcp.example.com/configured'
             && ($server['transport'] ?? null) === 'streamable_http'
             && ($server['timeout_seconds'] ?? null) === 45
             && ($server['credentials']['auth_header_value'] ?? null) === 'Bearer mcp-token'
@@ -381,12 +375,11 @@ test('它把 MCP 空凭据和空请求头序列化为 JSON 对象', function () 
     $model = createAiChatTestModel($provider);
 
     $server = McpServer::factory()->create([
-        'is_active' => true,
         'endpoint_url' => 'https://mcp.example.com/no-auth',
         'credentials' => null,
         'headers' => null,
     ]);
-    McpTool::factory()->for($server, 'server')->create(['name' => 'lookup', 'is_enabled' => true]);
+    McpTool::factory()->for($server, 'server')->create(['name' => 'lookup']);
 
     config([
         'services.go_runtime.base_url' => 'http://go-runtime.test',

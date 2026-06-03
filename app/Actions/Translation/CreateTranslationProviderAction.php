@@ -4,6 +4,7 @@ namespace App\Actions\Translation;
 
 use App\Data\SystemUserContextData;
 use App\Data\Translation\FormCreateTranslationProviderData;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Services\Translation\TranslationProviderCatalog;
@@ -53,17 +54,17 @@ class CreateTranslationProviderAction
     }
 
     /**
-     * 校验表单并落库后回到上一页（设置页）。
+     * 校验表单并落库后回到列表页。
      */
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateTranslationProviderData::from($request);
         $this->handle($systemContext, $data);
 
-        return back();
+        return redirect()->route('admin.manage.translation.providers.index');
     }
 
     /**

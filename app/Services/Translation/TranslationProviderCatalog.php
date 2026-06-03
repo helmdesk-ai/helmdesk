@@ -87,6 +87,22 @@ class TranslationProviderCatalog
     }
 
     /**
+     * 返回前端表单按协议索引的凭据字段配置。
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function credentialFieldsByProtocol(): array
+    {
+        $fields = [];
+
+        foreach (TranslationProviderType::cases() as $protocol) {
+            $fields[$protocol->value] = $this->credentialFieldsForProtocol($protocol);
+        }
+
+        return $fields;
+    }
+
+    /**
      * 取协议的本地化展示名称（设置页卡片标题、添加供应商下拉选项使用）。
      */
     public function labelForProtocol(TranslationProviderType $protocol): string

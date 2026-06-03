@@ -5,6 +5,7 @@ namespace App\Actions\Channel\Telegram;
 use App\Actions\Reception\Plan\ListReceptionPlansForChannelSelectionAction;
 use App\Data\Channel\Telegram\ShowCreateTelegramChannelPagePropsData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -42,7 +43,7 @@ class ShowCreateTelegramChannelPageAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsCreate);
 
         return Inertia::render('channel/telegram/Create', $this->handle($systemContext)->toArray());
     }

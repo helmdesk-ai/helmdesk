@@ -7,7 +7,7 @@ use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 
 /**
- * 当前管理员更新在线状态的表单数据。
+ * 当前后台用户更新在线状态的表单数据。
  */
 class FormUpdateMyOnlineStatusData extends Data
 {

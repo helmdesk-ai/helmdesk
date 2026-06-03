@@ -27,22 +27,7 @@ test('个人设置页面使用总管理后台上下文', function () {
 test('超级管理员可以访问设置', function () {
     $user = createSuperAdmin();
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->get(route('settings.profile.edit'))
         ->assertOk();
-});
-
-test('当两个guard都已认证时设置页使用管理员身份', function () {
-    $admin = createSuperAdmin();
-
-    $owner = $this->createUserWithSystem();
-
-    $this->actingAs($admin, 'admin');
-    $this->actingAs($owner, 'web');
-
-    $this->get(route('settings.profile.edit'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('auth.user.id', (string) $admin->id)
-        );
 });

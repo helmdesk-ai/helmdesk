@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * MCP 服务详情数据。
- * 同时承担左侧列表行 + 右侧详情面板的数据来源，由 ShowSystemMcpServersAction 装配。
+ * 承担 MCP 服务列表行、编辑页初始值和工具弹窗数据来源。
  * 认证 header 的 name 明文下发（前端反推 Bearer / Custom preset 需要），value 不下发（敏感）。
  */
 class McpServerData extends Data
@@ -23,9 +23,9 @@ class McpServerData extends Data
         public string $endpoint_url,
         public ?string $auth_header_name,
         public bool $has_auth_credentials,
+        public string $auth_method_label,
         /** @var array<string, string>|null */
         public ?array $headers,
-        public bool $is_active,
         public int $timeout_seconds,
         public ?string $last_synced_at,
         public McpSyncStatus $last_sync_status,
@@ -77,8 +77,8 @@ class McpServerData extends Data
             endpoint_url: (string) $server->endpoint_url,
             auth_header_name: $authHeaderName,
             has_auth_credentials: $hasAuthCredentials,
+            auth_method_label: self::authMethodLabel($hasAuthCredentials, $authHeaderName),
             headers: $server->headers,
-            is_active: (bool) $server->is_active,
             timeout_seconds: (int) $server->timeout_seconds,
             last_synced_at: $server->last_synced_at?->toIso8601String(),
             last_sync_status: $server->last_sync_status,
@@ -89,5 +89,21 @@ class McpServerData extends Data
             sort_order: (int) $server->sort_order,
             tools: $tools,
         );
+    }
+
+    /**
+     * 根据认证 header 配置生成列表展示文案。
+     */
+    private static function authMethodLabel(bool $hasAuthCredentials, ?string $authHeaderName): string
+    {
+        if (! $hasAuthCredentials || $authHeaderName === null) {
+            return __('mcp.auth_presets.none');
+        }
+
+        if (strtolower($authHeaderName) === 'authorization') {
+            return __('mcp.auth_presets.bearer');
+        }
+
+        return $authHeaderName;
     }
 }

@@ -8,7 +8,6 @@ import contact from './zh-CN/contact';
 import conversation from './zh-CN/conversation';
 import settings from './zh-CN/settings';
 import systemAdmin from './zh-CN/system-admin';
-import systemManagement from './zh-CN/system-management';
 import systemSettings from './zh-CN/system-settings';
 
 export default {
@@ -17,7 +16,6 @@ export default {
   ...auth,
   ...app,
   ...systemSettings,
-  ...systemManagement,
   ...systemAdmin,
   ...contact,
   ...conversation,

@@ -4,6 +4,7 @@ namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\FormUpdateCannedReplyData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
 use App\Models\SystemContext;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -32,6 +34,8 @@ class UpdateCannedReplyAction
      */
     public function handle(SystemContext $systemContext, User $user, string $cannedReplyId, FormUpdateCannedReplyData $data): CannedReply
     {
+        Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesEdit);
+
         $reply = CannedReply::query()
             ->find($cannedReplyId);
 

@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
  * 翻译供应商展示数据。
  *
  * 由 ShowSystemTranslationProvidersAction 组装，传给
- * resources/js/pages/systemSettings/translationProviders/Index.vue 渲染单卡片。
+ * resources/js/pages/systemSettings/translationProviders/Index.vue 渲染列表行。
  * credential_values 仅暴露非 secret 字段的明文；secret 字段只下发遮掩值（credential_masks），保证 API Key 不回写到前端。
  * protocol 直接以 Enum 形式下发，protocol_label 同步给出对应展示文案，避免前端手写枚举文案映射。
  * has_complete_credentials 供设置页只读 Badge 标识凭据是否已填齐（决定能否被接待方案选用）。

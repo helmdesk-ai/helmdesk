@@ -1,11 +1,14 @@
 <?php
 
 use App\Enums\McpSyncStatus;
+use App\Enums\UserPermission;
+use App\Jobs\Mcp\SyncMcpServerToolsJob;
 use App\Models\McpServer;
 use App\Models\McpTool;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\WithSystemContext;
@@ -90,15 +93,25 @@ test('访客用户不能访问 MCP 服务设置', function () {
         ->assertRedirect('/login');
 });
 
-test('非所有者系统成员不能访问 MCP 服务设置', function () {
-    $admin = User::factory()->create();
+test('有系统设置查看权限的用户可以访问 MCP 服务设置', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::SystemSettingsView->value],
+    ]);
 
-    $this->actingAs($admin)
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
+    ]);
+
+    $this->actingAs($viewer)
+        ->get(route('admin.manage.mcp.servers.index'))
+        ->assertOk();
+
+    $this->actingAs($userWithoutPermission)
         ->get(route('admin.manage.mcp.servers.index'))
         ->assertForbidden();
 });
 
-test('所有者可以查看空 MCP 服务列表', function () {
+test('超级管理员可以查看空 MCP 服务列表', function () {
     fakeMcpBridge();
 
     $this->actingAs($this->user)
@@ -106,11 +119,35 @@ test('所有者可以查看空 MCP 服务列表', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('systemSettings/mcpServers/Index')
-            ->has('servers', 0)
+            ->has('servers', 0));
+});
+
+test('超级管理员可以打开 MCP 服务创建页', function () {
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.mcp.servers.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('systemSettings/mcpServers/Create')
             ->has('transport_options'));
 });
 
-test('创建 MCP 服务只保存配置，不触发工具同步', function () {
+test('超级管理员可以打开 MCP 服务编辑页', function () {
+    $server = McpServer::factory()
+        ->withAuthHeader('X-Api-Key', 'secret')
+        ->create(['name' => 'Orders MCP']);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.mcp.servers.edit', ['server' => $server->slug]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('systemSettings/mcpServers/Edit')
+            ->where('server.name', 'Orders MCP')
+            ->where('server.auth_method_label', 'X-Api-Key')
+            ->has('transport_options'));
+});
+
+test('创建 MCP 服务后返回列表并派发工具同步任务', function () {
+    Bus::fake([SyncMcpServerToolsJob::class]);
     fakeMcpBridge();
 
     $this->actingAs($this->user)
@@ -122,17 +159,20 @@ test('创建 MCP 服务只保存配置，不触发工具同步', function () {
             'auth_header_value' => 'Bearer secret-token',
             'timeout_seconds' => 30,
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.manage.mcp.servers.index'));
 
     $server = McpServer::query()->firstOrFail();
 
     expect($server->name)->toBe('Shopify MCP');
     expect($server->credentials['auth_header_name'])->toBe('Authorization');
     expect($server->credentials['auth_header_value'])->toBe('Bearer secret-token');
-    expect($server->is_active)->toBeFalse();
-    expect($server->last_sync_status)->toBe(McpSyncStatus::Pending);
+    expect($server->last_sync_status)->toBe(McpSyncStatus::Syncing);
     expect($server->tools()->count())->toBe(0);
 
+    Bus::assertDispatched(
+        SyncMcpServerToolsJob::class,
+        fn (SyncMcpServerToolsJob $job): bool => $job->serverId === (string) $server->id,
+    );
     Http::assertNothingSent();
 });
 
@@ -169,6 +209,7 @@ test('认证 header name 与 value 必须成对出现', function () {
 });
 
 test('支持自定义认证 header 名（如 X-Api-Key）', function () {
+    Bus::fake([SyncMcpServerToolsJob::class]);
     fakeMcpBridge();
 
     $this->actingAs($this->user)
@@ -184,9 +225,15 @@ test('支持自定义认证 header 名（如 X-Api-Key）', function () {
     $server = McpServer::query()->firstOrFail();
     expect($server->credentials['auth_header_name'])->toBe('X-Api-Key');
     expect($server->credentials['auth_header_value'])->toBe('sk_live_xxx');
+
+    Bus::assertDispatched(
+        SyncMcpServerToolsJob::class,
+        fn (SyncMcpServerToolsJob $job): bool => $job->serverId === (string) $server->id,
+    );
 });
 
 test('更新表单未传认证字段时保留现有凭据', function () {
+    Bus::fake([SyncMcpServerToolsJob::class]);
     fakeMcpBridge();
 
     $server = McpServer::factory()
@@ -201,7 +248,7 @@ test('更新表单未传认证字段时保留现有凭据', function () {
             'timeout_seconds' => 45,
             // 未传 auth_header_name / auth_header_value，保留现有认证配置。
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.manage.mcp.servers.index'));
 
     $server->refresh();
     expect($server->name)->toBe('Renamed');
@@ -209,11 +256,17 @@ test('更新表单未传认证字段时保留现有凭据', function () {
     expect($server->credentials['auth_header_name'])->toBe('Authorization');
     expect($server->credentials['auth_header_value'])->toBe('Bearer original-token');
     expect($server->timeout_seconds)->toBe(45);
+    expect($server->last_sync_status)->toBe(McpSyncStatus::Syncing);
 
+    Bus::assertDispatched(
+        SyncMcpServerToolsJob::class,
+        fn (SyncMcpServerToolsJob $job): bool => $job->serverId === (string) $server->id,
+    );
     Http::assertNothingSent();
 });
 
 test('clear_auth_credentials = true 时会清掉凭据', function () {
+    Bus::fake([SyncMcpServerToolsJob::class]);
     fakeMcpBridge();
 
     $server = McpServer::factory()
@@ -227,49 +280,16 @@ test('clear_auth_credentials = true 时会清掉凭据', function () {
             'endpoint_url' => $server->endpoint_url,
             'clear_auth_credentials' => true,
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.manage.mcp.servers.index'));
 
-    expect($server->fresh()->credentials)->toBeNull();
-});
+    $server->refresh();
 
-test('启用服务前必须有 endpoint URL', function () {
-    fakeMcpBridge();
-
-    $server = McpServer::factory()
-        ->create([
-            'endpoint_url' => '',
-            'is_active' => false,
-        ]);
-
-    $this->actingAs($this->user)
-        ->from(route('admin.manage.mcp.servers.index'))
-        ->withHeader('X-Inertia', 'true')
-        ->put(route('admin.manage.mcp.servers.toggle', ['server' => $server->slug,
-        ]))
-        ->assertRedirect(route('admin.manage.mcp.servers.index'))
-        ->assertSessionHasErrors(['toast']);
-
-    expect($server->fresh()->is_active)->toBeFalse();
-});
-
-test('正常启用与停用 MCP 服务', function () {
-    fakeMcpBridge();
-
-    $server = McpServer::factory()->create();
-
-    $this->actingAs($this->user)
-        ->put(route('admin.manage.mcp.servers.toggle', ['server' => $server->slug,
-        ]))
-        ->assertRedirect();
-
-    expect($server->fresh()->is_active)->toBeTrue();
-
-    $this->actingAs($this->user)
-        ->put(route('admin.manage.mcp.servers.toggle', ['server' => $server->slug,
-        ]))
-        ->assertRedirect();
-
-    expect($server->fresh()->is_active)->toBeFalse();
+    expect($server->credentials)->toBeNull();
+    expect($server->last_sync_status)->toBe(McpSyncStatus::Syncing);
+    Bus::assertDispatched(
+        SyncMcpServerToolsJob::class,
+        fn (SyncMcpServerToolsJob $job): bool => $job->serverId === (string) $server->id,
+    );
 });
 
 test('Check 端点成功时返回 JSON 结果', function () {
@@ -369,10 +389,7 @@ test('Sync 新增并下线工具', function () {
     ]);
 
     $server = McpServer::factory()->create();
-    McpTool::factory()->for($server, 'server')->create([
-        'name' => 'old_tool',
-        'is_enabled' => true,
-    ]);
+    McpTool::factory()->for($server, 'server')->create(['name' => 'old_tool']);
 
     $this->actingAs($this->user)
         ->post(route('admin.manage.mcp.servers.sync', ['server' => $server->slug,
@@ -387,61 +404,40 @@ test('Sync 新增并下线工具', function () {
         ]);
 
     $newTool = $server->tools()->where('name', 'new_tool')->firstOrFail();
-    expect($newTool->is_enabled)->toBeTrue();
     expect($newTool->removed_at)->toBeNull();
 
     $oldTool = $server->tools()->where('name', 'old_tool')->firstOrFail();
-    expect($oldTool->is_enabled)->toBeFalse();
     expect($oldTool->removed_at)->not->toBeNull();
 
     expect($server->fresh()->last_sync_status)->toBe(McpSyncStatus::Success);
 });
 
-test('禁用并重新启用工具', function () {
-    fakeMcpBridge();
+test('同步全部 MCP 服务会标记同步中并派发队列任务', function () {
+    Bus::fake([SyncMcpServerToolsJob::class]);
 
-    $server = McpServer::factory()->create();
-    $tool = McpTool::factory()->for($server, 'server')->create([
-        'name' => 'tool_a',
-        'is_enabled' => true,
-        'removed_at' => null,
-    ]);
+    $first = McpServer::factory()->create();
+    $second = McpServer::factory()->create();
 
     $this->actingAs($this->user)
-        ->put(route('admin.manage.mcp.tools.toggle', ['server' => $server->slug,
-            'tool' => $tool->id,
-        ]))
-        ->assertRedirect();
+        ->post(route('admin.manage.mcp.servers.sync-all'))
+        ->assertOk()
+        ->assertJson([
+            'success' => true,
+            'queued' => 2,
+        ]);
 
-    expect($tool->fresh()->is_enabled)->toBeFalse();
+    expect($first->fresh()->last_sync_status)->toBe(McpSyncStatus::Syncing)
+        ->and($second->fresh()->last_sync_status)->toBe(McpSyncStatus::Syncing);
 
-    $this->actingAs($this->user)
-        ->put(route('admin.manage.mcp.tools.toggle', ['server' => $server->slug,
-            'tool' => $tool->id,
-        ]))
-        ->assertRedirect();
-
-    expect($tool->fresh()->is_enabled)->toBeTrue();
-});
-
-test('已下线工具不能再启用', function () {
-    fakeMcpBridge();
-
-    $server = McpServer::factory()->create();
-    $tool = McpTool::factory()->removed()->for($server, 'server')->create([
-        'name' => 'gone',
-    ]);
-
-    $this->actingAs($this->user)
-        ->from(route('admin.manage.mcp.servers.index'))
-        ->withHeader('X-Inertia', 'true')
-        ->put(route('admin.manage.mcp.tools.toggle', ['server' => $server->slug,
-            'tool' => $tool->id,
-        ]))
-        ->assertRedirect(route('admin.manage.mcp.servers.index'))
-        ->assertSessionHasErrors(['toast']);
-
-    expect($tool->fresh()->is_enabled)->toBeFalse();
+    Bus::assertDispatchedTimes(SyncMcpServerToolsJob::class, 2);
+    Bus::assertDispatched(
+        SyncMcpServerToolsJob::class,
+        fn (SyncMcpServerToolsJob $job): bool => $job->serverId === (string) $first->id,
+    );
+    Bus::assertDispatched(
+        SyncMcpServerToolsJob::class,
+        fn (SyncMcpServerToolsJob $job): bool => $job->serverId === (string) $second->id,
+    );
 });
 
 test('删除 MCP 服务会一并清理工具记录', function () {
@@ -459,7 +455,7 @@ test('删除 MCP 服务会一并清理工具记录', function () {
     expect(McpTool::query()->where('mcp_server_id', $server->id)->count())->toBe(0);
 });
 
-test('单租户下管理员可以看到全部 MCP 服务', function () {
+test('单租户下超级管理员可以看到全部 MCP 服务', function () {
     fakeMcpBridge();
 
     McpServer::factory()->create();

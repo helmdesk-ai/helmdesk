@@ -11,9 +11,7 @@ export default {
   未选择任何文件: 'No file chosen',
   切换系统: 'Switch system',
   添加系统: 'Add system',
-  管理员: 'Admin',
   客服: 'Teammate',
-  所有者: 'Owner',
   在线: 'Online',
   离线: 'Offline',
   个人设置: 'Personal settings',
@@ -56,6 +54,8 @@ export default {
   '恢复中...': 'Restoring...',
   测试: 'Test',
   切换在线: 'Go online',
+  显示密码: 'Show password',
+  隐藏密码: 'Hide password',
 
   // 媒体类型
   文本: 'Text',

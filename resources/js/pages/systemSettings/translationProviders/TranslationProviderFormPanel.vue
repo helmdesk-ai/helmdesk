@@ -1,5 +1,5 @@
 <!--
-  系统翻译供应商创建/编辑表单面板，内嵌在翻译供应商页右侧主内容区。
+  系统翻译供应商创建/编辑表单，供创建页和编辑页复用。
 -->
 <script setup lang="ts">
 import Translation from '@/actions/App/Actions/Translation';
@@ -65,10 +65,10 @@ const props = defineProps<{
     string,
     CredentialField[] | Record<number, CredentialField>
   >;
+  returnHref: string;
 }>();
 
 const emit = defineEmits<{
-  cancel: [];
   saved: [];
   clearCredentials: [];
 }>();
@@ -351,7 +351,7 @@ function checkConnection(): void {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-none space-y-6">
+  <div class="w-full space-y-6">
     <HeadingSmall :title="title" :description="description" />
 
     <form class="space-y-6" @submit.prevent="submit">
@@ -470,6 +470,8 @@ function checkConnection(): void {
         :submit-label="submitLabel"
         :processing="form.processing"
         :submit-disabled="checkHttp.processing || !form.protocol"
+        :cancel-href="props.returnHref"
+        :cancel-label="t('返回')"
       >
         <Button
           type="button"
@@ -482,14 +484,6 @@ function checkConnection(): void {
             class="mr-2 h-4 w-4 animate-spin"
           />
           {{ t('测试') }}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          :disabled="form.processing || checkHttp.processing"
-          @click="emit('cancel')"
-        >
-          {{ t('取消') }}
         </Button>
       </FormActions>
     </form>

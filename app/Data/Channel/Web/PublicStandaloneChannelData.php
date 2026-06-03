@@ -21,7 +21,7 @@ class PublicStandaloneChannelData extends Data
      * entry / unread_badge_enabled / inline_toast_enabled / mobile_fullscreen_enabled 仅在 widget bootstrap 时填充：
      * 独立页内访客始终能看到自己的未读，且天然全屏，因此独立页这些字段维持 null。
      *
-     * paused 为 true 时渠道已被管理员软删除，访客端应渲染"暂时不可用"占位，
+     * paused 为 true 时渠道已被有权限的用户软删除，访客端应渲染"暂时不可用"占位，
      * 仍允许已有会话继续消息往返，但拒绝新建会话。
      */
     public function __construct(

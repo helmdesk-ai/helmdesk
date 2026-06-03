@@ -1,6 +1,6 @@
 <!--
   知识库召回测试面板，内嵌在知识库列表右侧区域。
-  管理员输入一段查询并选择检索模式（grep / 语义 / 混合），实时查看当前知识库的召回命中、
+  有权限的用户输入一段查询并选择检索模式（grep / 语义 / 混合），实时查看当前知识库的召回命中、
   来源、得分与诊断信息；走 useHttp 请求 RunKnowledgeRecallTestAction，不触发页面导航。
   消费后端 KnowledgeRecallTestResultData。
 -->

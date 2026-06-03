@@ -1,5 +1,5 @@
 <!--
-  文件说明：快捷回复模版列表页，按"个人/共享/全部"切换；管理员可维护系统共享，普通成员只管理自己的私有模版。
+  文件说明：快捷回复模版列表页，按"个人/共享/全部"切换；有权限的用户可维护系统共享，其他用户只管理自己的私有模版。
 -->
 <script setup lang="ts">
 import ConfirmDeleteDialog from '@/components/common/ConfirmDeleteDialog.vue';
@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
-import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import CannedReplyForm from '@/pages/cannedReplies/CannedReplyForm.vue';
 import systemRoutes from '@/routes/admin';
 import cannedReplyRoutes from '@/routes/admin/canned-replies';
@@ -166,9 +165,8 @@ watch(editOpen, (open) => {
   <AppLayout>
     <Head :title="t('快捷回复')" />
 
-    <SystemSettingsLayout>
-      <section class="mx-auto w-full max-w-none space-y-12">
-        <div class="space-y-6">
+    <section class="w-full space-y-12 px-4 py-6 sm:px-6">
+      <div class="space-y-6">
           <div class="flex flex-wrap items-start justify-between gap-4">
             <HeadingSmall
               :title="t('快捷回复')"
@@ -336,9 +334,8 @@ watch(editOpen, (open) => {
               </table>
             </div>
           </div>
-        </div>
-      </section>
-    </SystemSettingsLayout>
+      </div>
+    </section>
 
     <ConfirmDeleteDialog
       :open="deletingReply !== null"

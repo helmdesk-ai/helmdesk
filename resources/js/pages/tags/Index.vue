@@ -32,7 +32,6 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
 import AppLayout from '@/layouts/AppLayout.vue';
-import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import admin from '@/routes/admin';
 import type {
   ListTagGroupItemData,
@@ -321,9 +320,8 @@ watch(mergeOpen, (open) => {
   <AppLayout>
     <Head :title="t('标签')" />
 
-    <SystemSettingsLayout>
-      <section class="mx-auto w-full max-w-none space-y-12">
-        <div class="space-y-6">
+    <section class="w-full space-y-12 px-4 py-6 sm:px-6">
+      <div class="space-y-6">
           <div class="flex items-start justify-between gap-4">
             <HeadingSmall
               :title="t('标签')"
@@ -451,9 +449,8 @@ watch(mergeOpen, (open) => {
               {{ t('暂无标签组') }}
             </div>
           </div>
-        </div>
-      </section>
-    </SystemSettingsLayout>
+      </div>
+    </section>
 
     <!-- 新建标签组 -->
     <Dialog v-model:open="createGroupOpen">

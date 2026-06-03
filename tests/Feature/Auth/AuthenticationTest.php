@@ -23,7 +23,6 @@ test('用户可以认证使用登录页面', function () {
     ]);
 
     $this->assertAuthenticated('web');
-    $this->assertGuest('admin');
     $response->assertRedirect(route('dashboard', absolute: false));
 });
 
@@ -41,7 +40,6 @@ test('未验证用户可以认证，但仅在邮件服务器启用时被拦截',
     ]);
 
     $this->assertAuthenticated('web');
-    $this->assertGuest('admin');
     $response->assertRedirect(route('dashboard', absolute: false));
 
     $this->get(route('dashboard'))
@@ -53,7 +51,7 @@ test('未验证超级管理员可以进入后台当邮件服务器禁用时', fu
         'email_verified_at' => null,
     ]);
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertRedirect(route('admin.dashboard', absolute: false));
 });
@@ -69,11 +67,10 @@ test('普通用户登录会忽略预期重定向并进入仪表盘', function ()
     ]);
 
     $this->assertAuthenticated('web');
-    $this->assertGuest('admin');
     $response->assertRedirect(route('dashboard', absolute: false));
 });
 
-test('超级管理员会被重定向到系统设置之后登录', function () {
+test('超级管理员登录后使用统一登录态进入仪表盘', function () {
     $user = User::factory()->withoutTwoFactor()->create([
         'is_super_admin' => true,
     ]);
@@ -83,12 +80,11 @@ test('超级管理员会被重定向到系统设置之后登录', function () {
         'password' => 'password',
     ]);
 
-    $this->assertAuthenticated('admin');
-    $this->assertGuest('web');
-    $response->assertRedirect('/admin');
+    $this->assertAuthenticated('web');
+    $response->assertRedirect(route('dashboard', absolute: false));
 });
 
-test('未验证超级管理员可以认证到系统设置', function () {
+test('未验证超级管理员登录后仍使用统一登录态', function () {
     $user = User::factory()->withoutTwoFactor()->unverified()->create([
         'is_super_admin' => true,
     ]);
@@ -98,12 +94,11 @@ test('未验证超级管理员可以认证到系统设置', function () {
         'password' => 'password',
     ]);
 
-    $this->assertAuthenticated('admin');
-    $this->assertGuest('web');
-    $response->assertRedirect('/admin');
+    $this->assertAuthenticated('web');
+    $response->assertRedirect(route('dashboard', absolute: false));
 });
 
-test('超级管理员登录会忽略非管理员预期重定向', function () {
+test('超级管理员登录会忽略预期重定向并进入仪表盘', function () {
     $user = User::factory()->withoutTwoFactor()->create([
         'is_super_admin' => true,
     ]);
@@ -115,9 +110,8 @@ test('超级管理员登录会忽略非管理员预期重定向', function () {
         'password' => 'password',
     ]);
 
-    $this->assertAuthenticated('admin');
-    $this->assertGuest('web');
-    $response->assertRedirect('/admin');
+    $this->assertAuthenticated('web');
+    $response->assertRedirect(route('dashboard', absolute: false));
 });
 
 test('启用双因素认证的用户会被重定向到双因素挑战', function () {

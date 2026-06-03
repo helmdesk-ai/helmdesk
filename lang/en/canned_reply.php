@@ -29,7 +29,7 @@ return [
     ],
     'errors' => [
         'forbidden' => 'You do not have permission to manage this canned reply.',
-        'system_create_forbidden' => 'Only system administrators can create system-shared canned replies.',
+        'system_create_forbidden' => 'Canned reply management permission is required to create system-shared canned replies.',
         'shortcut_exists' => 'A canned reply with the same shortcut already exists in this scope.',
     ],
 ];

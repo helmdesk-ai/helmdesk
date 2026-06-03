@@ -4,6 +4,7 @@ namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormCreateMcpServerData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
 use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,14 @@ class CreateMcpServerAction
     use AsAction;
 
     /**
-     * 创建新的 MCP 服务，只保存配置，不触发远端连接或工具同步。
+     * 注入工具同步入队动作。
+     */
+    public function __construct(
+        private readonly QueueMcpServerToolSyncAction $queueToolSync,
+    ) {}
+
+    /**
+     * 创建新的 MCP 服务，并派发异步工具同步任务。
      */
     public function handle(SystemContext $systemContext, FormCreateMcpServerData $data): McpServer
     {
@@ -34,26 +42,27 @@ class CreateMcpServerAction
             'endpoint_url' => $data->endpoint_url,
             'credentials' => $this->buildCredentials($data->auth_header_name, $data->auth_header_value),
             'headers' => $this->normalizeHeaders($data->headers),
-            'is_active' => false,
             'timeout_seconds' => $data->timeout_seconds ?? 30,
             'sort_order' => $maxSort + 1,
         ]);
+
+        $this->queueToolSync->handle($server);
 
         return $server->refresh();
     }
 
     /**
-     * 路由入口：校验权限后创建并 302 回列表页。
+     * 路由入口：校验权限后创建并 302 到列表页。
      */
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateMcpServerData::from($request);
         $this->handle($systemContext, $data);
 
-        return back();
+        return redirect()->route('admin.manage.mcp.servers.index');
     }
 
     /**

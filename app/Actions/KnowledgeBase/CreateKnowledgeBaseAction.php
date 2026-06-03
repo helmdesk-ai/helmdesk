@@ -5,6 +5,7 @@ namespace App\Actions\KnowledgeBase;
 use App\Data\KnowledgeBase\FormCreateKnowledgeBaseData;
 use App\Data\SystemUserContextData;
 use App\Enums\AttachmentPurpose;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
 use App\Models\SystemContext;
@@ -72,7 +73,7 @@ class CreateKnowledgeBaseAction
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesCreate);
 
         $knowledgeBase = $this->handle($systemContext, FormCreateKnowledgeBaseData::from($request));
 

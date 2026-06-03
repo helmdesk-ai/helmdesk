@@ -7,6 +7,8 @@ export default {
   管理系统的配置和设置: 'Manage system configurations and settings',
   '管理系统基础配置、存储、邮件与 AI 能力':
     'Manage system basics, storage, mail, and AI capabilities',
+  '管理系统基础配置、存储、邮件与供应商能力':
+    'Manage system basics, storage, mail, and provider capabilities',
   '管理系统基础配置、数据字段、消息模板、存储、邮件与 AI 能力':
     'Manage system basics, data fields, message templates, storage, mail, and AI capabilities',
   基础设置: 'General Settings',

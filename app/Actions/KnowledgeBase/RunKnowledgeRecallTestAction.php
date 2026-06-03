@@ -6,6 +6,7 @@ use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeRecallTestResultData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeQaEntry;
@@ -106,7 +107,7 @@ class RunKnowledgeRecallTestAction
     public function asController(Request $request, string $knowledgeBase): JsonResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         $kb = KnowledgeBase::query()
             ->findOrFail($knowledgeBase);

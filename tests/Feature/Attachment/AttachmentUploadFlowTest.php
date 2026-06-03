@@ -294,7 +294,7 @@ test('管理员和网页guard都已认证时系统级图片上传可以完成', 
     ]);
     $file = UploadedFile::fake()->image('logo.png', 120, 60);
 
-    $this->actingAs($admin, 'admin');
+    $this->actingAs($admin);
     $this->actingAs($webUser, 'web');
 
     $createResponse = $this->postJson('/api/attachments/uploads', [

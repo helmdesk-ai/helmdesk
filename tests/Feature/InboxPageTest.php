@@ -45,12 +45,12 @@ test('访客用户会被重定向到登录页面', function () {
     $this->get(route('inbox'))->assertRedirect(route('login'));
 });
 
-test('已认证管理员进入仪表盘和可以打开收件箱', function () {
+test('已认证用户进入仪表盘和可以打开收件箱', function () {
     [$systemContext, $user] = createSystemWithOwner();
     $provider = createSystemAiProvider($systemContext);
     $model = createSystemAiModel($provider);
 
-    $this->actingAs($user, 'admin');
+    $this->actingAs($user);
 
     $this->get(route('dashboard'))
         ->assertRedirect(route('admin.dashboard'));
@@ -92,7 +92,7 @@ test('访问仪表盘刷新用户最后活跃时间戳', function () {
     $previousLastActiveAt = now()->subDay();
     $user->forceFill(['last_active_at' => $previousLastActiveAt])->save();
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->get(route('admin.dashboard'))
         ->assertOk();
 
@@ -102,19 +102,18 @@ test('访问仪表盘刷新用户最后活跃时间戳', function () {
         ->and($updatedLastActiveAt->isAfter($previousLastActiveAt))->toBeTrue();
 });
 
-test('管理员在收件箱接收 AI 助手模型选项', function () {
+test('用户在收件箱接收 AI 助手模型选项', function () {
     [$systemContext] = createSystemWithOwner();
     $provider = createSystemAiProvider($systemContext);
     $model = createSystemAiModel($provider);
 
     $admin = createSuperAdmin();
 
-    $this->actingAs($admin, 'admin')
+    $this->actingAs($admin)
         ->get(route('admin.inbox.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Inbox')
-            ->where('canManageAi', true)
             ->has('aiAssistantLlmModelOptions', 1)
             ->where('aiAssistantLlmModelOptions.0.value', (string) $model->id)
         );
@@ -140,7 +139,7 @@ test('收件箱只显示非已删除网页频道', function () {
     ]);
     $deletedChannel->delete();
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->get(route('admin.inbox.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page

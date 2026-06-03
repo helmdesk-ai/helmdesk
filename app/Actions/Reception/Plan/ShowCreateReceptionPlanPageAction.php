@@ -6,6 +6,7 @@ use App\Data\EnumOptionData;
 use App\Data\Reception\Plan\CreateReceptionPlanPagePropsData;
 use App\Data\SystemUserContextData;
 use App\Enums\ReceptionPersonaTone;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class ShowCreateReceptionPlanPageAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansCreate);
 
         return Inertia::render('reception/plans/Create', $this->handle($systemContext)->toArray());
     }

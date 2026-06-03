@@ -7,6 +7,7 @@ use App\Data\Reception\Plan\FormCreateReceptionPlanData;
 use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
@@ -140,7 +141,7 @@ class CreateReceptionPlanAction
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansCreate);
 
         $plan = $this->handle($systemContext, FormCreateReceptionPlanData::from($request));
 

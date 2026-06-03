@@ -4,6 +4,7 @@ namespace App\Actions\Translation;
 
 use App\Data\SystemUserContextData;
 use App\Data\Translation\FormUpdateTranslationProviderData;
+use App\Enums\UserPermission;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use Illuminate\Http\RedirectResponse;
@@ -39,17 +40,17 @@ class UpdateTranslationProviderCredentialsAction
     }
 
     /**
-     * 从请求取表单数据、校验、保存。
+     * 从请求取表单数据、校验、保存后回到列表页。
      */
     public function asController(Request $request, string $provider): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormUpdateTranslationProviderData::from($request);
         $this->handle($systemContext, $provider, $data);
 
-        return back();
+        return redirect()->route('admin.manage.translation.providers.index');
     }
 
     /**

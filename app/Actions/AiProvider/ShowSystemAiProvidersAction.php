@@ -6,6 +6,7 @@ use App\Data\AiProvider\AiProviderData;
 use App\Data\AiProvider\BrandOptionData;
 use App\Data\AiProvider\ShowAiProviderPagePropsData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiProvider;
 use App\Models\SystemContext;
 use App\Services\AiProvider\AiProviderCatalog;
@@ -52,7 +53,7 @@ class ShowSystemAiProvidersAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsView);
 
         return Inertia::render('systemSettings/aiProviders/Index', $this->handle($systemContext)->toArray());
     }

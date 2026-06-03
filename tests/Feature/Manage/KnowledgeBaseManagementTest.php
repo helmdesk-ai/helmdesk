@@ -6,6 +6,7 @@ use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentStatus;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Enums\KnowledgeNodeKind;
+use App\Enums\UserPermission;
 use App\Jobs\KnowledgeDocument\IndexRaptorKnowledgeDocumentJob;
 use App\Jobs\KnowledgeDocument\IndexVectorKnowledgeDocumentJob;
 use App\Jobs\KnowledgeQa\IndexVectorKnowledgeQaEntryJob;
@@ -77,7 +78,7 @@ function createKnowledgeBaseTestAiModel(string $type = 'embedding', ?AiProvider 
     ]);
 }
 
-test('所有者可以查看知识库列表页面和系统检索配置', function () {
+test('超级管理员可以查看知识库列表页面和系统检索配置', function () {
     $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
     $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
     $this->systemContext->update([
@@ -191,7 +192,7 @@ test('知识库列表按创建时间从旧到新排列', function () {
         );
 });
 
-test('所有者可以打开创建和编辑知识库页面', function () {
+test('超级管理员可以打开创建和编辑知识库页面', function () {
     $knowledgeBase = KnowledgeBase::factory()->create([
         'name' => '产品知识库',
     ]);
@@ -214,7 +215,7 @@ test('所有者可以打开创建和编辑知识库页面', function () {
         );
 });
 
-test('所有者可以创建更新并删除知识库', function () {
+test('超级管理员可以创建更新并删除知识库', function () {
     Storage::fake('local');
     $avatar = createKnowledgeBaseTestAttachment();
     $updatedAvatar = createKnowledgeBaseTestAttachment();
@@ -325,7 +326,7 @@ test('删除知识库会一并清空 sqlite_rag 中的节点 / 全文 / 大纲',
             ->table('knowledge_outlines')->where('knowledge_base_id', (string) $knowledgeBase->id)->exists())->toBeFalse();
 });
 
-test('所有者可以保存系统知识库检索配置', function () {
+test('超级管理员可以保存系统知识库检索配置', function () {
     $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
     $rerankModel = createKnowledgeBaseTestAiModel('rerank', $embeddingModel->provider);
     $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
@@ -642,29 +643,20 @@ test('知识库头像需要来自可用附件', function () {
     expect($foreignAttachment->fresh()->attachable_id)->toBe($otherKnowledgeBase->id);
 });
 
-test('非超级管理员没有知识库管理权限', function () {
-    $admin = User::factory()->create();
-
-    $operator = User::factory()->create();
-
-    $knowledgeBase = KnowledgeBase::factory()->create([
+test('有知识库查看权限的用户可以访问知识库一级菜单', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::KnowledgeBasesView->value],
+    ]);
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
     ]);
 
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('admin.manage.knowledge-bases.index'))
-        ->assertForbidden();
+        ->assertOk();
 
-    $this->actingAs($operator)
+    $this->actingAs($userWithoutPermission)
         ->get(route('admin.manage.knowledge-bases.index'))
-        ->assertForbidden();
-
-    $this->actingAs($admin)
-        ->put(route('admin.manage.knowledge-bases.update', ['knowledgeBase' => $knowledgeBase->id,
-        ]), [
-            'name' => '非法更新',
-            'description' => '',
-            'category' => 'standard',
-        ])
         ->assertForbidden();
 });
 

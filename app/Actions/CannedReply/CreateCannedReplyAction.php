@@ -4,6 +4,7 @@ namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\FormCreateCannedReplyData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
 use App\Models\SystemContext;
@@ -11,12 +12,13 @@ use App\Models\User;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * 创建快捷回复模版。
- * 个人模版任何成员都可创建；共享模版仅系统管理员可创建。
+ * 个人模版需要快捷回复编辑权限；共享模版需要快捷回复管理权限。
  */
 class CreateCannedReplyAction
 {
@@ -31,6 +33,8 @@ class CreateCannedReplyAction
      */
     public function handle(SystemContext $systemContext, User $user, FormCreateCannedReplyData $data): CannedReply
     {
+        Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesEdit);
+
         $isPersonal = $data->is_personal;
 
         if (! $isPersonal && ! $this->policy->canManageSystemShared($systemContext, $user)) {

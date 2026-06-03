@@ -8,7 +8,6 @@ import contact from './en/contact';
 import conversation from './en/conversation';
 import settings from './en/settings';
 import systemAdmin from './en/system-admin';
-import systemManagement from './en/system-management';
 import systemSettings from './en/system-settings';
 
 // 英文语言包 - 使用中文作为 key，值是对应的英文翻译（按模块拆分，便于维护）
@@ -18,7 +17,6 @@ export default {
   ...auth,
   ...app,
   ...systemSettings,
-  ...systemManagement,
   ...systemAdmin,
   ...contact,
   ...conversation,

@@ -8,6 +8,7 @@ use App\Enums\Channel\Web\WebChannelWidgetEntryPosition;
 use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
 use App\Enums\Channel\Web\WebChannelWidgetIconSize;
 use App\Enums\ReceptionLanguage;
+use App\Enums\UserPermission;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Attachment;
@@ -106,7 +107,7 @@ function createDeployableReceptionPlanVersion(SystemContext $systemContext, ?AiM
         ->create($versionAttributes);
 }
 
-test('所有者可以查看网页频道列表和详情页面', function () {
+test('超级管理员可以查看网页频道列表和详情页面', function () {
     $version = createDeployableReceptionPlanVersion($this->systemContext);
     $planName = $version->plan->name;
 
@@ -250,7 +251,7 @@ test('网页频道未被嵌入时 embed host 字段为 null', function () {
         );
 });
 
-test('所有者可以查看网页频道列表且没有可选接待方案版本', function () {
+test('超级管理员可以查看网页频道列表且没有可选接待方案版本', function () {
     $this->actingAs($this->user)
         ->get(route('admin.manage.channels.web.index'))
         ->assertOk()
@@ -294,7 +295,7 @@ test('网站渠道预览地址使用后台保存的主机地址', function () {
         );
 });
 
-test('所有者可以创建活跃频道并带名称和接待方案版本', function () {
+test('超级管理员可以创建活跃频道并带名称和接待方案版本', function () {
     $version = createDeployableReceptionPlanVersion($this->systemContext);
 
     $response = $this->actingAs($this->user)
@@ -354,7 +355,7 @@ test('创建频道时不部署接待方案版本则被拒绝', function () {
         ->assertSessionHasErrors(['reception_plan_id']);
 });
 
-test('所有者可以保存基础频道信息', function () {
+test('超级管理员可以保存基础频道信息', function () {
     $version = createDeployableReceptionPlanVersion($this->systemContext);
 
     $channel = Channel::factory()->create([
@@ -380,7 +381,7 @@ test('所有者可以保存基础频道信息', function () {
         ->and($settings->default_visitor_locale)->toBe(ReceptionLanguage::Japanese);
 });
 
-test('所有者可以保存小部件入口配置', function () {
+test('超级管理员可以保存小部件入口配置', function () {
     $channel = Channel::factory()->create([
     ]);
 
@@ -525,7 +526,7 @@ test('自定义入口模式隐藏默认气泡并放宽图标成对校验', funct
         ->and($defaultIcon->fresh()->attachable_id)->toBeNull();
 });
 
-test('所有者可以保存访客界面配置并同步到两个入口', function () {
+test('超级管理员可以保存访客界面配置并同步到两个入口', function () {
     Storage::fake('public');
 
     $attachment = createChannelTestAttachment();
@@ -579,7 +580,7 @@ test('所有者可以保存访客界面配置并同步到两个入口', function
         ->and($webChannel->visitor_interface->subtitle)->toBe('产品咨询与售后支持');
 });
 
-test('所有者可以随访客界面保存猜你想问设置', function () {
+test('超级管理员可以随访客界面保存猜你想问设置', function () {
     $channel = Channel::factory()->create([
     ]);
 
@@ -664,7 +665,7 @@ test('访客界面校验猜你想问建议数量', function () {
         ]);
 });
 
-test('所有者可以软删除频道', function () {
+test('超级管理员可以软删除频道', function () {
     $version = createDeployableReceptionPlanVersion($this->systemContext);
 
     $channel = Channel::factory()->create([
@@ -833,7 +834,7 @@ test('访客界面更新接受未绑定页面图标并绑定到频道', function
         ->and($serviceAvatar->fresh()->attachable_id)->toBeNull();
 });
 
-test('所有者可以查看频道回收站和恢复频道', function () {
+test('超级管理员可以查看频道回收站和恢复频道', function () {
     $version = createDeployableReceptionPlanVersion($this->systemContext);
 
     $channel = Channel::factory()->create([
@@ -890,30 +891,31 @@ test('频道设置转换水合数据对象来自数组载荷', function () {
         ->and(WebChannelData::fromModel($channel)->visitor_interface->theme_color)->toBe('#C2185B');
 });
 
-test('非所有者用户不能访问或修改网页频道', function () {
-    $admin = User::factory()->create();
-
-    $operator = User::factory()->create();
+test('有渠道查看权限的用户可以访问网页频道一级菜单', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::ChannelsView->value],
+    ]);
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
+    ]);
 
     $channel = Channel::factory()->create([
     ]);
 
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('admin.manage.channels.web.index'))
-        ->assertForbidden();
+        ->assertOk();
 
-    $this->actingAs($operator)
+    $this->actingAs($viewer)
         ->get(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
-        ->assertForbidden();
+        ->assertOk();
 
-    $this->actingAs($admin)
-        ->post(route('admin.manage.channels.web.store'), [
-            'name' => '管理员创建',
-        ])
+    $this->actingAs($userWithoutPermission)
+        ->get(route('admin.manage.channels.web.index'))
         ->assertForbidden();
 });
 
-test('单租户下管理员可以访问或删除任意频道', function () {
+test('单租户下超级管理员可以访问或删除任意频道', function () {
     $otherChannel = Channel::factory()->create([
     ]);
 

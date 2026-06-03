@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\ContactTagFilterStrategy;
-use App\Enums\SystemRole;
+use App\Enums\UserPermission;
 use App\Models\User;
 use App\Services\Database\SqliteVecExtensionLoader;
 use App\Services\KnowledgeBase\Parsing\DocumentParserManager;
@@ -76,17 +76,16 @@ class AppServiceProvider extends ServiceProvider
             app(SqliteVecExtensionLoader::class)->ensureLoadedFor($event->connection);
         });
 
-        // 管理中心权限
-        Gate::define('admin.canAccessManageCenter', function (User $actor, mixed $scope = null): bool {
-            return $actor->is_super_admin
-                || in_array($actor->role, [SystemRole::Owner, SystemRole::Admin], true);
+        Gate::define('user.permission', function (User $actor, UserPermission|string $permission): bool {
+            return $actor->hasPermission($permission);
         });
 
-        Gate::define('admin.manageAi', function (User $actor, mixed $scope = null): bool {
-            return $actor->is_super_admin || $actor->role === SystemRole::Owner;
-        });
+        foreach (UserPermission::cases() as $permission) {
+            Gate::define($permission->value, function (User $actor) use ($permission): bool {
+                return $actor->hasPermission($permission);
+            });
+        }
 
-        // 从后台移除成员权限（仅普通成员可被移除，不删除超级管理员）
         Gate::define('systemContext-users.removeMember', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
             $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
             if (! $target instanceof User) {
@@ -101,62 +100,26 @@ class AppServiceProvider extends ServiceProvider
                 return false;
             }
 
-            if ($actor->is_super_admin || $actor->role === SystemRole::Owner) {
-                return true;
-            }
-
-            if ($actor->role !== SystemRole::Admin) {
-                return false;
-            }
-
-            return $target->role === SystemRole::Operator;
+            return $actor->hasPermission(UserPermission::UsersDelete);
         });
 
-        // 更新用户资料权限
         Gate::define('systemContext-users.updateProfile', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
             $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
             if (! $target instanceof User) {
                 return false;
             }
 
-            if ($actor->is_super_admin || $actor->role === SystemRole::Owner) {
-                return true;
-            }
-
-            if ($actor->role !== SystemRole::Admin) {
+            if ($target->is_super_admin) {
                 return false;
             }
 
-            return (string) $actor->id === (string) $target->id
-                || $target->role === SystemRole::Operator;
-        });
-
-        Gate::define('systemContext-users.canUpdateRole', function (User $actor, mixed $scopeOrTarget, ?User $target = null): bool {
-            $target ??= $scopeOrTarget instanceof User ? $scopeOrTarget : null;
-
-            return ($actor->is_super_admin || $actor->role === SystemRole::Owner)
-                && $target instanceof User
-                && (string) $actor->id !== (string) $target->id;
-        });
-
-        Gate::define('systemContext-users.updateRole', function (User $actor, mixed $scopeOrTarget, User|SystemRole|null $targetOrRole = null, ?SystemRole $newRole = null): bool {
-            $target = $scopeOrTarget instanceof User ? $scopeOrTarget : null;
-            if ($target === null && $targetOrRole instanceof User) {
-                $target = $targetOrRole;
-            }
-
-            if ($newRole === null && $targetOrRole instanceof SystemRole) {
-                $newRole = $targetOrRole;
-            }
-
-            return ($actor->is_super_admin || $actor->role === SystemRole::Owner)
-                && $target instanceof User
-                && $newRole instanceof SystemRole
-                && (string) $actor->id !== (string) $target->id
-                && in_array($newRole, SystemRole::assignableCases(), true);
+            return $actor->hasPermission(UserPermission::UsersEdit);
         });
     }
 
+    /**
+     * 判断当前异常是否来自 settings 表尚未创建。
+     */
     private function isMissingSettingsTableException(Throwable $exception): bool
     {
         if (! $exception instanceof QueryException) {

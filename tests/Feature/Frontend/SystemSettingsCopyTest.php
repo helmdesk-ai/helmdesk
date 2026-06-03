@@ -189,11 +189,32 @@ test('接待方案流程策略使用接待方式文案并补齐多语言', funct
     }
 });
 
-test('系统设置菜单使用总管理后台和系统设置二级视图', function (): void {
+test('侧边栏品牌区仅展示系统名称', function (): void {
+    $sidebarShell = File::get(resource_path('js/layouts/app/SidebarShell.vue'));
+    $systemSidebarLayout = File::get(resource_path('js/layouts/app/SystemSidebarLayout.vue'));
+
+    expect($sidebarShell)
+        ->toContain('{{ systemName }}')
+        ->toContain('class="flex min-w-0 flex-1 items-center pr-2 group-data-[collapsible=icon]:hidden"')
+        ->toContain('class="truncate text-sm leading-tight font-semibold"')
+        ->not->toContain('headerSubtitle')
+        ->not->toContain('name="headerSubtitle"');
+
+    expect($systemSidebarLayout)
+        ->toContain(':header-href="admin.dashboard.url()"')
+        ->not->toContain('header-subtitle')
+        ->not->toContain('总管理后台');
+});
+
+test('系统设置菜单使用系统设置二级视图', function (): void {
     $systemSidebarLayout = File::get(resource_path('js/layouts/app/SystemSidebarLayout.vue'));
     $systemSettingsLayout = File::get(resource_path('js/layouts/SystemSettingsLayout.vue'));
 
     $mainMenuMappings = [
+        'admin.manage.tags.index.url()' => '`${manageBaseUrl.value}/tags`',
+        'admin.manage.attributes.index.url()' => '`${manageBaseUrl.value}/attributes`',
+        'admin.cannedReplies.index.url()' => 'routePath(admin.cannedReplies.index.url())',
+        'KnowledgeBase.ListKnowledgeBasesAction.url()' => '`${manageBaseUrl.value}/knowledge-bases`',
         'Plan.ShowReceptionPlanIndexPageAction.url()' => '`${manageBaseUrl.value}/reception`',
         'admin.manage.channels.web.index.url()' => '`${manageBaseUrl.value}/channels`',
     ];
@@ -202,9 +223,6 @@ test('系统设置菜单使用总管理后台和系统设置二级视图', funct
         'admin.general.show.url()',
         'admin.storage.show.url()',
         'admin.mail.show.url()',
-        'admin.manage.tags.index.url()',
-        'admin.manage.attributes.index.url()',
-        'admin.cannedReplies.index.url()',
         'admin.manage.ai.providers.index.url()',
         'admin.manage.mcp.servers.index.url()',
         'admin.manage.translation.providers.index.url()',
@@ -212,7 +230,8 @@ test('系统设置菜单使用总管理后台和系统设置二级视图', funct
 
     expect(File::exists(resource_path('js/layouts/SystemSettingsLayout.vue')))->toBeTrue()
         ->and($systemSidebarLayout)->toContain("title: t('系统设置')")
-        ->and($systemSidebarLayout)->toContain('href: admin.general.show.url()');
+        ->and($systemSidebarLayout)->toContain('href: admin.general.show.url()')
+        ->and($systemSidebarLayout)->toContain('canManageSystemSettings');
 
     foreach ($mainMenuMappings as $menuSignature => $activeSignature) {
         expect($systemSidebarLayout)->toContain($menuSignature)
@@ -224,7 +243,7 @@ test('系统设置菜单使用总管理后台和系统设置二级视图', funct
     }
 });
 
-test('渠道菜单在总管理后台使用一级入口和二级切换', function (): void {
+test('渠道菜单在后台使用一级入口和二级切换', function (): void {
     $systemSidebarLayout = File::get(resource_path('js/layouts/app/SystemSidebarLayout.vue'));
     $channelsLayout = File::get(resource_path('js/layouts/ChannelsLayout.vue'));
 
@@ -246,19 +265,34 @@ test('系统设置页面使用页面级二级菜单视图', function (): void {
         'js/pages/admin/storageSetting/Create.vue',
         'js/pages/admin/storageSetting/Edit.vue',
         'js/pages/admin/systemSettings/MailSetting.vue',
-        'js/pages/tags/Index.vue',
-        'js/pages/tags/Trash.vue',
-        'js/pages/systemSettings/datas/Attribute.vue',
-        'js/pages/systemSettings/datas/AttributeTrash.vue',
-        'js/pages/cannedReplies/Index.vue',
         'js/pages/systemSettings/aiProviders/Index.vue',
         'js/pages/systemSettings/mcpServers/Index.vue',
+        'js/pages/systemSettings/mcpServers/Create.vue',
+        'js/pages/systemSettings/mcpServers/Edit.vue',
         'js/pages/systemSettings/translationProviders/Index.vue',
+        'js/pages/systemSettings/translationProviders/Create.vue',
+        'js/pages/systemSettings/translationProviders/Edit.vue',
     ];
 
     foreach ($pages as $page) {
         expect(File::get(resource_path($page)))
             ->toContain("import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue'")
-            ->toContain('<SystemSettingsLayout>');
+            ->toContain('<SystemSettingsLayout');
+    }
+});
+
+test('一级业务菜单页面不使用系统设置二级布局', function (): void {
+    $pages = [
+        'js/pages/tags/Index.vue',
+        'js/pages/tags/Trash.vue',
+        'js/pages/systemSettings/datas/Attribute.vue',
+        'js/pages/systemSettings/datas/AttributeTrash.vue',
+        'js/pages/cannedReplies/Index.vue',
+    ];
+
+    foreach ($pages as $page) {
+        expect(File::get(resource_path($page)))
+            ->not->toContain("import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue'")
+            ->not->toContain('<SystemSettingsLayout');
     }
 });

@@ -68,15 +68,14 @@ class AttachmentAccessContext
     }
 
     /**
-     * 收集当前请求里所有已认证 guard 的用户。
+     * 收集当前请求里所有已认证用户。
      *
      * @return list<User>
      */
     private static function authenticatedUsers(Request $request): array
     {
         return collect([
-            $request->user('web'),
-            $request->user('admin'),
+            $request->user(),
             $request->user('sanctum'),
         ])
             ->filter(fn (mixed $user): bool => $user instanceof User)

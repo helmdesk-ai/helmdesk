@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Data\User\UserNotificationPreferencesData;
-use App\Enums\SystemRole;
 use App\Enums\UserOnlineStatus;
+use App\Enums\UserPermission;
 use App\Notifications\QueuedResetPassword;
 use App\Notifications\QueuedVerifyEmail;
 use App\Services\Localization\LocalePreference;
@@ -32,7 +32,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $avatar
  * @property string $locale
  * @property string|null $timezone
- * @property SystemRole $role
+ * @property array<int, string>|null $permissions
  * @property string|null $nickname
  * @property UserOnlineStatus $online_status
  * @property Carbon|null $last_active_at
@@ -55,7 +55,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     /**
-     * 用户模型，保存后台账号、角色、在线状态和超级管理员标记。
+     * 用户模型，保存后台账号、权限、在线状态和超级管理员标记。
      */
 
     /** @use HasFactory<UserFactory> */
@@ -75,7 +75,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         'locale',
         'timezone',
         'notification_preferences',
-        'role',
+        'permissions',
         'nickname',
         'online_status',
         'last_active_at',
@@ -101,7 +101,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'notification_preferences' => UserNotificationPreferencesData::class.':default',
-            'role' => SystemRole::class,
+            'permissions' => 'array',
             'online_status' => UserOnlineStatus::class,
             'two_factor_confirmed_at' => 'datetime',
             'last_active_at' => 'datetime',
@@ -145,6 +145,46 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function notificationPreferences(): UserNotificationPreferencesData
     {
         return $this->notification_preferences;
+    }
+
+    /**
+     * 判断用户是否拥有指定后台权限。
+     */
+    public function hasPermission(UserPermission|string $permission): bool
+    {
+        if ($this->is_super_admin) {
+            return true;
+        }
+
+        $permissionValue = $permission instanceof UserPermission ? $permission->value : $permission;
+        $permissions = array_values(array_filter(array_map('strval', $this->permissions ?? [])));
+
+        if (in_array($permissionValue, $permissions, true)) {
+            return true;
+        }
+
+        $permissionEnum = $permission instanceof UserPermission ? $permission : UserPermission::tryFrom($permissionValue);
+        if (! $permissionEnum instanceof UserPermission) {
+            return false;
+        }
+
+        return in_array($permissionEnum->managePermission()->value, $permissions, true);
+    }
+
+    /**
+     * 判断用户是否拥有任意一个后台权限。
+     *
+     * @param  list<UserPermission|string>  $permissions
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

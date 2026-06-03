@@ -35,7 +35,7 @@ test('未验证超级管理员可以访问后台当邮件服务器禁用时', fu
         'email_verified_at' => null,
     ]);
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertRedirect(route('admin.dashboard', absolute: false));
 });
@@ -45,7 +45,7 @@ test('未验证超级管理员可以访问系统设置在验证邮箱前', funct
         'is_super_admin' => true,
     ]);
 
-    $this->actingAs($user, 'admin')
+    $this->actingAs($user)
         ->get(route('admin.home'))
         ->assertRedirect('/admin/dashboard');
 });
@@ -131,7 +131,7 @@ test('已已验证用户访问验证链接是重定向没有触发事件再次',
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
 });
 
-test('超级管理员会移动到管理员guard验证邮箱后', function () {
+test('超级管理员验证邮箱后保持统一登录态并进入后台', function () {
     $user = User::factory()->unverified()->create([
         'is_super_admin' => true,
     ]);
@@ -146,6 +146,5 @@ test('超级管理员会移动到管理员guard验证邮箱后', function () {
         ->assertRedirect(route('admin.home', absolute: false).'?verified=1');
 
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    $this->assertAuthenticatedAs($user, 'admin');
-    $this->assertGuest('web');
+    $this->assertAuthenticatedAs($user);
 });

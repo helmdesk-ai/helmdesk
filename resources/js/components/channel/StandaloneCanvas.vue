@@ -123,7 +123,7 @@ const state = ref<ReceptionStateData | null>(null);
 const loading = ref(false);
 const sending = ref(false);
 const errorMessage = ref<string | null>(null);
-// 渠道已被管理员软删除且当前访客没有进行中的会话时 /state 会返回 410；
+// 渠道已被有权限的用户软删除且当前访客没有进行中的会话时 /state 会返回 410；
 // 已有会话的访客不会触发，仍可继续消息往返。
 const pausedWithoutSession = ref(false);
 const composerValue = ref('');

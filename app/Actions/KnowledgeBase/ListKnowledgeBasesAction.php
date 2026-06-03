@@ -18,6 +18,7 @@ use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\KnowledgeDocumentStatus;
 use App\Enums\KnowledgeQaEntryStatus;
 use App\Enums\KnowledgeSearchMode;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeGroup;
@@ -242,7 +243,7 @@ class ListKnowledgeBasesAction
     public function asController(Request $request): Response
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         return Inertia::render('knowledgeBase/List', $this->handle(
             systemContext: $systemContext,

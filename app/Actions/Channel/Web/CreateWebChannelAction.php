@@ -7,6 +7,7 @@ use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormCreateWebChannelData;
 use App\Data\SystemUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Models\SystemContext;
 use Illuminate\Http\RedirectResponse;
@@ -59,7 +60,7 @@ class CreateWebChannelAction
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::ChannelsCreate);
 
         $channel = $this->handle($systemContext, FormCreateWebChannelData::from($request));
 

@@ -35,7 +35,7 @@ class SendAiAssistantMessageAction
     public function __construct(
         private GoBridgeClient $goBridge,
         private AiModelResolver $modelResolver,
-        private CollectActiveMcpServersAction $collectMcpServers,
+        private CollectConfiguredMcpServersAction $collectMcpServers,
         private CollectActiveKnowledgeBasesAction $collectKnowledgeBases,
     ) {}
 
@@ -87,7 +87,7 @@ class SendAiAssistantMessageAction
                 'is_active' => (bool) $model->is_active,
             ],
             'messages' => $messages,
-            'mcp_servers' => $this->collectMcpServers->handle($systemContext),
+            'mcp_servers' => $this->collectMcpServers->handle(),
             'knowledge_bases' => $this->collectKnowledgeBases->handle($systemContext),
         ];
 

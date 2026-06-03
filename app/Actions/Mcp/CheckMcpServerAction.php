@@ -5,6 +5,7 @@ namespace App\Actions\Mcp;
 use App\Data\Mcp\FormCreateMcpServerData;
 use App\Data\Mcp\FormUpdateMcpServerData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
 use App\Models\SystemContext;
 use App\Services\Mcp\GoMcpRuntimeBridge;
@@ -57,12 +58,12 @@ class CheckMcpServerAction
     }
 
     /**
-     * 路由入口：仅 manageAi 角色可调用。
+     * 路由入口：需要系统设置编辑权限。
      */
     public function asController(Request $request, ?string $server = null): JsonResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         try {
             $data = match (true) {

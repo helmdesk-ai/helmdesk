@@ -2,6 +2,7 @@
 
 namespace App\Services\CannedReply;
 
+use App\Enums\UserPermission;
 use App\Models\CannedReply;
 use App\Models\SystemContext;
 use App\Models\User;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * 快捷回复模版的权限判断服务。
- * 个人模版仅作者可改；系统共享模版需要 canAccessManageCenter；
+ * 个人模版仅作者可改；系统共享模版需要快捷回复管理权限；
  * 所有后台成员都可读到自己可见的模版（个人 + 系统共享）。
  */
 class CannedReplyPermission
@@ -19,7 +20,7 @@ class CannedReplyPermission
      */
     public function canManageSystemShared(SystemContext $systemContext, User $user): bool
     {
-        return Gate::forUser($user)->allows('admin.canAccessManageCenter', [$systemContext]);
+        return Gate::forUser($user)->allows('user.permission', UserPermission::CannedRepliesManage);
     }
 
     /**

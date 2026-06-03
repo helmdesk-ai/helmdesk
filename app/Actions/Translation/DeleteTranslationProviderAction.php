@@ -3,6 +3,7 @@
 namespace App\Actions\Translation;
 
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
@@ -55,7 +56,7 @@ class DeleteTranslationProviderAction
     public function asController(Request $request, string $provider): RedirectResponse
     {
         $systemContext = SystemUserContextData::fromRequest($request)->systemContext();
-        Gate::authorize('admin.manageAi', [$systemContext]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($systemContext, $provider);
 

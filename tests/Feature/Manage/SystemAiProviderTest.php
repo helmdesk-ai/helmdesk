@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AiProviderProtocol;
+use App\Enums\UserPermission;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\ReceptionPlan;
@@ -162,16 +163,20 @@ test('访客用户不能访问系统AI提供商设置', function () {
         ->assertRedirect('/login');
 });
 
-test('非所有者系统成员不能访问AI提供商设置', function () {
-    $admin = User::factory()->create();
+test('有系统设置查看权限的用户可以访问 AI 提供商设置', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::SystemSettingsView->value],
+    ]);
 
-    $operator = User::factory()->create();
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
+    ]);
 
-    $this->actingAs($admin)
+    $this->actingAs($viewer)
         ->get(route('admin.manage.ai.providers.index'))
-        ->assertForbidden();
+        ->assertOk();
 
-    $this->actingAs($operator)
+    $this->actingAs($userWithoutPermission)
         ->get(route('admin.manage.ai.providers.index'))
         ->assertForbidden();
 });
@@ -206,7 +211,7 @@ test('列表页下发品牌目录选项', function () {
             }));
 });
 
-test('单租户下管理员可以看到全部供应商', function () {
+test('单租户下超级管理员可以看到全部供应商', function () {
     createOpenAiProviderWithModel($this->systemContext, 'mine');
 
     [$otherSystem] = createSystemWithOwner();
@@ -230,7 +235,7 @@ test('单租户下管理员可以看到全部供应商', function () {
 // Provider creation from brand catalog
 // ---------------------------------------------------------------------------
 
-test('所有者可以从内置品牌一步创建供应商并带内置模型', function () {
+test('超级管理员可以从内置品牌一步创建供应商并带内置模型', function () {
     $this->actingAs($this->user)
         ->post(route('admin.manage.ai.providers.store'), [
             'brand' => 'deepseek',
@@ -261,7 +266,7 @@ test('所有者可以从内置品牌一步创建供应商并带内置模型', fu
     expect($provider->models()->count())->toBeGreaterThan(0);
 });
 
-test('所有者可以从 OpenRouter 内置品牌一步创建供应商并带内置模型', function () {
+test('超级管理员可以从 OpenRouter 内置品牌一步创建供应商并带内置模型', function () {
     $this->actingAs($this->user)
         ->post(route('admin.manage.ai.providers.store'), [
             'brand' => 'openrouter',
@@ -329,7 +334,7 @@ test('自定义品牌必须填写名称', function () {
         ->assertSessionHasErrors(['name']);
 });
 
-test('所有者可以创建自定义品牌供应商', function () {
+test('超级管理员可以创建自定义品牌供应商', function () {
     $this->actingAs($this->user)
         ->post(route('admin.manage.ai.providers.store'), [
             'brand' => 'custom-openai',
@@ -368,7 +373,7 @@ test('创建供应商时缺少必填凭据报校验错误', function () {
 // Credentials
 // ---------------------------------------------------------------------------
 
-test('所有者可以配置提供商凭证', function () {
+test('超级管理员可以配置提供商凭证', function () {
     $provider = createOpenAiProviderWithModel($this->systemContext);
 
     $this->actingAs($this->user)
@@ -486,7 +491,7 @@ test('更新凭证校验必需字段', function () {
 // Provider deletion
 // ---------------------------------------------------------------------------
 
-test('所有者可以删除任意供应商', function () {
+test('超级管理员可以删除任意供应商', function () {
     $provider = createOpenAiProviderWithModel($this->systemContext);
 
     $this->actingAs($this->user)
@@ -501,7 +506,7 @@ test('所有者可以删除任意供应商', function () {
 // Model CRUD
 // ---------------------------------------------------------------------------
 
-test('所有者可以添加自定义模型到提供商在其系统', function () {
+test('超级管理员可以添加自定义模型到提供商在其系统', function () {
     $provider = createOpenAiProviderWithModel($this->systemContext);
 
     $this->actingAs($this->user)
@@ -519,7 +524,7 @@ test('所有者可以添加自定义模型到提供商在其系统', function ()
     expect($model->is_builtin)->toBeFalse();
 });
 
-test('所有者可以切换模型活跃状态', function () {
+test('超级管理员可以切换模型活跃状态', function () {
     $provider = createOpenAiProviderWithModel($this->systemContext);
     // 额外建一个 LLM，确保切换被测模型时仍保留至少一个活跃 LLM。
     $provider->models()->create([
@@ -542,7 +547,7 @@ test('所有者可以切换模型活跃状态', function () {
     expect($model->is_active)->toBeFalse();
 });
 
-test('所有者可以更新内置模型显示名称且保持内置状态', function () {
+test('超级管理员可以更新内置模型显示名称且保持内置状态', function () {
     $provider = createOpenAiProviderWithModel($this->systemContext);
     $model = $provider->models()->where('is_builtin', true)->firstOrFail();
 
@@ -560,7 +565,7 @@ test('所有者可以更新内置模型显示名称且保持内置状态', funct
         ->and($model->is_builtin)->toBeTrue();
 });
 
-test('所有者可以删除自定义模型', function () {
+test('超级管理员可以删除自定义模型', function () {
     $provider = createOpenAiProviderWithModel($this->systemContext);
 
     $model = $provider->models()->create([

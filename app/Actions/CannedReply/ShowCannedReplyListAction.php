@@ -6,6 +6,7 @@ use App\Data\CannedReply\CannedReplyTokenOptionData;
 use App\Data\CannedReply\ListCannedReplyItemData;
 use App\Data\CannedReply\ShowCannedReplyListPagePropsData;
 use App\Data\SystemUserContextData;
+use App\Enums\UserPermission;
 use App\Models\CannedReply;
 use App\Models\SystemContext;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Services\CannedReply\CannedReplyPermission;
 use App\Services\CannedReply\CannedReplyVariableResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -89,6 +91,7 @@ class ShowCannedReplyListAction
         $ctx = SystemUserContextData::fromRequest($request);
         $systemContext = $ctx->systemContext();
         $user = User::query()->findOrFail($ctx->user_id);
+        Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesView);
 
         $visibility = $request->query('visibility');
         $props = $this->handle(

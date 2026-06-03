@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\SystemRole;
 use App\Enums\UserOnlineStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,12 +14,12 @@ use Illuminate\Support\Str;
 class UserFactory extends Factory
 {
     /**
-     * The current password being used by the factory.
+     * 工厂用户复用的默认密码散列。
      */
     protected static ?string $password;
 
     /**
-     * Define the model's default state.
+     * 定义普通客服账号的默认状态。
      *
      * @return array<string, mixed>
      */
@@ -31,7 +30,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'locale' => 'zh-CN',
             'timezone' => 'Asia/Shanghai',
-            'role' => SystemRole::Owner->value,
+            'permissions' => [],
             'online_status' => UserOnlineStatus::Online->value,
             'last_active_at' => now(),
             'email_verified_at' => now(),
@@ -44,7 +43,7 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the model's email address should be unverified.
+     * 标记邮箱未验证。
      */
     public function unverified(): static
     {
@@ -54,7 +53,7 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the model does not have two-factor authentication configured.
+     * 标记未配置两步验证。
      */
     public function withoutTwoFactor(): static
     {
