@@ -6,7 +6,6 @@ use App\Actions\User\TouchSystemUserLastActiveAtAction;
 use App\Data\AiRuntime\AiModelOptionData;
 use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
-use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Closure;
 use Illuminate\Http\Request;
@@ -37,8 +36,7 @@ class IdentifySystem
         $user = $request->user();
         $this->touchSystemUserLastActiveAtAction->handle($user);
 
-        $systemContext = SystemContext::current();
-        $systemUserContext = SystemUserContextData::fromUser($user, $systemContext);
+        $systemUserContext = SystemUserContextData::fromUser($user);
 
         $request->attributes->set(SystemUserContextData::class, $systemUserContext);
         Inertia::share('systemUserContext', $systemUserContext->toArray());

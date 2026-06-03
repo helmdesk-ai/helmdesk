@@ -7,7 +7,6 @@ use App\Data\Conversation\ListConversationItemData;
 use App\Data\Conversation\ShowConversationListPagePropsData;
 use App\Data\EnumOptionData;
 use App\Data\SimplePaginationData;
-use App\Data\SystemUserContextData;
 use App\Data\Tag\TagOptionData;
 use App\Data\User\UserOptionData;
 use App\Enums\ConversationInboxStatus;
@@ -212,7 +211,6 @@ class ShowConversationListAction
      */
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(array_map(fn (ConversationStatus $status) => $status->value, ConversationStatus::cases()))],
             'inbox_status' => ['nullable', Rule::in(array_map(fn (ConversationInboxStatus $status) => $status->value, ConversationInboxStatus::cases()))],
@@ -227,7 +225,7 @@ class ShowConversationListAction
             visitorReplyStatus: isset($validated['visitor_reply_status']) ? ConversationVisitorReplyStatus::from($validated['visitor_reply_status']) : null,
             assignedUserId: is_string($request->query('assigned_user_id')) ? $request->query('assigned_user_id') : null,
             receptionPlanId: is_string($request->query('reception_plan_id')) ? $request->query('reception_plan_id') : null,
-            currentUserId: $ctx->user_id,
+            currentUserId: (string) $request->user()->id,
         );
 
         return Inertia::render('contacts/Conversation', $props->toArray());

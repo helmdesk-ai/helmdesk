@@ -5,7 +5,6 @@ namespace App\Actions\CannedReply;
 use App\Data\CannedReply\CannedReplyTokenOptionData;
 use App\Data\CannedReply\ListCannedReplyItemData;
 use App\Data\CannedReply\ShowCannedReplyListPagePropsData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\CannedReply;
 use App\Models\User;
@@ -87,8 +86,7 @@ class ShowCannedReplyListAction
      */
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
         Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesView);
 
         $visibility = $request->query('visibility');

@@ -3,7 +3,6 @@
 namespace App\Actions\Inbox;
 
 use App\Actions\Reception\ReopenConversationAction;
-use App\Data\SystemUserContextData;
 use App\Enums\InboxView;
 use App\Models\Conversation;
 use App\Models\User;
@@ -37,9 +36,8 @@ class ReopenInboxConversationAction
 
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $conversation = $this->handle(
-            user: User::query()->findOrFail($ctx->user_id),
+            user: $request->user(),
             conversationId: $conversationId,
         );
 

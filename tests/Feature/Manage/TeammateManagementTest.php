@@ -33,7 +33,7 @@ test('普通用户可以进入后台但不能访问没有权限的客服管理',
             ->component('Dashboard')
             ->where('canAccessUsers', false)
             ->where('canManageSystemSettings', false)
-            ->where('systemUserContext.user_email', 'ordinary@example.com')
+            ->where('systemUserContext.system_slug', 'admin')
         );
 
     $this->actingAs($ordinaryUser, 'web')

@@ -3,7 +3,6 @@
 namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\FormCreateCannedReplyData;
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
@@ -60,8 +59,7 @@ class CreateCannedReplyAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $this->handle($user, FormCreateCannedReplyData::from($request));
 

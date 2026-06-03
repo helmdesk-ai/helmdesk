@@ -95,7 +95,7 @@ class UseAndRenderCannedReplyAction
     {
         $ctx = SystemUserContextData::fromRequest($request);
         $systemContext = $ctx->systemContext();
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $conversationId = $request->input('conversation_id');
 

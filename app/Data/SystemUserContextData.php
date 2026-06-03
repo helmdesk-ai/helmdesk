@@ -3,7 +3,6 @@
 namespace App\Data;
 
 use App\Enums\UserOnlineStatus;
-use App\Models\Attachment;
 use App\Models\SystemContext;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,29 +11,20 @@ use Spatie\LaravelData\Data;
 
 /**
  * 当前请求里的单租户用户上下文。
- * 由 IdentifySystem 中间件共享给 Inertia，前端布局和权限按钮从这里读取当前后台用户信息。
+ * 由 IdentifySystem 中间件共享给 Inertia：前端用 system_slug 做本地存储命名空间、用 user_online_status 渲染在线状态。
+ * 当前用户基本信息前端走 auth.user，后端 Action 走 $request->user()，不在此重复下发。
  */
 class SystemUserContextData extends Data
 {
     public function __construct(
         public string $system_slug,
-        public string $system_name,
-        public string $system_logo_url,
-        public string $user_id,
-        public string $user_name,
-        public string $user_email,
         public EnumOptionData $user_online_status,
-        public ?string $user_nickname = null,
-        public ?string $user_last_active_at = null,
-        public ?string $user_avatar = null,
     ) {}
 
     /**
-     * 从当前登录用户和已构建的系统上下文构造后台上下文。
-     *
-     * 系统名称与 Logo 复用 SystemContext，避免重复读取系统设置。
+     * 从当前登录用户构造后台上下文。
      */
-    public static function fromUser(User $user, SystemContext $systemContext): self
+    public static function fromUser(User $user): self
     {
         $onlineStatus = $user->online_status instanceof UserOnlineStatus
             ? $user->online_status
@@ -42,15 +32,7 @@ class SystemUserContextData extends Data
 
         return new self(
             system_slug: 'admin',
-            system_name: $systemContext->name,
-            system_logo_url: Attachment::query()->find($systemContext->logo_id)?->full_url ?? asset('images/logo.png'),
-            user_id: (string) $user->id,
-            user_name: $user->name,
-            user_email: $user->email,
-            user_avatar: filled($user->avatar) ? $user->avatar : null,
             user_online_status: EnumOptionData::fromEnum($onlineStatus),
-            user_nickname: filled($user->nickname) ? (string) $user->nickname : null,
-            user_last_active_at: $user->last_active_at?->toIso8601String(),
         );
     }
 

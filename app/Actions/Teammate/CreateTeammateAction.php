@@ -3,7 +3,6 @@
 namespace App\Actions\Teammate;
 
 use App\Actions\Attachment\AttachUploadedAttachmentsAction;
-use App\Data\SystemUserContextData;
 use App\Data\Teammate\FormCreateTeammateData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\UserOnlineStatus;
@@ -55,8 +54,7 @@ class CreateTeammateAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $actor = User::query()->findOrFail($ctx->user_id);
+        $actor = $request->user();
 
         $this->handle($actor, FormCreateTeammateData::from($request));
 

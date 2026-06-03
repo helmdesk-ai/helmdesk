@@ -2,7 +2,6 @@
 
 namespace App\Actions\Teammate;
 
-use App\Data\SystemUserContextData;
 use App\Data\Teammate\EditTeammateData;
 use App\Data\Teammate\PermissionGroupData;
 use App\Data\Teammate\ShowEditTeammatePagePropsData;
@@ -44,8 +43,7 @@ class ShowEditTeammatePageAction
      */
     public function asController(Request $request, string $teammate): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $actor = User::query()->findOrFail($ctx->user_id);
+        $actor = $request->user();
 
         return Inertia::render('teammates/Edit', $this->handle($actor, $teammate)->toArray());
     }

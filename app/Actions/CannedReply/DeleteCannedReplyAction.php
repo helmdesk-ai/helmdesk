@@ -2,7 +2,6 @@
 
 namespace App\Actions\CannedReply;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
@@ -51,8 +50,7 @@ class DeleteCannedReplyAction
      */
     public function asController(Request $request, string $cannedReply): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $this->handle($user, $cannedReply);
 

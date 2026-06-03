@@ -3,7 +3,6 @@
 namespace App\Actions\Teammate;
 
 use App\Data\EnumOptionData;
-use App\Data\SystemUserContextData;
 use App\Data\Teammate\ListTeammateItemData;
 use App\Data\Teammate\ShowTeammateListPagePropsData;
 use App\Enums\UserOnlineStatus;
@@ -53,8 +52,7 @@ class ShowTeammateListAction
      */
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $actor = User::query()->findOrFail($ctx->user_id);
+        $actor = $request->user();
 
         return Inertia::render('teammates/Index', $this->handle($actor)->toArray());
     }

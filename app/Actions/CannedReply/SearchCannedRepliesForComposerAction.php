@@ -3,7 +3,6 @@
 namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\CannedReplyComposerItemData;
-use App\Data\SystemUserContextData;
 use App\Models\CannedReply;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -81,8 +80,7 @@ class SearchCannedRepliesForComposerAction
      */
     public function asController(Request $request): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $conversationId = $request->query('conversation_id');
         $query = $request->query('q');

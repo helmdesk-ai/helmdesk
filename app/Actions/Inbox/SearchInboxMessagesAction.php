@@ -3,7 +3,6 @@
 namespace App\Actions\Inbox;
 
 use App\Data\Inbox\InboxMessageSearchResultData;
-use App\Data\SystemUserContextData;
 use App\Enums\MessageRole;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
@@ -96,8 +95,7 @@ class SearchInboxMessagesAction
      */
     public function asController(Request $request, string $contactId): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $viewer = User::query()->findOrFail($ctx->user_id);
+        $viewer = $request->user();
 
         $validated = $request->validate([
             'search' => ['required', 'string', 'min:1', 'max:200'],

@@ -2,7 +2,6 @@
 
 namespace App\Actions\Teammate;
 
-use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -38,8 +37,7 @@ class DeleteTeammateAction
      */
     public function asController(Request $request, string $teammate): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $actor = User::query()->findOrFail($ctx->user_id);
+        $actor = $request->user();
 
         $this->handle($actor, $teammate);
 

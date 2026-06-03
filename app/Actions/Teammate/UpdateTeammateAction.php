@@ -4,7 +4,6 @@ namespace App\Actions\Teammate;
 
 use App\Actions\Attachment\AttachUploadedAttachmentsAction;
 use App\Actions\Attachment\DeleteAttachmentAction;
-use App\Data\SystemUserContextData;
 use App\Data\Teammate\FormUpdateTeammateData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\UserPermission;
@@ -59,8 +58,7 @@ class UpdateTeammateAction
      */
     public function asController(Request $request, string $teammate): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $actor = User::query()->findOrFail($ctx->user_id);
+        $actor = $request->user();
 
         $this->handle($actor, $teammate, FormUpdateTeammateData::from($request));
 

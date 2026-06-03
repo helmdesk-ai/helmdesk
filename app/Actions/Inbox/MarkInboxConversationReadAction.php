@@ -2,7 +2,6 @@
 
 namespace App\Actions\Inbox;
 
-use App\Data\SystemUserContextData;
 use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -42,10 +41,9 @@ class MarkInboxConversationReadAction
      */
     public function asController(Request $request, string $conversationId): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
 
         $this->handle(
-            userId: $ctx->user_id,
+            userId: (string) $request->user()->id,
             conversationId: $conversationId,
         );
 

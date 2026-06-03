@@ -9,7 +9,6 @@ use App\Data\Conversation\ConversationReceptionPlanVersionSummaryData;
 use App\Data\Conversation\ConversationSummaryData;
 use App\Data\Conversation\ConversationTimelineData;
 use App\Data\Conversation\TimelineEntryData;
-use App\Data\SystemUserContextData;
 use App\Data\User\UserOptionData;
 use App\Enums\ConversationEventType;
 use App\Enums\MessageKind;
@@ -51,10 +50,9 @@ class ShowConversationDetailAction
      */
     public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $conversation = Conversation::query()
             ->findOrFail($id);
-        $viewer = User::query()->find($ctx->user_id);
+        $viewer = $request->user();
 
         return response()->json(
             $this->handle(

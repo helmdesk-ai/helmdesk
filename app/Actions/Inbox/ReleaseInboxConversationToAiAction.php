@@ -3,7 +3,6 @@
 namespace App\Actions\Inbox;
 
 use App\Actions\Reception\ReleaseConversationToAiAction;
-use App\Data\SystemUserContextData;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\InboxView;
 use App\Models\Conversation;
@@ -44,9 +43,8 @@ class ReleaseInboxConversationToAiAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $conversation = $this->handle(
-            user: User::query()->findOrFail($ctx->user_id),
+            user: $request->user(),
             conversationId: $conversationId,
         );
 

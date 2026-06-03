@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\TranslateConversationMessageAction;
 use App\Data\Inbox\FormPreviewInboxReplyTranslationData;
-use App\Data\SystemUserContextData;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Services\Conversation\ConversationReplyPermission;
@@ -86,8 +85,7 @@ class PreviewInboxReplyTranslationAction
      */
     public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
         $data = FormPreviewInboxReplyTranslationData::from($request);
 
         return response()->json($this->handle($user, $conversationId, $data->content));

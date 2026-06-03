@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxMessageTranslationsData;
-use App\Data\SystemUserContextData;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Jobs\Inbox\TranslateInboxConversationMessageJob;
@@ -68,8 +67,7 @@ class QueueInboxConversationMessageTranslationsAction
      */
     public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
         $data = FormQueueInboxMessageTranslationsData::from($request);
 
         return response()->json([

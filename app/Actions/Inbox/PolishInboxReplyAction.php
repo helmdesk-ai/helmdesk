@@ -5,7 +5,6 @@ namespace App\Actions\Inbox;
 use App\Data\Inbox\FormPolishInboxReplyData;
 use App\Data\Inbox\InboxReplyPolishCandidateData;
 use App\Data\Inbox\InboxReplyPolishResultData;
-use App\Data\SystemUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
 use App\Models\Conversation;
@@ -90,8 +89,7 @@ class PolishInboxReplyAction
      */
     public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
         $data = FormPolishInboxReplyData::from($request);
 
         return response()->json($this->handle(

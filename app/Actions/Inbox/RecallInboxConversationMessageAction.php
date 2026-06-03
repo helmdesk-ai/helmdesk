@@ -3,7 +3,6 @@
 namespace App\Actions\Inbox;
 
 use App\Actions\Reception\RecallTeammateMessageAction;
-use App\Data\SystemUserContextData;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -49,8 +48,7 @@ class RecallInboxConversationMessageAction
      */
     public function asController(Request $request, string $conversationId, string $messageId): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $this->handle(
             user: $user,

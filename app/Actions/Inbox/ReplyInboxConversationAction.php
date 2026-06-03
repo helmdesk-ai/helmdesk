@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Reception\AppendTeammateMessageAction;
 use App\Data\Inbox\FormReplyInboxConversationData;
-use App\Data\SystemUserContextData;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\InboxView;
 use App\Exceptions\BusinessException;
@@ -65,8 +64,7 @@ class ReplyInboxConversationAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $conversation = $this->handle(
             user: $user,

@@ -16,7 +16,6 @@ use App\Data\Inbox\InboxFiltersData;
 use App\Data\Inbox\InboxSelectionData;
 use App\Data\Inbox\InboxTabCountsData;
 use App\Data\Inbox\ShowInboxPagePropsData;
-use App\Data\SystemUserContextData;
 use App\Data\Tag\TagOptionData;
 use App\Data\User\UserOptionData;
 use App\Enums\ChannelType;
@@ -157,13 +156,12 @@ class ShowInboxAction
      */
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
 
         $filters = InboxFiltersData::fromRequest($request);
         $conversationId = is_string($request->query('conversation_id')) ? $request->query('conversation_id') : null;
 
         $props = $this->handle(
-            user: User::query()->findOrFail($ctx->user_id),
+            user: $request->user(),
             filters: $filters,
             conversationId: $conversationId,
         );

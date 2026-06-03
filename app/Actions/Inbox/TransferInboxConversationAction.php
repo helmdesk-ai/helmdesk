@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Reception\TransferConversationToTeammateAction;
 use App\Data\Inbox\FormTransferInboxConversationData;
-use App\Data\SystemUserContextData;
 use App\Enums\InboxView;
 use App\Models\Conversation;
 use App\Models\User;
@@ -61,10 +60,9 @@ class TransferInboxConversationAction
      */
     public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         $data = FormTransferInboxConversationData::from($request);
         $conversation = $this->handle(
-            user: User::query()->findOrFail($ctx->user_id),
+            user: $request->user(),
             conversationId: $conversationId,
             data: $data,
         );

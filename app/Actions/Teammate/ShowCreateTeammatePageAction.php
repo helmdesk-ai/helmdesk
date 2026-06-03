@@ -2,7 +2,6 @@
 
 namespace App\Actions\Teammate;
 
-use App\Data\SystemUserContextData;
 use App\Data\Teammate\PermissionGroupData;
 use App\Data\Teammate\ShowCreateTeammatePagePropsData;
 use App\Enums\UserPermission;
@@ -34,7 +33,6 @@ class ShowCreateTeammatePageAction
      */
     public function asController(Request $request): Response
     {
-        $ctx = SystemUserContextData::fromRequest($request);
         Gate::authorize('user.permission', UserPermission::UsersCreate);
 
         return Inertia::render('teammates/Create', $this->handle()->toArray());
