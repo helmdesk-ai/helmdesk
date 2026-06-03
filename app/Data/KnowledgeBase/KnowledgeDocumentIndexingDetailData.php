@@ -2,8 +2,6 @@
 
 namespace App\Data\KnowledgeBase;
 
-use App\Enums\KnowledgeDocumentIndexingStatus;
-use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
@@ -74,41 +72,5 @@ class KnowledgeDocumentIndexingDetailData extends Data
             overall_status_label: $overall->label(),
             stages: $stages,
         );
-    }
-
-    /**
-     * 给一组文档批量构造阶段状态。
-     *
-     * @param  iterable<KnowledgeDocument>  $documents
-     * @return array<string, self> 以 document_id 为 key
-     */
-    public static function buildForKnowledgeBase(KnowledgeBase $knowledgeBase, iterable $documents): array
-    {
-        $strategies = $knowledgeBase->enabledIndexingStrategies();
-        $result = [];
-        foreach ($documents as $document) {
-            $result[(string) $document->id] = self::fromModels($knowledgeBase, $document, $strategies);
-        }
-
-        return $result;
-    }
-
-    /**
-     * 暴露解析和索引阶段的状态值集合。
-     *
-     * @return array{parse: list<string>, indexing: list<string>}
-     */
-    public static function statusVocabulary(): array
-    {
-        return [
-            'parse' => array_map(
-                static fn (KnowledgeDocumentParseStatus $s) => $s->value,
-                KnowledgeDocumentParseStatus::cases(),
-            ),
-            'indexing' => array_map(
-                static fn (KnowledgeDocumentIndexingStatus $s) => $s->value,
-                KnowledgeDocumentIndexingStatus::cases(),
-            ),
-        ];
     }
 }

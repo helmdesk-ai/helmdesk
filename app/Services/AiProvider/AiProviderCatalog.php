@@ -178,14 +178,6 @@ class AiProviderCatalog
     }
 
     /**
-     * 判断品牌是否存在。
-     */
-    public function hasBrand(string $brand): bool
-    {
-        return array_key_exists($brand, $this->brands());
-    }
-
-    /**
      * 返回前端品牌目录（新增供应商对话框消费），含每个品牌的图标与凭据字段。
      *
      * @return array<int, array<string, mixed>>
@@ -225,40 +217,6 @@ class AiProviderCatalog
     public function defaultModelsForBrand(string $brand): array
     {
         return $this->brand($brand)['default_models'];
-    }
-
-    /**
-     * 取指定品牌的底层协议。
-     */
-    public function protocolForBrand(string $brand): string
-    {
-        return (string) $this->brand($brand)['protocol'];
-    }
-
-    /**
-     * 取指定品牌的展示名称。
-     */
-    public function labelForBrand(string $brand): string
-    {
-        return (string) $this->brand($brand)['label'];
-    }
-
-    /**
-     * 取指定品牌的图标标识。
-     */
-    public function iconForBrand(string $brand): ?string
-    {
-        $icon = $this->brand($brand)['icon'];
-
-        return is_string($icon) ? $icon : null;
-    }
-
-    /**
-     * 判断品牌是否为自定义入口（用户自填名称与端点）。
-     */
-    public function isCustomBrand(string $brand): bool
-    {
-        return (bool) ($this->brand($brand)['is_custom'] ?? false);
     }
 
     /**

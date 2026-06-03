@@ -103,14 +103,6 @@ class TranslationProviderCatalog
     }
 
     /**
-     * 取协议的本地化展示名称（设置页卡片标题、添加供应商下拉选项使用）。
-     */
-    public function labelForProtocol(TranslationProviderType $protocol): string
-    {
-        return $protocol->label();
-    }
-
-    /**
      * 取协议的图标标识，前端按字符串映射到具体 svg。
      */
     public function iconForProtocol(TranslationProviderType $protocol): ?string

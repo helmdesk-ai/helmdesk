@@ -59,50 +59,6 @@ class MarkdownChunker
     }
 
     /**
-     * @return array{segments: list<Segment>, outline: list<OutlineNode>}
-     */
-    public function chunkFixed(string $markdown, int $maxTokens = 512, int $overlapTokens = 64): array
-    {
-        if ($maxTokens <= 0) {
-            $maxTokens = 512;
-        }
-        if ($overlapTokens < 0) {
-            $overlapTokens = 0;
-        }
-        if ($overlapTokens >= $maxTokens) {
-            $overlapTokens = intdiv($maxTokens, 4);
-        }
-
-        $pieces = $this->splitLongParagraph($markdown, $maxTokens, $overlapTokens);
-        $segments = [];
-        $cursor = 0;
-
-        foreach ($pieces as $piece) {
-            $content = trim($piece);
-            if ($content === '') {
-                continue;
-            }
-
-            $start = strpos($markdown, $content, $cursor);
-            if ($start === false) {
-                $start = $cursor;
-            }
-            $end = $start + strlen($content);
-            $cursor = $end;
-
-            $segments[] = [
-                'content' => $content,
-                'heading_path' => [],
-                'byte_start' => $start,
-                'byte_end' => $end,
-                'token_count' => $this->estimateTokens($content),
-            ];
-        }
-
-        return ['segments' => $segments, 'outline' => $this->extractOutline($markdown)];
-    }
-
-    /**
      * 仅抽取大纲，不分块；用于把大纲单独写到 knowledge_outlines。
      *
      * @return list<OutlineNode>

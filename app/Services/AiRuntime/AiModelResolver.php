@@ -104,14 +104,6 @@ class AiModelResolver
     }
 
     /**
-     * 取当前系统内排序最靠前的可用 LLM 模型。
-     */
-    public function firstActiveLlmModel(): ?AiModel
-    {
-        return $this->activeSystemModelsQuery(AiModelType::Llm)->first();
-    }
-
-    /**
      * 检查模型是否被系统内任一接待方案（草稿）或已发布版本引用。
      *
      * Plan 草稿引用走 reception_plans.reception_config / task_config 里的 ai_model_id；

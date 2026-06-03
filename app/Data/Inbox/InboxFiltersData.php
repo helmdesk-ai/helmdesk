@@ -41,11 +41,6 @@ class InboxFiltersData extends Data
         );
     }
 
-    public function isAssigneeUnassigned(): bool
-    {
-        return $this->assignee === self::ASSIGNEE_UNASSIGNED;
-    }
-
     private static function parseView(mixed $rawView): InboxView
     {
         if ($rawView === null || $rawView === '') {

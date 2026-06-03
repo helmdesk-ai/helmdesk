@@ -36,18 +36,6 @@ class GoMcpRuntimeBridge
     ) {}
 
     /**
-     * 保存前轻量校验：用 server config 试做一次 initialize 握手，不拉工具列表。
-     *
-     * @param  array<string, string>  $credentials  当前请求要落库的最新凭据（已合并）
-     * @param  array<string, string>|null  $headers  自定义请求头
-     * @return array{success: bool, code: string, message: string, supported: bool, warnings: array<int, string>}
-     */
-    public function validateServerConfiguration(McpServer $server, array $credentials, ?array $headers = null): array
-    {
-        return $this->send('validate', $this->serverPayload($server, $credentials, $headers));
-    }
-
-    /**
      * 手动测试连接：用户在编辑面板点 "测试连接" 时触发。
      *
      * @param  array<string, string>  $credentials

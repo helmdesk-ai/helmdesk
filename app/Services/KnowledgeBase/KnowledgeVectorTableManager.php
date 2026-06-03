@@ -126,22 +126,6 @@ class KnowledgeVectorTableManager
     }
 
     /**
-     * 返回 knowledge_vector_tables 元表中已注册的全部维度。
-     * KNN 调用方需要据此分别遍历不同维度的虚表（不同嵌入模型对应不同维度）。
-     *
-     * @return list<int>
-     */
-    public function registeredDimensions(): array
-    {
-        return $this->connection()
-            ->table('knowledge_vector_tables')
-            ->orderBy('dimension')
-            ->pluck('dimension')
-            ->map(static fn ($value): int => (int) $value)
-            ->all();
-    }
-
-    /**
      * 按节点 ID 批量删除对应维度的向量记录。
      *
      * @param  list<string>  $nodeIds

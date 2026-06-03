@@ -29,14 +29,4 @@ enum CannedReplyTokenKind: string implements LabeledEnum
             self::Ai => __('canned_reply.token_kinds.ai'),
         };
     }
-
-    /**
-     * v1 已实装的命名空间；AI token 暂只解析占位。
-     *
-     * @return array<int, self>
-     */
-    public static function staticCases(): array
-    {
-        return [self::Contact, self::Conversation, self::Teammate, self::System];
-    }
 }
