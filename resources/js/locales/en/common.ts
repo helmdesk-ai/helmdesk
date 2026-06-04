@@ -9,13 +9,10 @@ export default {
   选择文件: 'Choose file',
   选择图片: 'Choose image',
   未选择任何文件: 'No file chosen',
-  切换系统: 'Switch system',
-  添加系统: 'Add system',
   客服: 'Teammate',
   在线: 'Online',
   离线: 'Offline',
   个人设置: 'Personal settings',
-  系统管理: 'System management',
 
   // 状态 / 安全
   已启用: 'Enabled',
@@ -48,7 +45,6 @@ export default {
   删除: 'Delete',
   '删除中...': 'Deleting...',
   '检测中...': 'Testing...',
-  当前在用: 'In use',
   确认删除: 'Confirm Delete',
   恢复: 'Restore',
   '恢复中...': 'Restoring...',
