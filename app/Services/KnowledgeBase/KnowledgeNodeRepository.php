@@ -242,7 +242,7 @@ class KnowledgeNodeRepository
         }
 
         $nodeIds = array_keys($embeddings);
-        $modelId = $this->embeddingModelId($knowledgeBase);
+        $modelId = $this->embeddingModelId();
 
         DB::connection('sqlite_rag')->transaction(function () use ($embeddingDimension, $embeddings, $nodeIds, $modelId): void {
             foreach ($embeddings as $nodeId => $embedding) {
@@ -321,7 +321,7 @@ class KnowledgeNodeRepository
                 'byte_start' => null,
                 'byte_end' => null,
                 'token_count' => null,
-                'embedding_model_id' => $embeddingDimension > 0 ? $this->embeddingModelId($knowledgeBase) : null,
+                'embedding_model_id' => $embeddingDimension > 0 ? $this->embeddingModelId() : null,
                 'embedding_dim' => $embeddingDimension,
                 'metadata' => json_encode($metadataPayload, JSON_THROW_ON_ERROR),
                 'created_at' => $now,
@@ -363,7 +363,7 @@ class KnowledgeNodeRepository
     /**
      * 返回当前知识库配置的嵌入模型 ID；未配置时返回 null。
      */
-    private function embeddingModelId(KnowledgeBase $knowledgeBase): ?string
+    private function embeddingModelId(): ?string
     {
         /** @var KnowledgeSettings $settings */
         $settings = app(KnowledgeSettings::class);

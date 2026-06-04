@@ -5,7 +5,6 @@ namespace App\Actions\KnowledgeBase\Indexing;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Exceptions\BusinessException;
-use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
@@ -76,7 +75,7 @@ class WriteCanonicalChunksAction
             ];
         }
 
-        $this->purgeForDocument($knowledgeBase, $document);
+        $this->purgeForDocument($document);
         $ids = $this->nodes->writeCanonicalSegments($knowledgeBase, $document, $payload);
         $nodes = $this->reloadNodes($ids);
 
@@ -119,7 +118,7 @@ class WriteCanonicalChunksAction
             ];
         }
 
-        $this->purgeForQaEntry($knowledgeBase, $entry);
+        $this->purgeForQaEntry($entry);
         $ids = $this->nodes->writeQaCanonicalNodes($knowledgeBase, $entry, $payload);
         $nodes = $this->reloadNodes($ids);
 
@@ -151,7 +150,7 @@ class WriteCanonicalChunksAction
      * 清空文档 canonical 节点 + 全文索引 + 大纲。向量 / RAPTOR 节点保留，
      * 由各自的索引器在重建时单独清理（避免一次写 canonical 把模型成本拉高的副作用）。
      */
-    private function purgeForDocument(KnowledgeBase $knowledgeBase, KnowledgeDocument $document): void
+    private function purgeForDocument(KnowledgeDocument $document): void
     {
         $this->nodes->purgeStrategyForDocument($document, KnowledgeIndexingStrategy::Text);
         $this->fts->purgeForDocument($document);
@@ -160,7 +159,7 @@ class WriteCanonicalChunksAction
     /**
      * 清空问答 canonical 节点 + FTS 行。
      */
-    private function purgeForQaEntry(KnowledgeBase $knowledgeBase, KnowledgeQaEntry $entry): void
+    private function purgeForQaEntry(KnowledgeQaEntry $entry): void
     {
         $this->nodes->purgeStrategyForQaEntry($entry, KnowledgeIndexingStrategy::Text);
         $this->fts->purgeForQaEntry($entry);

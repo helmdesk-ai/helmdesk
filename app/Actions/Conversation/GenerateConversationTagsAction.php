@@ -50,7 +50,7 @@ class GenerateConversationTagsAction
             'finalize' => $finalize,
         ]);
 
-        $vocabulary = $this->resolveVocabulary($conversation);
+        $vocabulary = $this->resolveVocabulary();
         if ($vocabulary === []) {
             Log::info('[conversation-tags] skip: empty conversation-scope vocabulary', [
                 'conversation_id' => $conversation->id,
@@ -106,7 +106,7 @@ class GenerateConversationTagsAction
      *
      * @return array<string, Tag>
      */
-    private function resolveVocabulary(Conversation $conversation): array
+    private function resolveVocabulary(): array
     {
         $tags = Tag::query()
             ->whereHas('tagGroup', fn (Builder $query) => $query->where('scope', TagScope::Conversation->value))

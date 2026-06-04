@@ -143,7 +143,6 @@ class ApplyVisitorQueryParamsAction
         }
 
         $this->writeContactIdentity(
-            $channel,
             $contact,
             $mapping,
             type: IdentityType::Email,
@@ -196,7 +195,6 @@ class ApplyVisitorQueryParamsAction
         }
 
         $this->writeContactIdentity(
-            $channel,
             $contact,
             $mapping,
             type: IdentityType::Phone,
@@ -212,7 +210,6 @@ class ApplyVisitorQueryParamsAction
         }
 
         $this->writeContactIdentity(
-            $channel,
             $contact,
             $mapping,
             type: IdentityType::ExternalId,
@@ -228,7 +225,6 @@ class ApplyVisitorQueryParamsAction
      *  - 同 type/value 已被其他联系人占用 → 不写入
      */
     private function writeContactIdentity(
-        Channel $channel,
         Contact $contact,
         WebChannelQueryParamMappingData $mapping,
         IdentityType $type,
@@ -364,8 +360,8 @@ class ApplyVisitorQueryParamsAction
         $normalized = mb_strtolower($resolved);
 
         try {
-            DB::transaction(function () use ($channel, $contact, $resolved, $normalized): void {
-                $group = $this->resolveChannelTagGroup($channel);
+            DB::transaction(function () use ($contact, $resolved, $normalized): void {
+                $group = $this->resolveChannelTagGroup();
 
                 $tag = Tag::query()
                     ->where('tag_group_id', $group->id)
@@ -411,7 +407,7 @@ class ApplyVisitorQueryParamsAction
     /**
      * 解析渠道自动标签的归属组：标签必属于一个组，渠道来源标签统一落到联系人维度的「渠道参数」系统组。
      */
-    private function resolveChannelTagGroup(Channel $channel): TagGroup
+    private function resolveChannelTagGroup(): TagGroup
     {
         $name = __('tag.default_groups.channel');
 

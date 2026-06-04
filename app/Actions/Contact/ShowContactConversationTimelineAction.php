@@ -85,7 +85,7 @@ class ShowContactConversationTimelineAction
             conversations: $conversations
                 ->map(fn (Conversation $conversation) => ConversationSummaryData::fromModel($conversation))
                 ->all(),
-            entries: $this->buildEntries($contact, $timelineRows, $viewer),
+            entries: $this->buildEntries($timelineRows, $viewer),
             previous_cursor: $previousCursor,
             next_cursor: $nextCursor,
             anchor_entry_id: $anchorEntryId,
@@ -308,7 +308,7 @@ class ShowContactConversationTimelineAction
      *
      * @return ContactTimelineEntryData[]
      */
-    private function buildEntries(Contact $contact, Collection $timelineRows, ?User $viewer): array
+    private function buildEntries(Collection $timelineRows, ?User $viewer): array
     {
         if ($timelineRows->isEmpty()) {
             return [];

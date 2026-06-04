@@ -49,7 +49,7 @@ class ChannelTeammateAvailability
         $timezone = $businessHours?->timezone ?? 'UTC';
         $now = ($at ?? Carbon::now())->copy()->setTimezone($timezone);
         $withinBusinessHours = $businessHours === null || $businessHours->isWithinSchedule($now);
-        $hasOnlineTeammate = $this->hasOnlineTeammate($channel);
+        $hasOnlineTeammate = $this->hasOnlineTeammate();
         $humanAvailable = $withinBusinessHours && $hasOnlineTeammate;
 
         $reason = null;
@@ -136,7 +136,7 @@ class ChannelTeammateAvailability
     /**
      * 判断系统内是否存在至少一名可接待人员。
      */
-    private function hasOnlineTeammate(Channel $channel): bool
+    private function hasOnlineTeammate(): bool
     {
         return User::query()
             ->where('online_status', UserOnlineStatus::Online)

@@ -57,7 +57,7 @@ class ReceptionStateBuilder
                 ['id', 'asc'],
             ])
             ->values();
-        $systemNicknames = self::systemNicknames($conversation, $messages);
+        $systemNicknames = self::systemNicknames($messages);
 
         $entries = $messages
             ->map(function (ConversationMessage $message) use ($visitorIdentityMode, $assistantName, $assistantAvatarUrl, $systemNicknames): ReceptionMessageData {
@@ -249,7 +249,7 @@ class ReceptionStateBuilder
      * @param  Collection<int, ConversationMessage>  $messages
      * @return array<string, string>
      */
-    private static function systemNicknames(Conversation $conversation, Collection $messages): array
+    private static function systemNicknames(Collection $messages): array
     {
         $userIds = $messages
             ->flatMap(fn (ConversationMessage $message): array => [

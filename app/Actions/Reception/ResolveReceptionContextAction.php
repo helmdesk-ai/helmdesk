@@ -169,7 +169,7 @@ class ResolveReceptionContextAction
         }
 
         if ($signedIdentity['email'] !== null) {
-            $this->attachEmailIdentityIfMissing($channel, $contact, $signedIdentity['email']);
+            $this->attachEmailIdentityIfMissing($contact, $signedIdentity['email']);
         }
 
         return $contact;
@@ -179,7 +179,7 @@ class ResolveReceptionContextAction
      * 把 token 携带的邮箱挂到联系人上：仅在邮箱在本系统未被占用、且联系人尚无该邮箱时追加。
      * 冲突时不写入，保留给客服显式合并。
      */
-    private function attachEmailIdentityIfMissing(Channel $channel, Contact $contact, string $email): void
+    private function attachEmailIdentityIfMissing(Contact $contact, string $email): void
     {
         $value = ContactIdentityNormalizer::normalizeValue(IdentityType::Email, $email);
         if ($value === '') {
