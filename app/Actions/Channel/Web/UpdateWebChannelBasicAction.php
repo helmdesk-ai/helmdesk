@@ -89,7 +89,7 @@ class UpdateWebChannelBasicAction
     /**
      * 附件只能使用未绑定资源或当前渠道已绑定资源。
      */
-    public static function assertAttachmentAssignable(Channel $channel, AttachmentPurpose $purpose, ?string $attachmentId, ?string $scope = null): void
+    public static function assertAttachmentAssignable(Channel $channel, AttachmentPurpose $purpose, ?string $attachmentId): void
     {
         if (! filled($attachmentId)) {
             return;

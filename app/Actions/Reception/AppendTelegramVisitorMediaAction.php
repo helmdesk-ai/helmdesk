@@ -99,7 +99,7 @@ class AppendTelegramVisitorMediaAction
                     'client_msg_id' => $clientMsgId,
                 ]);
 
-                $attachment = $this->storeAttachment($conversation, $mediaMessage, $purpose, $fileContents, $fileName, $mimeType);
+                $attachment = $this->storeAttachment($mediaMessage, $purpose, $fileContents, $fileName, $mimeType);
 
                 $mediaMessage->update([
                     'payload' => [
@@ -161,7 +161,6 @@ class AppendTelegramVisitorMediaAction
      * 把下载到的文件二进制写入私有存储并创建绑定到消息的附件记录。
      */
     private function storeAttachment(
-        Conversation $conversation,
         ConversationMessage $message,
         AttachmentPurpose $purpose,
         string $contents,
