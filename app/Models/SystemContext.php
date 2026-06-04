@@ -6,12 +6,10 @@ use App\Enums\KnowledgeChunkingStrategy;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Settings\GeneralSettings;
 use App\Settings\KnowledgeSettings;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,7 +19,6 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string|null $slug
  * @property string|null $logo_id
- * @property string|null $owner_id
  * @property string|null $knowledge_embedding_model_id
  * @property string|null $knowledge_rerank_model_id
  * @property string|null $knowledge_summary_model_id
@@ -31,10 +28,7 @@ use Illuminate\Support\Carbon;
  * @property KnowledgeChunkingStrategy $knowledge_chunking_strategy
  * @property int $knowledge_chunk_max_tokens
  * @property int $knowledge_chunk_overlap_tokens
- * @property Carbon|null $deleted_at
  * @property mixed $use_factory
- * @property mixed $logoUrl
- * @property mixed $logo_url
  * @property-read AiModel|null $knowledgeEmbeddingModel
  * @property-read AiModel|null $knowledgeRerankModel
  * @property-read AiModel|null $knowledgeSummaryModel
@@ -44,9 +38,9 @@ use Illuminate\Support\Carbon;
 class SystemContext extends Model
 {
     /**
-     * 单租户后台的运行时上下文，字段来源于系统设置。
+     * 单租户后台的运行时上下文，字段来源于系统设置（不落库，仅内存承载）。
      */
-    use HasFactory, HasUlids, SoftDeletes;
+    use HasFactory, HasUlids;
 
     protected $table = 'systems';
 
@@ -57,7 +51,6 @@ class SystemContext extends Model
         'name',
         'slug',
         'logo_id',
-        'owner_id',
         'knowledge_embedding_model_id',
         'knowledge_rerank_model_id',
         'knowledge_summary_model_id',
@@ -67,10 +60,6 @@ class SystemContext extends Model
         'knowledge_chunking_strategy',
         'knowledge_chunk_max_tokens',
         'knowledge_chunk_overlap_tokens',
-    ];
-
-    protected $appends = [
-        'logo_url',
     ];
 
     /**
@@ -91,7 +80,6 @@ class SystemContext extends Model
             'name' => $generalSettings->name ?? config('app.name', 'HelmDesk'),
             'slug' => 'admin',
             'logo_id' => $generalSettings->logo_id,
-            'owner_id' => User::query()->where('is_super_admin', true)->value('id'),
             'knowledge_embedding_model_id' => $knowledgeSettings->embedding_model_id,
             'knowledge_rerank_model_id' => $knowledgeSettings->rerank_model_id,
             'knowledge_summary_model_id' => $knowledgeSettings->summary_model_id,
@@ -151,14 +139,6 @@ class SystemContext extends Model
         return in_array($strategy, $this->enabledKnowledgeIndexingStrategies(), true);
     }
 
-    /**
-     * 当前系统关联的超级管理员。
-     */
-    public function owner()
-    {
-        return $this->belongsTo(User::class, 'owner_id')->withTrashed();
-    }
-
     public function knowledgeEmbeddingModel(): BelongsTo
     {
         return $this->belongsTo(AiModel::class, 'knowledge_embedding_model_id');
@@ -172,36 +152,6 @@ class SystemContext extends Model
     public function knowledgeSummaryModel(): BelongsTo
     {
         return $this->belongsTo(AiModel::class, 'knowledge_summary_model_id');
-    }
-
-    /**
-     * 系统 Logo 附件。
-     */
-    public function logo()
-    {
-        return $this->morphOne(Attachment::class, 'attachable');
-    }
-
-    /**
-     * 获取系统 Logo 展示地址。
-     */
-    protected function logoUrl(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->logo?->full_url ?? asset('images/admin.png'),
-        );
-    }
-
-    /**
-     * 注册系统 slug 默认值。
-     */
-    protected static function booted(): void
-    {
-        static::creating(function (SystemContext $systemContext) {
-            if (empty($systemContext->slug)) {
-                $systemContext->slug = $systemContext->id;
-            }
-        });
     }
 
     /**
@@ -223,7 +173,7 @@ class SystemContext extends Model
     }
 
     /**
-     * 将运行时上下文保存同步到系统设置。
+     * 拦截保存（含 factory()->create() 内部的 save()）：运行时上下文不落库，改写回系统设置。
      *
      * @param  array<string, mixed>  $options
      */
