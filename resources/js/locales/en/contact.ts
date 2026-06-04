@@ -18,7 +18,6 @@ export default {
   基本: 'Basic',
   属性: 'Attributes',
   更多操作: 'More actions',
-  删除联系人: 'Delete contact',
   无标签: 'Untagged',
   清空全部: 'Clear all',
   重点客户: 'Important customer',

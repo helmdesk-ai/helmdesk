@@ -30,7 +30,6 @@ export default {
   系统设置: 'System',
 
   // 收件箱页面
-  查看和处理会话: 'View and handle conversations',
   我负责的: 'Mine',
   已关闭: 'Closed',
   接单: 'Claim',
@@ -38,31 +37,17 @@ export default {
   转接: 'Transfer',
   转接人工: 'Take over',
   '交给 AI': 'Hand to AI',
-  释放回待接待: 'Release to queue',
   重新打开: 'Reopen',
-  关闭会话: 'Close conversation',
   结束会话: 'End',
 
   // Inbox composer
-  'AI 正在接待': 'AI is handling',
-  转接人工后即可回复: 'Take over to reply',
-  会话已结束: 'Ended',
-  重新打开后可继续回复: 'Reopen to continue replying',
-  无法继续回复: "Can't reply",
-  '同事 {name} 接待中': 'Teammate {name} is handling',
-  当前由其他同事接待: 'Handled by another teammate',
-  输入回复内容: 'Type a reply',
   图片: 'Image',
   文件: 'File',
   选择表情: 'Choose emoji',
   添加附件: 'Attach file',
   添加图片: 'Attach image',
-  移除附件: 'Remove attachment',
   图片上传失败: 'Image upload failed',
-  请选择图片文件: 'Choose an image file',
-  请使用图片按钮上传图片: 'Use the image button to upload images',
   '一次最多发送 {count} 个附件': 'Send up to {count} attachments at once',
-  '{title}，{hint}': '{title}. {hint}',
   '附件上传中...': 'Uploading attachment...',
   '附件上传中... {progress}%': 'Uploading attachment... {progress}%',
   附件上传失败: 'Attachment upload failed',
@@ -88,7 +73,6 @@ export default {
   暂无候选: 'No candidates yet',
 
   // 收件箱 tabs
-  待处理: 'Pending',
   排队中: 'Queued',
   'AI 接待中': 'AI Handling',
   同事: 'Teammates',
@@ -98,23 +82,17 @@ export default {
   负责人: 'Assignee',
   全部渠道: 'All channels',
   全部负责人: 'All assignees',
-  条会话: 'conversations',
   暂无会话: 'No conversations',
   请从左侧选择一条会话查看详情:
     'Pick a conversation on the left to see details',
-  刷新会话列表: 'Refresh conversation list',
-  待回复访客消息: 'Awaiting your reply',
   未读访客消息: 'Unread visitor messages',
   暂无快捷回复: 'No canned replies',
   暂无匹配的快捷回复: 'No matching canned replies',
   筛选: 'Filters',
-  搜索会话: 'Search conversations',
   清空搜索: 'Clear search',
-  已选: 'Filtered',
 
   // Assignee badges / status pills
   '由 {name} 接待': 'Handled by {name}',
-  我接待: 'You',
 
   // Relative time
   刚刚: 'Just now',
@@ -122,10 +100,7 @@ export default {
 
   // Auto-save state
   '保存中...': 'Saving…',
-  已保存: 'Saved',
-  '已保存 · {time}': 'Saved · {time}',
   保存失败: 'Save failed',
-  重试: 'Retry',
 
   // 收件箱右侧上下文面板
   资料: 'Profile',
@@ -164,7 +139,6 @@ export default {
   '你好，我是AI助手': 'Hi, I am your AI assistant',
   '告诉我你想做什么，我会尽力帮你':
     'Tell me what you want to do and I will do my best to help',
-  当前模型: 'Current model',
   '你上次选择的模型已不可用，请重新选择。':
     'Your previously selected model is no longer available. Please choose another one.',
   打开AI助手: 'Open AI assistant',
@@ -179,25 +153,14 @@ export default {
   调用工具: 'Tool call',
   工具结果: 'Tool result',
   工具: 'Tool',
-  '工具.calculator': 'Calculator',
-  '工具.knowledge_search': 'Knowledge base search',
 
   // 联系人页面
-  管理您的联系人: 'Manage your contacts',
-  身份类型: 'Identity Type',
   全部: 'All',
-  注册用户: 'Customers',
-  潜在客户: 'Leads',
-  会话: 'Conversation',
-  总计: 'Total',
   会话记录: 'Conversations',
   回复: 'Reply',
   回复状态: 'Reply status',
   全部回复状态: 'All reply statuses',
-  属性筛选: 'Attribute filters',
   未设置筛选: 'No filter',
-  清空筛选: 'Clear filters',
-  应用筛选: 'Apply filters',
   手动添加: 'Add manually',
   手动添加联系人: 'Add contact manually',
   已更新自定义属性: 'Updated custom attributes',

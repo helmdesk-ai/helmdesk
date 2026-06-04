@@ -41,7 +41,6 @@ export default {
   跟随系统: 'System',
 
   // 两步验证
-  两步验证设置: 'Two-factor authentication',
   管理你的两步验证设置: 'Manage your two-factor authentication settings',
   已启用: 'Enabled',
   已禁用: 'Disabled',
@@ -75,17 +74,11 @@ export default {
   语言和时区设置: 'Language and Timezone Settings',
   语言偏好: 'Language preference',
   选择你的首选语言: 'Select your preferred language',
-  当前语言: 'Current language',
   选择语言: 'Select language',
-  简体中文: '简体中文',
-  English: 'English',
   时区设置: 'Timezone Settings',
   '选择你的时区，用于正确显示时间':
     'Select your timezone for accurate time display',
-  当前时区: 'Current timezone',
   选择时区: 'Select timezone',
-  自动检测: 'Auto Detect',
-  浏览器时区: 'Browser timezone',
 
   // 时区搜索
   未找到匹配的时区: 'No matching timezones found',
@@ -107,7 +100,6 @@ export default {
   'HelmDesk 通知测试': 'HelmDesk notification test',
   桌面通知可以正常显示: 'Desktop notifications can be displayed',
   声音提醒: 'Sound alerts',
-  新消息到达时播放一段提示音: 'Play a short sound when new messages arrive',
   新消息到达时播放选中的提示音:
     'Play the selected sound when new messages arrive',
   试听提示音: 'Test sound',
