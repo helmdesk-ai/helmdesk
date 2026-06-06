@@ -8,7 +8,6 @@ import FormActions from '@/components/common/FormActions.vue';
 import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import ImageUploadField from '@/components/common/ImageUploadField.vue';
 import InputError from '@/components/common/InputError.vue';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/composables/useI18n';
@@ -17,6 +16,7 @@ import type { ShowCreateTeammatePagePropsData } from '@/types/generated';
 import { Form, Head } from '@inertiajs/vue3';
 import { Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';
+import PermissionSelector from './PermissionSelector.vue';
 
 const props = defineProps<ShowCreateTeammatePagePropsData>();
 
@@ -25,24 +25,6 @@ const { t } = useI18n();
 const passwordVisible = ref(false);
 const passwordConfirmationVisible = ref(false);
 const selectedPermissions = ref<string[]>([]);
-
-function permissionValue(value: string | number): string {
-  return String(value);
-}
-
-function togglePermission(value: string | number, checked: boolean): void {
-  const normalizedValue = permissionValue(value);
-  if (checked && !selectedPermissions.value.includes(normalizedValue)) {
-    selectedPermissions.value = [...selectedPermissions.value, normalizedValue];
-    return;
-  }
-
-  if (!checked) {
-    selectedPermissions.value = selectedPermissions.value.filter(
-      (permission) => permission !== normalizedValue,
-    );
-  }
-}
 </script>
 
 <template>
@@ -95,38 +77,10 @@ function togglePermission(value: string | number, checked: boolean): void {
               name="permissions[]"
               :value="permission"
             />
-            <div class="space-y-5">
-              <div
-                v-for="group in props.permission_groups"
-                :key="group.key"
-                class="space-y-3"
-              >
-                <div class="text-sm font-medium">{{ group.label }}</div>
-                <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                  <label
-                    v-for="permission in group.permissions"
-                    :key="String(permission.value)"
-                    class="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm"
-                  >
-                    <Checkbox
-                      :model-value="
-                        selectedPermissions.includes(
-                          permissionValue(permission.value),
-                        )
-                      "
-                      @update:model-value="
-                        (checked) =>
-                          togglePermission(
-                            permission.value,
-                            checked === true,
-                          )
-                      "
-                    />
-                    <span>{{ permission.label }}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
+            <PermissionSelector
+              v-model="selectedPermissions"
+              :groups="props.permission_groups"
+            />
             <InputError class="mt-2" :message="errors.permissions" />
           </div>
 

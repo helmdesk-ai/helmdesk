@@ -79,6 +79,13 @@ export default {
   头像: 'Avatar',
   权限: 'Permissions',
   权限数: 'Permissions',
+  配置权限: 'Configure permissions',
+  '已选 {count} 项': '{count} selected',
+  '按业务模块勾选该客服可执行的操作。':
+    'Select the actions this teammate can perform, grouped by module.',
+  全选: 'Select all',
+  清空: 'Clear',
+  确定: 'Confirm',
   邮箱: 'Email',
   登录密码: 'Password',
   确认密码: 'Confirm password',
