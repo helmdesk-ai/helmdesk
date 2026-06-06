@@ -1,17 +1,17 @@
 <?php
 
 return [
-    'workspace_ai_updated' => 'Workspace AI settings saved.',
+    'system_ai_updated' => 'System AI settings saved.',
 
-    'invalid_workspace_model' => 'The selected model is invalid or inactive. Please choose another.',
-    'workspace_default_model_unavailable' => 'The workspace default model is unavailable. Please fix it in default model settings or choose a model for this reception plan.',
+    'invalid_system_model' => 'The selected model is invalid or inactive. Please choose another.',
+    'system_default_model_unavailable' => 'The system default model is unavailable. Please fix it in default model settings or choose a model for this reception plan.',
 
-    'max_concurrency_exceeds_global' => 'Max concurrency cannot exceed this workspace AI max concurrency setting (:max).',
-    'global_max_concurrency_below_model_limit' => 'The workspace AI max concurrency setting cannot be lower than an existing model limit. Model ":model" is set to :max.',
+    'max_concurrency_exceeds_global' => 'Max concurrency cannot exceed this system AI max concurrency setting (:max).',
+    'global_max_concurrency_below_model_limit' => 'The system AI max concurrency setting cannot be lower than an existing model limit. Model ":model" is set to :max.',
 
-    'model_in_use_workspace' => 'This model is the workspace default and cannot be disabled or deleted. Please change the workspace default model first.',
+    'model_in_use_system' => 'This model is the system default and cannot be disabled or deleted. Please change the system default model first.',
     'model_in_use_reception_plan' => 'This model is referenced by a reception plan (draft or published version) and cannot be disabled or deleted. Update the affected reception plan to use another model first.',
-    'provider_in_use_workspace' => 'A model under this provider is the workspace default. Please change the workspace default model first.',
+    'provider_in_use_system' => 'A model under this provider is the system default. Please change the system default model first.',
     'provider_in_use_reception_plan' => 'A model under this provider is referenced by a reception plan. Please update the affected reception plan to use another model first.',
 
     'model_status' => [

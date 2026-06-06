@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Actions\Attachment\DeleteAttachmentAction;
 use App\Enums\AttachmentStatus;
-use App\Enums\AttachmentUploadMode;
 use App\Enums\AttachmentUploadStatus;
 use App\Models\Attachment;
 use App\Models\AttachmentUpload;
@@ -29,11 +28,6 @@ class CleanupAttachmentsCommand extends Command
         $expiredUploads = AttachmentUpload::query()
             ->with('attachment')
             ->whereIn('status', [AttachmentUploadStatus::Pending, AttachmentUploadStatus::Uploading])
-            ->where(function ($query): void {
-                $query
-                    ->where('mode', '!=', AttachmentUploadMode::Multipart)
-                    ->orWhereNull('upload_id');
-            })
             ->where('expires_at', '<', now())
             ->get();
 

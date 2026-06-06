@@ -16,7 +16,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
             $table->softDeletes();
-            $table->ulid('workspace_id')->comment('工作区 ID');
             $table->ulid('tag_group_id')->comment('所属标签组 ID（标签必属于一个组，维度经由组继承）');
             $table->string('name')->comment('标签名');
             $table->string('normalized_name')->comment('标准化标签名');
@@ -27,13 +26,11 @@ return new class extends Migration
             $table->ulid('created_by_user_id')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->index('workspace_id');
-            $table->index('tag_group_id');
-            $table->unique(['id', 'workspace_id'], 'tags_id_workspace_id_unique');
+            $table->index(['tag_group_id', 'name'], 'tags_group_name_idx');
         });
 
         DB::statement(
-            'CREATE UNIQUE INDEX tags_workspace_group_normalized_name_active_unique ON tags (workspace_id, tag_group_id, normalized_name) WHERE deleted_at IS NULL',
+            'CREATE UNIQUE INDEX tags_group_normalized_name_active_unique ON tags (tag_group_id, normalized_name) WHERE deleted_at IS NULL',
         );
     }
 

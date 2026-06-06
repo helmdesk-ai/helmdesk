@@ -20,7 +20,6 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property string $workspace_id
  * @property ChannelType $type
  * @property string $name
  * @property string|null $description
@@ -34,9 +33,7 @@ use Illuminate\Support\Str;
  * @property string|null $last_embed_host
  * @property Carbon|null $last_embed_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $reception_plan_versions_count
- * @property-read Workspace $workspace
  * @property-read ReceptionPlan|null $receptionPlan
  * @property-read ReceptionPlanVersion|null $receptionPlanVersion
  *
@@ -69,14 +66,6 @@ class Channel extends Model
     }
 
     /**
-     * 渠道所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
-    /**
      * 渠道绑定的接待方案；渠道运行时自动使用该方案的最新已发布版本。
      */
     public function receptionPlan(): BelongsTo
@@ -85,7 +74,7 @@ class Channel extends Model
     }
 
     /**
-     * 渠道历史上部署的接待方案版本关系；保留以兼容旧数据，运行时已改由方案最新版解析。
+     * 渠道部署过的接待方案版本关系，用于审计和历史展示。
      */
     public function receptionPlanVersion(): BelongsTo
     {

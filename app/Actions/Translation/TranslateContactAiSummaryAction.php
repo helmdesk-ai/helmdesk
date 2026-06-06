@@ -7,8 +7,8 @@ use App\Enums\MessageTranslationOutcome;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Services\Contact\ContactAiContext;
+use App\Services\Localization\LocalePreference;
 use App\Services\Translation\Exceptions\TranslationException;
-use App\Support\LocalePreference;
 use Illuminate\Support\Facades\Log;
 use Lorisleiva\Actions\Concerns\AsAction;
 

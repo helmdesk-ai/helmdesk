@@ -21,7 +21,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['conversation_id', 'tag_id']);
-            $table->index('conversation_id');
             $table->index(['tag_id', 'created_at'], 'cnvta_tag_created_at_idx');
         });
     }

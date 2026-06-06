@@ -8,7 +8,7 @@ use App\Contracts\LabeledEnum;
  * 暴露给 Agent 的知识库检索模式。
  *
  *  - Grep     : 字面 / 大小写不敏感的精确子串匹配，命中带行号 / 列号 / 上下文，适合查"代码 / 编号 / 关键字面"。
- *  - Semantic : 语义检索；具体包含哪几路 retriever 取决于工作区配置：
+ *  - Semantic : 语义检索；具体包含哪几路 retriever 取决于系统配置：
  *               · 始终包含全文检索（FTS5 + 中文分词）；
  *               · 启用向量索引 → 加入向量召回；
  *               · 启用 RAPTOR → 加入摘要节点向量召回；

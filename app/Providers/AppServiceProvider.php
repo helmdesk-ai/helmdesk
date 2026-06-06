@@ -3,10 +3,8 @@
 namespace App\Providers;
 
 use App\Contracts\ContactTagFilterStrategy;
-use App\Data\WorkspaceUserContextData;
-use App\Enums\WorkspaceRole;
+use App\Enums\UserPermission;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Database\SqliteVecExtensionLoader;
 use App\Services\KnowledgeBase\Parsing\DocumentParserManager;
 use App\Services\KnowledgeBase\Parsing\DocxDocumentParser;
@@ -72,44 +70,28 @@ class AppServiceProvider extends ServiceProvider
 
         // sqlite_rag 连接初始化时确保 sqlite-vec 扩展可用。
         // 真正的加载方式由 SqliteVecExtensionLoader 内部探测决定：
-        //  - Go 端已经通过 sqlite3_auto_extension 注册过 → 探测命中，PHP 不再 loadExtension；
+        //  - Go 端已经通过 sqlite3_auto_extension 注册过 → 探测命中，PHP 跳过 loadExtension；
         //  - 纯 PHP CLI 启动（artisan test / tinker 等） → 探测失败，PHP 主动 loadExtension。
         Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event): void {
             app(SqliteVecExtensionLoader::class)->ensureLoadedFor($event->connection);
         });
 
-        $actorContext = static function (Workspace $workspace, User $actor): WorkspaceUserContextData {
-            if (! app()->runningInConsole()) {
-                $ctx = WorkspaceUserContextData::tryFromRequest(request());
-                if ($ctx?->workspace_id === (string) $workspace->id && $ctx->user_id === (string) $actor->id) {
-                    return $ctx;
-                }
-            }
-
-            return WorkspaceUserContextData::fromModels($workspace, $actor);
-        };
-
-        // 管理中心权限
-        Gate::define('workspace.canAccessManageCenter', function (User $actor, Workspace $workspace) use ($actorContext): bool {
-            $ctx = $actorContext($workspace, $actor);
-            $actorRole = $ctx->role->value;
-
-            return in_array($actorRole, [WorkspaceRole::Owner->value, WorkspaceRole::Admin->value], true);
+        // 两套权限 Gate 服务于两种调用语法，底层均委托给 User::hasPermission()：
+        //  - 参数化 'user.permission'：供 Action / 中间件传入 UserPermission 枚举使用；
+        //  - 每个权限名一个同名 Gate：供路由 'can:users.view' 中间件使用（can 中间件只能传字符串 ability，无法带枚举参数）。
+        Gate::define('user.permission', function (User $actor, UserPermission|string $permission): bool {
+            return $actor->hasPermission($permission);
         });
 
-        Gate::define('workspace.manageAi', function (User $actor, Workspace $workspace) use ($actorContext): bool {
-            $ctx = $actorContext($workspace, $actor);
+        foreach (UserPermission::cases() as $permission) {
+            Gate::define($permission->value, function (User $actor) use ($permission): bool {
+                return $actor->hasPermission($permission);
+            });
+        }
 
-            return $ctx->role->value === WorkspaceRole::Owner->value;
-        });
-
-        // 从工作区移除成员权限（仅解除关联，不删除用户）
-        Gate::define('workspace-users.removeMember', function (User $actor, Workspace $workspace, User $target) use ($actorContext): bool {
-            $ctx = $actorContext($workspace, $actor);
-            $actorRole = $ctx->role->value;
-            $targetRole = WorkspaceUserContextData::fromModels($workspace, $target)->role->value;
-
-            if (filled($workspace->owner_id) && (string) $workspace->owner_id === (string) $target->id) {
+        // 删除/更新后台成员的关系判定 Gate（与按权限名注册的 Gate 区分：这里还要校验超管与本人）。
+        Gate::define('users.removeMember', function (User $actor, User $target): bool {
+            if ($target->is_super_admin) {
                 return false;
             }
 
@@ -117,53 +99,21 @@ class AppServiceProvider extends ServiceProvider
                 return false;
             }
 
-            if ($actorRole === WorkspaceRole::Owner->value) {
-                return true;
-            }
+            return $actor->hasPermission(UserPermission::UsersDelete);
+        });
 
-            if ($actorRole !== WorkspaceRole::Admin->value) {
+        Gate::define('users.updateProfile', function (User $actor, User $target): bool {
+            if ($target->is_super_admin) {
                 return false;
             }
 
-            return $targetRole === WorkspaceRole::Operator->value;
-        });
-
-        // 更新用户资料权限
-        Gate::define('workspace-users.updateProfile', function (User $actor, Workspace $workspace, User $target) use ($actorContext): bool {
-            $ctx = $actorContext($workspace, $actor);
-            $actorRole = $ctx->role->value;
-            $targetRole = WorkspaceUserContextData::fromModels($workspace, $target)->role->value;
-
-            if ($actorRole === WorkspaceRole::Owner->value) {
-                return true;
-            }
-
-            if ($actorRole !== WorkspaceRole::Admin->value) {
-                return false;
-            }
-
-            return (string) $actor->id === (string) $target->id
-                || $targetRole === WorkspaceRole::Operator->value;
-        });
-
-        Gate::define('workspace-users.canUpdateRole', function (User $actor, Workspace $workspace, User $target) use ($actorContext): bool {
-            $ctx = $actorContext($workspace, $actor);
-            $actorRole = $ctx->role->value;
-
-            return $actorRole === WorkspaceRole::Owner->value
-                && (string) $actor->id !== (string) $target->id;
-        });
-
-        Gate::define('workspace-users.updateRole', function (User $actor, Workspace $workspace, User $target, WorkspaceRole $newRole) use ($actorContext): bool {
-            $ctx = $actorContext($workspace, $actor);
-            $actorRole = $ctx->role->value;
-
-            return $actorRole === WorkspaceRole::Owner->value
-                && (string) $actor->id !== (string) $target->id
-                && in_array($newRole, WorkspaceRole::assignableCases(), true);
+            return $actor->hasPermission(UserPermission::UsersEdit);
         });
     }
 
+    /**
+     * 判断当前异常是否来自 settings 表尚未创建。
+     */
     private function isMissingSettingsTableException(Throwable $exception): bool
     {
         if (! $exception instanceof QueryException) {

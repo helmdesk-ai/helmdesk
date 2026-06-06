@@ -3,9 +3,8 @@
 namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormUpdateMcpServerData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,11 +24,18 @@ class UpdateMcpServerAction
     use AsAction;
 
     /**
-     * 更新一台 MCP 服务，只保存配置，不触发远端连接或工具同步。
+     * 注入工具同步入队动作。
      */
-    public function handle(Workspace $workspace, string $slug, FormUpdateMcpServerData $data): McpServer
+    public function __construct(
+        private readonly QueueMcpServerToolSyncAction $queueToolSync,
+    ) {}
+
+    /**
+     * 更新一台 MCP 服务，并派发异步工具同步任务。
+     */
+    public function handle(string $slug, FormUpdateMcpServerData $data): McpServer
     {
-        $server = $this->findServer($workspace, $slug);
+        $server = $this->findServer($slug);
 
         $server->name = $data->name;
         $server->endpoint_url = $data->endpoint_url;
@@ -42,29 +48,30 @@ class UpdateMcpServerAction
         $server->credentials = $this->mergeCredentials($server, $data);
         $server->save();
 
+        $this->queueToolSync->handle($server);
+
         return $server->refresh();
     }
 
     /**
-     * 路由入口：仅 manageAi 角色可调用。
+     * 路由入口：需要系统设置编辑权限。
      */
-    public function asController(Request $request, string $slug, string $server): RedirectResponse
+    public function asController(Request $request, string $server): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormUpdateMcpServerData::from($request);
-        $this->handle($workspace, $server, $data);
+        $this->handle($server, $data);
 
-        return back();
+        return redirect()->route('admin.manage.mcp.servers.index');
     }
 
     /**
      * 加载目标服务，找不到时 404。
      */
-    private function findServer(Workspace $workspace, string $slug): McpServer
+    private function findServer(string $slug): McpServer
     {
-        return $workspace->mcpServers()->where('slug', $slug)->firstOrFail();
+        return McpServer::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

@@ -56,7 +56,6 @@ class RecallVisitorMessageAction
 
         $message = ConversationMessage::query()
             ->where('conversation_id', $conversation->id)
-            ->where('workspace_id', $conversation->workspace_id)
             ->whereKey($messageId)
             ->first();
 

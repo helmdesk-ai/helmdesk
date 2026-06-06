@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // 向量表按维度动态建表，knowledge_vector_tables 保存维度 → 物理表名的注册表。
-        // 重建迁移前先清理掉历史注册表里登记的所有向量物理表，避免遗留孤儿表。
+        // 重建迁移前先清理注册表里登记的所有向量物理表，避免遗留孤儿表。
         if (Schema::connection('sqlite_rag')->hasTable('knowledge_vector_tables')) {
             $registered = DB::connection('sqlite_rag')->table('knowledge_vector_tables')->pluck('table_name');
             foreach ($registered as $tableName) {

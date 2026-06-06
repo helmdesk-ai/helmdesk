@@ -1,5 +1,5 @@
 <!--
-  文件说明：后台应用布局片段，承接侧边栏、顶部状态和工作区上下文。
+  文件说明：后台应用布局片段，承接侧边栏、顶部状态和系统上下文。
 -->
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,7 +16,7 @@ import { useI18n } from '@/composables/useI18n';
 import { getInitials } from '@/composables/useInitials';
 import type { AppPageProps } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ChevronsUpDown, LogOut, Settings } from 'lucide-vue-next';
+import { ChevronsUpDown, LogOut, Settings } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface Props {

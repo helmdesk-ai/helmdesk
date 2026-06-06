@@ -2,28 +2,45 @@
 
 namespace App\Data\Teammate;
 
-use App\Enums\WorkspaceRole;
+use App\Enums\UserPermission;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 
 /**
- * 更新客服成员表单数据。
- * 来自 resources/js/pages/teammate/List.vue、Create.vue、Edit.vue 的编辑表单提交，后端用它校验并保存客服成员配置。
+ * 客服编辑表单数据。
+ * 来自 resources/js/pages/teammates/Edit.vue，用于更新客服账号资料、密码和权限。
  */
 class FormUpdateTeammateData extends Data
 {
+    /**
+     * @param  list<string>  $permissions
+     */
     public function __construct(
+        public string $name,
+        public string $email,
+        public ?string $password,
         public ?string $nickname,
-        public WorkspaceRole $role,
+        public array $permissions = [],
+        public ?string $avatar_id = null,
     ) {}
 
+    /**
+     * 返回客服编辑表单验证规则。
+     *
+     * @return array<string, list<mixed>>
+     */
     public static function rules(): array
     {
-        // 更新时允许传入 owner（例如 owner 编辑自己时 role 会作为隐藏字段提交），
-        // 具体是否允许变更由 Gate('workspace-users.updateRole') 决定。
+        $teammateId = request()->route('teammate');
+
         return [
+            'name' => ['required', 'string', 'max:50'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($teammateId)],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'nickname' => ['nullable', 'string', 'max:50'],
-            'role' => ['required', Rule::enum(WorkspaceRole::class)],
+            'permissions' => ['array'],
+            'permissions.*' => ['string', Rule::in(UserPermission::values())],
+            'avatar_id' => ['nullable', 'string', 'max:26'],
         ];
     }
 }

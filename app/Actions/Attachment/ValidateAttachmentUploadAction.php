@@ -14,10 +14,6 @@ class ValidateAttachmentUploadAction
 {
     use AsAction;
 
-    public const MULTIPART_THRESHOLD = 20 * 1024 * 1024;
-
-    public const PART_SIZE = 8 * 1024 * 1024;
-
     /**
      * @var list<string>
      */
@@ -41,7 +37,7 @@ class ValidateAttachmentUploadAction
     /**
      * 校验文件类型和大小，并返回当前用途的上传规则。
      *
-     * @return array{visibility: AttachmentVisibility, max_size: int, mime_types: list<string>, multipart_threshold: int|null}
+     * @return array{visibility: AttachmentVisibility, max_size: int, mime_types: list<string>}
      */
     public function handle(AttachmentPurpose $purpose, string $mimeType, int $byteSize): array
     {
@@ -70,9 +66,9 @@ class ValidateAttachmentUploadAction
     }
 
     /**
-     * 返回指定用途对应的可见性、大小、类型和分片阈值规则。
+     * 返回指定用途对应的可见性、大小和类型规则。
      *
-     * @return array{visibility: AttachmentVisibility, max_size: int, mime_types: list<string>, multipart_threshold: int|null}
+     * @return array{visibility: AttachmentVisibility, max_size: int, mime_types: list<string>}
      */
     private function ruleForPurpose(AttachmentPurpose $purpose): array
     {
@@ -81,31 +77,26 @@ class ValidateAttachmentUploadAction
                 'visibility' => AttachmentVisibility::Public,
                 'max_size' => 2 * 1024 * 1024,
                 'mime_types' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-                'multipart_threshold' => null,
             ],
             AttachmentPurpose::ConversationImage => [
                 'visibility' => AttachmentVisibility::Private,
                 'max_size' => 10 * 1024 * 1024,
                 'mime_types' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-                'multipart_threshold' => null,
             ],
             AttachmentPurpose::ConversationFile => [
                 'visibility' => AttachmentVisibility::Private,
                 'max_size' => 50 * 1024 * 1024,
                 'mime_types' => [],
-                'multipart_threshold' => self::MULTIPART_THRESHOLD,
             ],
             AttachmentPurpose::Import => [
                 'visibility' => AttachmentVisibility::Private,
                 'max_size' => 100 * 1024 * 1024,
                 'mime_types' => ['text/csv', 'application/json', 'text/plain', 'application/pdf'],
-                'multipart_threshold' => self::MULTIPART_THRESHOLD,
             ],
             AttachmentPurpose::Other => [
                 'visibility' => AttachmentVisibility::Private,
                 'max_size' => 10 * 1024 * 1024,
                 'mime_types' => ['application/pdf', 'text/plain', 'image/jpeg', 'image/png', 'image/webp'],
-                'multipart_threshold' => null,
             ],
         };
     }

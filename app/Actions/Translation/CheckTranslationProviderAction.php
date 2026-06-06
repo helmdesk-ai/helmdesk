@@ -4,10 +4,10 @@ namespace App\Actions\Translation;
 
 use App\Data\Translation\FormCheckTranslationProviderData;
 use App\Data\Translation\TranslationCheckResultData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\TranslationProviderType;
+use App\Enums\UserPermission;
+use App\Models\SystemContext;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use App\Services\Translation\Exceptions\TranslationException;
 use App\Services\Translation\TranslationProviderCatalog;
 use App\Services\Translation\TranslatorManager;
@@ -38,17 +38,16 @@ class CheckTranslationProviderAction
     ) {}
 
     /**
-     * 调用 driver 翻译并返回前端友好的结果 DTO；driver 抛出异常时降级为 success=false，不再向上抛。
+     * 调用 driver 翻译并返回前端友好的结果 DTO；driver 抛出异常时返回失败结果。
      *
      * @param  array<string, mixed>|null  $configuration
      */
     public function handle(
-        Workspace $workspace,
         string $providerSlug,
         FormCheckTranslationProviderData $data,
         ?array $configuration = null,
     ): TranslationCheckResultData {
-        $provider = $this->findProvider($workspace, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
 
         // 临时叠加未保存的凭据：直接在内存对象上覆盖，不调 save()。
         // Eloquent 模型按引用传递，driver 实例化时会拿到这份新凭据。
@@ -77,17 +76,17 @@ class CheckTranslationProviderAction
     /**
      * 鉴权后把请求拆成 FormData + 可选 configuration override，调用 handle() 并把结果以 JSON 形式返回给前端。
      */
-    public function asController(Request $request, string $slug, ?string $provider = null): JsonResponse
+    public function asController(Request $request, ?string $provider = null): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemContext::current();
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCheckTranslationProviderData::from($request);
         $configuration = $request->input('configuration');
 
         if ($provider === null) {
             return response()->json($this->handleDraft(
-                $workspace,
+                $systemContext,
                 $data,
                 is_array($configuration) ? $configuration : [],
                 $request,
@@ -95,7 +94,6 @@ class CheckTranslationProviderAction
         }
 
         return response()->json($this->handle(
-            $workspace,
             $provider,
             $data,
             is_array($configuration) ? $configuration : null,
@@ -103,11 +101,11 @@ class CheckTranslationProviderAction
     }
 
     /**
-     * 按 slug 在当前工作区下定位 provider；不存在抛 404。
+     * 按 slug 在当前系统下定位 provider；不存在抛 404。
      */
-    private function findProvider(Workspace $workspace, string $slug): TranslationProvider
+    private function findProvider(string $slug): TranslationProvider
     {
-        return $workspace->translationProviders()->where('slug', $slug)->firstOrFail();
+        return TranslationProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**
@@ -116,7 +114,7 @@ class CheckTranslationProviderAction
      * @param  array<string, mixed>  $configuration
      */
     private function handleDraft(
-        Workspace $workspace,
+        SystemContext $systemContext,
         FormCheckTranslationProviderData $data,
         array $configuration,
         Request $request,
@@ -127,7 +125,6 @@ class CheckTranslationProviderAction
 
         $protocol = TranslationProviderType::from((string) $validated['protocol']);
         $provider = new TranslationProvider([
-            'workspace_id' => $workspace->id,
             'slug' => 'draft',
             'name' => 'Draft',
             'protocol' => $protocol,
@@ -137,7 +134,7 @@ class CheckTranslationProviderAction
             'is_builtin' => false,
             'sort_order' => 0,
         ]);
-        $provider->id = 'draft-'.$workspace->id;
+        $provider->id = 'draft-'.$systemContext->id;
 
         try {
             $driver = $this->manager->driverFor($provider, fresh: true);

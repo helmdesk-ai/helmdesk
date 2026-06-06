@@ -505,7 +505,7 @@ class BuildConversationEventDisplayAction
     {
         $userId = $this->requiredPayloadString($payload, $key);
 
-        return $userNamesById[$userId] ?? throw new RuntimeException('Unknown workspace user in conversation event: '.$userId);
+        return $userNamesById[$userId] ?? throw new RuntimeException('Unknown system user in conversation event: '.$userId);
     }
 
     /**
@@ -535,7 +535,7 @@ class BuildConversationEventDisplayAction
 
         $userId = (string) $row->actor_user_id;
 
-        return $userNamesById[$userId] ?? throw new RuntimeException('Unknown workspace actor in conversation event: '.$userId);
+        return $userNamesById[$userId] ?? throw new RuntimeException('Unknown system actor in conversation event: '.$userId);
     }
 
     /**

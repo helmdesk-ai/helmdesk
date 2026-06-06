@@ -18,7 +18,6 @@ use Illuminate\Support\Carbon;
  * @property string|null $description
  * @property array|null $input_schema
  * @property array|null $annotations
- * @property bool $is_enabled
  * @property Carbon|null $last_seen_at
  * @property Carbon|null $removed_at
  * @property mixed $use_factory
@@ -32,7 +31,7 @@ class McpTool extends Model
     /**
      * MCP 服务下从远端拉取并缓存的工具描述。
      * 每次同步时按 (server_id, name) 增量写入；server 上不再返回的工具不删，
-     * 改为置 removed_at 并强制 is_enabled=false 显示"已下线"。
+     * 改为置 removed_at 显示"已下线"。
      */
 
     /** @use HasFactory<McpToolFactory> */
@@ -52,7 +51,6 @@ class McpTool extends Model
         return [
             'input_schema' => 'array',
             'annotations' => 'array',
-            'is_enabled' => 'boolean',
             'last_seen_at' => 'datetime',
             'removed_at' => 'datetime',
         ];

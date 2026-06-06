@@ -11,11 +11,10 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
-import cannedReplyRoutes from '@/routes/workspace/canned-replies';
+import cannedReplyRoutes from '@/routes/admin/canned-replies';
 import type { CannedReplyComposerItemData } from '@/types/generated';
 import axios from 'axios';
-import { Sparkles } from 'lucide-vue-next';
+import { Sparkles } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 
 interface RenderedReply {
@@ -37,7 +36,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const items = ref<CannedReplyComposerItemData[]>([]);
 const activeIndex = ref(0);
@@ -58,7 +56,7 @@ const search = async (rawQuery: string) => {
 
   try {
     const response = await axios.get<{ items: CannedReplyComposerItemData[] }>(
-      cannedReplyRoutes.search.url(currentWorkspace.value.slug),
+      cannedReplyRoutes.search.url(),
       {
         params: {
           q: rawQuery,
@@ -98,7 +96,6 @@ const useReply = async (reply: CannedReplyComposerItemData) => {
   try {
     const response = await axios.post<RenderedReply>(
       cannedReplyRoutes.useAndRender.url({
-        slug: currentWorkspace.value.slug,
         cannedReply: reply.id,
       }),
       {
@@ -241,7 +238,7 @@ const truncate = (text: string, max = 90) => {
               v-else
               class="rounded bg-muted px-1 text-[11px] text-muted-foreground"
             >
-              {{ t('工作区共享') }}
+              {{ t('系统共享') }}
             </span>
             <Sparkles
               v-if="item.relevance_score > 0"

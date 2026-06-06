@@ -26,16 +26,15 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
 use function Pest\Laravel\mock;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-pipeline-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Pipeline Provider',
@@ -62,7 +61,7 @@ beforeEach(function () {
         'is_builtin' => false,
         'sort_order' => 1,
     ]);
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_embedding_model_id' => $this->embeddingModel->id,
         'knowledge_summary_model_id' => $this->summaryModel->id,
         'knowledge_vector_index_enabled' => true,
@@ -72,7 +71,6 @@ beforeEach(function () {
         'knowledge_chunk_overlap_tokens' => 32,
     ]);
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 });
 
@@ -99,7 +97,7 @@ test('编排器为启用的索引策略写入 Pending，并按策略派发 Job',
 test('解析成功后会派发已启用策略对应的索引 Job', function () {
     Bus::fake();
 
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_vector_index_enabled' => true,
         'knowledge_raptor_index_enabled' => true,
     ]);
@@ -232,7 +230,7 @@ test('VectorAction 把 canonical 节点附加向量并把 vector_status 置 Succ
 });
 
 test('VectorAction 使用句子 embedding 聚合语义分段', function () {
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_chunking_strategy' => KnowledgeChunkingStrategy::Semantic->value,
         'knowledge_chunk_max_tokens' => 256,
         'knowledge_chunk_overlap_tokens' => 0,
@@ -280,7 +278,6 @@ test('VectorAction 使用句子 embedding 聚合语义分段', function () {
 
 test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Succeeded', function () {
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-raptor-'.Str::lower((string) Str::ulid()),
         'name' => 'KB Raptor Provider',
@@ -298,7 +295,7 @@ test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Suc
         'is_builtin' => false,
         'sort_order' => 0,
     ]);
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_summary_model_id' => $summaryModel->id,
         'knowledge_vector_index_enabled' => false,
         'knowledge_raptor_index_enabled' => true,
@@ -309,7 +306,6 @@ test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Suc
         'knowledge_chunk_overlap_tokens' => 0,
     ]);
     $knowledgeBase = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $document = KnowledgeDocument::factory()->create([
         'knowledge_base_id' => $knowledgeBase->id,
@@ -365,7 +361,7 @@ test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Suc
     expect($document->raptor_status)->toBe(KnowledgeDocumentIndexingStatus::Succeeded)
         ->and($leafNodes->count())->toBeGreaterThanOrEqual(1)
         ->and($summaryNodes->count())->toBeGreaterThanOrEqual(1)
-        // 工作区关闭了 Vector 索引，canonical 叶子不应被偷偷打上向量维度。
+        // 系统关闭了 Vector 索引，canonical 叶子不应被偷偷打上向量维度。
         ->and($leafNodes->every(fn ($node) => (int) $node->embedding_dim === 0))->toBeTrue()
         // 摘要节点自带嵌入维度，作为 RAPTOR 召回的主要载体。
         ->and($summaryNodes->every(fn ($node) => (int) $node->embedding_dim === 3))->toBeTrue()

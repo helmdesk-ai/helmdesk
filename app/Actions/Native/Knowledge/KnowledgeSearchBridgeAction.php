@@ -7,21 +7,21 @@ use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
 use App\Enums\KnowledgeSearchMode;
 use App\Exceptions\BusinessException;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Native bridge 入口：Agent 工具调用知识库检索。
  *
  * Go 工具 knowledge_search 通过 phpbridge.CallNative 调用本 Action。
- *  - 入参 4 个字段（workspaceId 由 Go 在构造 tool 时绑定，agent 不可见）：
- *      $workspaceId       ：当前会话所属 workspace；
+ *  - 入参 4 个字段：
+ *      $scope             ：调用端作用域标识；
  *      $mode              ：grep / semantic / hybrid；
- *      $knowledgeBaseIds  ：Agent 可选的知识库 ID 列表；空列表表示当前工作区全部知识库；
+ *      $knowledgeBaseIds  ：Agent 可选的知识库 ID 列表；空列表表示全部知识库；
  *      $queries           ：单条 string 或字符串数组。
  *  - 出参直接是 KnowledgeSearchResultData 的数组形式，Go 透明转发给 LLM。
  *
- * 设计意图：Bridge Action 只做"参数解构 + 工作区定位 + 错误转换"，业务逻辑都在
+ * 设计意图：Bridge Action 只做"参数解构 + 错误转换"，业务逻辑都在
  * SearchKnowledgeBaseAction 里，避免重复实现，也方便 PHP 侧单测复用。
  */
 class KnowledgeSearchBridgeAction
@@ -33,11 +33,13 @@ class KnowledgeSearchBridgeAction
     ) {}
 
     /**
+     * 执行知识库检索 bridge 调用。
+     *
      * @param  list<string>  $knowledgeBaseIds
      * @param  string|list<string>  $queries
      */
     public function handle(
-        string $workspaceId,
+        string $scope,
         string $mode,
         array $knowledgeBaseIds,
         string|array $queries,
@@ -47,10 +49,7 @@ class KnowledgeSearchBridgeAction
             throw new BusinessException(__('knowledge_search.errors.mode_required'));
         }
 
-        $workspace = Workspace::query()->find($workspaceId);
-        if ($workspace === null) {
-            throw new BusinessException(__('knowledge_search.errors.knowledge_base_inaccessible'));
-        }
+        $systemContext = SystemContext::current();
 
         // 仅接受字符串数组成员，过滤其他类型；FormKnowledgeSearchData::normalizedQueries 会再 trim 一道。
         $cleanedQueries = is_array($queries)
@@ -67,6 +66,6 @@ class KnowledgeSearchBridgeAction
             'query' => $cleanedQueries,
         ]);
 
-        return $this->searchAction->handle($workspace, $data);
+        return $this->searchAction->handle($systemContext, $data);
     }
 }

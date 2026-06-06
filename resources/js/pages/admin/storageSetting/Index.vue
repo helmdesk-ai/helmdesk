@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/composables/useI18n';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import storageProfile from '@/routes/admin/storage/profiles';
 import type {
   FormStorageSettingData,
@@ -23,7 +24,7 @@ import type {
   StorageProfileData,
 } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowGetStorageSettingPagePropsData>();
@@ -109,7 +110,7 @@ const confirmDelete = () => {
 <template>
   <SystemAppLayout>
     <Head :title="t('存储设置')" />
-    <div class="px-4 py-6 sm:px-6">
+    <SystemSettingsLayout>
       <div class="mx-auto w-full max-w-none space-y-6">
         <div class="flex items-start justify-between gap-4">
           <HeadingSmall
@@ -294,6 +295,6 @@ const confirmDelete = () => {
           @confirm="confirmDelete"
         />
       </div>
-    </div>
+    </SystemSettingsLayout>
   </SystemAppLayout>
 </template>

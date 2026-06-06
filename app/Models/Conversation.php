@@ -27,7 +27,6 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string|null $contact_id
  * @property string|null $assigned_user_id
  * @property string|null $channel_id
@@ -52,7 +51,6 @@ use Illuminate\Support\Carbon;
  * @property int $next_seq_no
  * @property Carbon|null $closed_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $channels_count
  * @property int|null $contacts_count
  * @property int|null $reception_plan_versions_count
@@ -60,7 +58,6 @@ use Illuminate\Support\Carbon;
  * @property int|null $messages_count
  * @property int|null $auto_message_receipts_count
  * @property int|null $events_count
- * @property-read Workspace $workspace
  * @property-read Channel|null $channel
  * @property-read Contact|null $contact
  * @property-read ReceptionPlanVersion|null $receptionPlanVersion
@@ -78,7 +75,7 @@ class Conversation extends Model
     /**
      * 会话模型，保存一次客户接待的完整生命周期：来源渠道、接待方案版本快照、消息历史、状态流转与 AI 上下文。
      *
-     * 业务约束：同 workspace + channel + contact 同一时刻最多一条 status=open 的会话；
+     * 业务约束：同 channel + contact 同一时刻最多一条 status=open 的会话；
      * closed 后允许同 contact 在同 channel 上再开新会话（由 conversations_one_open_per_contact_channel partial unique index 保证）。
      */
     /** @use HasFactory<ConversationFactory> */
@@ -117,11 +114,9 @@ class Conversation extends Model
             : null;
     }
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
+    /**
+     * 会话所属渠道。
+     */
     public function channel(): BelongsTo
     {
         return $this->belongsTo(Channel::class)->withTrashed();

@@ -3,14 +3,12 @@
 namespace App\Actions\CustomAttribute;
 
 use App\Data\CustomAttribute\FormUpdateContactAttributeValuesData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\AttributeValueSource;
 use App\Models\AttributeDefinition;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,26 +22,24 @@ class UpdateContactAttributeValuesAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, array $attributes, int|string|null $userId = null): void
+    public function handle(string $contactId, array $attributes, int|string|null $userId = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
-        $definitions = $workspace->attributeDefinitions()
+        $definitions = AttributeDefinition::query()
             ->withTrashed()
             ->get()
             ->keyBy('key');
 
         $existingValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->get()
             ->keyBy('definition_id');
 
         $changed = [];
 
-        DB::transaction(function () use ($workspace, $contact, $attributes, $definitions, $existingValues, $userId, &$changed) {
+        DB::transaction(function () use ($contact, $attributes, $definitions, $existingValues, $userId, &$changed) {
             foreach ($attributes as $key => $rawValue) {
                 $definition = $definitions->get($key);
 
@@ -83,7 +79,6 @@ class UpdateContactAttributeValuesAction
                     } else {
                         $changed[] = ['key' => $key, 'old' => null, 'new' => $normalizedValue];
                         ContactAttributeValue::query()->create([
-                            'workspace_id' => $workspace->id,
                             'contact_id' => $contact->id,
                             'definition_id' => $definition->id,
                             'value_json' => $valueJson,
@@ -96,7 +91,6 @@ class UpdateContactAttributeValuesAction
 
             if (! empty($changed)) {
                 ContactActivityLog::query()->create([
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $contact->id,
                     'actor_user_id' => $userId,
                     'action' => 'custom_attributes_updated',
@@ -106,13 +100,11 @@ class UpdateContactAttributeValuesAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
         $data = FormUpdateContactAttributeValuesData::from($request);
 
-        $this->handle($workspace, $id, $data->attributes, $request->user()?->id);
+        $this->handle($id, $data->attributes, $request->user()?->id);
 
         return back();
     }

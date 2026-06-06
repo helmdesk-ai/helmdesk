@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useI18n } from '@/composables/useI18n';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 
 defineProps<{
   open: boolean;

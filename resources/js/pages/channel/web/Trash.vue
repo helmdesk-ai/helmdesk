@@ -9,7 +9,6 @@ import RestoreConfirmDialog from '@/components/common/RestoreConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowWebChannelTrashPagePropsData } from '@/types/generated';
@@ -18,11 +17,10 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 const props = defineProps<ShowWebChannelTrashPagePropsData>();
 const { t } = useI18n();
 const { formatDateTime } = useDateTime();
-const currentWorkspace = useRequiredWorkspace();
 const restoreForm = useForm({});
 
 const buildTrashPageUrl = (page: number): string => {
-  return Web.ListWebChannelTrashAction.url(currentWorkspace.value.slug, {
+  return Web.ListWebChannelTrashAction.url({
     query: { page },
   });
 };
@@ -41,7 +39,7 @@ const buildTrashPageUrl = (page: number): string => {
           />
 
           <Button variant="outline" class="shrink-0" as-child>
-            <Link :href="Web.ListWebChannelsAction.url(currentWorkspace.slug)">
+            <Link :href="Web.ListWebChannelsAction.url()">
               {{ t('返回列表') }}
             </Link>
           </Button>
@@ -92,7 +90,6 @@ const buildTrashPageUrl = (page: number): string => {
                       @confirm="
                         restoreForm.put(
                           Web.RestoreWebChannelAction.url({
-                            slug: currentWorkspace.slug,
                             channel: channel.id,
                           }),
                           { preserveScroll: true },

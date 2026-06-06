@@ -76,7 +76,6 @@ class ClaimConversationAction
             ]);
 
             $assignmentEvent = ConversationEvent::query()->create([
-                'workspace_id' => $lockedConversation->workspace_id,
                 'conversation_id' => $lockedConversation->id,
                 'actor_user_id' => $actor->id,
                 'type' => ConversationEventType::AssignmentChanged,

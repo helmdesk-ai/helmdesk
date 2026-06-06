@@ -11,8 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ConversationSummaryData,
   ConversationTagData,
@@ -26,7 +25,7 @@ import {
   Plus,
   Sparkles,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = withDefaults(
@@ -45,7 +44,6 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 type SummaryTranslationPayload = Record<string, { text?: unknown }>;
 
@@ -124,8 +122,7 @@ async function attachTag(tagId: string): Promise<void> {
   ];
   try {
     await axios.post(
-      workspace.inbox.conversations.tags.attach.url({
-        slug: currentWorkspace.value.slug,
+      admin.inbox.conversations.tags.attach.url({
         conversation: props.conversation.id,
       }),
       { tag_id: tagId },
@@ -147,8 +144,7 @@ async function detachTag(tagId: string): Promise<void> {
   localTags.value = localTags.value.filter((tag) => tag.id !== tagId);
   try {
     await axios.delete(
-      workspace.inbox.conversations.tags.detach.url({
-        slug: currentWorkspace.value.slug,
+      admin.inbox.conversations.tags.detach.url({
         conversation: props.conversation.id,
         tagId,
       }),

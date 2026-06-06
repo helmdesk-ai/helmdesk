@@ -13,8 +13,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->ulid('workspace_id');
-
             $table->string('name');
             $table->text('description')->nullable();
 
@@ -29,7 +27,7 @@ return new class extends Migration
             $table->json('auto_messages_config');
             $table->json('translation_config')->nullable();
 
-            $table->unique(['workspace_id', 'name'], 'uniq_reception_plans_workspace_name');
+            $table->unique('name', 'uniq_reception_plans_name');
         });
     }
 

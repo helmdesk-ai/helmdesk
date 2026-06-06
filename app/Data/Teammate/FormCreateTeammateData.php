@@ -2,28 +2,43 @@
 
 namespace App\Data\Teammate;
 
-use App\Enums\WorkspaceRole;
+use App\Enums\UserPermission;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 
 /**
- * 创建客服成员表单数据。
- * 来自 resources/js/pages/teammate/List.vue、Create.vue、Edit.vue 的新增表单提交，后端用它做校验并写入客服成员相关记录。
+ * 客服创建表单数据。
+ * 来自 resources/js/pages/teammates/Create.vue，用于创建可登录后台并参与接待的客服账号。
  */
 class FormCreateTeammateData extends Data
 {
+    /**
+     * @param  list<string>  $permissions
+     */
     public function __construct(
-        public string $user_id,
+        public string $name,
+        public string $email,
+        public string $password,
         public ?string $nickname,
-        public WorkspaceRole $role,
+        public array $permissions = [],
+        public ?string $avatar_id = null,
     ) {}
 
+    /**
+     * 返回客服创建表单验证规则。
+     *
+     * @return array<string, list<mixed>>
+     */
     public static function rules(): array
     {
         return [
-            'user_id' => ['required', 'string', Rule::exists('users', 'id')],
+            'name' => ['required', 'string', 'max:50'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'nickname' => ['nullable', 'string', 'max:50'],
-            'role' => ['required', Rule::enum(WorkspaceRole::class)->only(WorkspaceRole::assignableCases())],
+            'permissions' => ['array'],
+            'permissions.*' => ['string', Rule::in(UserPermission::values())],
+            'avatar_id' => ['nullable', 'string', 'max:26'],
         ];
     }
 }

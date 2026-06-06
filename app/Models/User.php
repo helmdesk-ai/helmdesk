@@ -3,17 +3,18 @@
 namespace App\Models;
 
 use App\Data\User\UserNotificationPreferencesData;
+use App\Enums\UserOnlineStatus;
+use App\Enums\UserPermission;
 use App\Notifications\QueuedResetPassword;
 use App\Notifications\QueuedVerifyEmail;
+use App\Services\Localization\LocalePreference;
 use App\Settings\MailSettings;
-use App\Support\LocalePreference;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,6 +32,10 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $avatar
  * @property string $locale
  * @property string|null $timezone
+ * @property array<int, string>|null $permissions
+ * @property string|null $nickname
+ * @property UserOnlineStatus $online_status
+ * @property Carbon|null $last_active_at
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
@@ -40,10 +45,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property bool $is_super_admin
  * @property Carbon|null $deleted_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $assigned_conversations_count
  * @property int|null $avatar_attachments_count
- * @property-read Collection|Workspace[] $workspaces
  * @property-read Collection|Conversation[] $assignedConversations
  * @property-read Attachment|null $avatarAttachment
  *
@@ -52,7 +55,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     /**
-     * 用户模型，保存后台账号、超级管理员标记和工作区成员关系。
+     * 用户模型，保存后台账号、权限、在线状态和超级管理员标记。
      */
 
     /** @use HasFactory<UserFactory> */
@@ -72,6 +75,10 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         'locale',
         'timezone',
         'notification_preferences',
+        'permissions',
+        'nickname',
+        'online_status',
+        'last_active_at',
         'is_super_admin',
     ];
 
@@ -94,6 +101,8 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'notification_preferences' => UserNotificationPreferencesData::class.':default',
+            'permissions' => 'array',
+            'online_status' => UserOnlineStatus::class,
             'two_factor_confirmed_at' => 'datetime',
             'last_active_at' => 'datetime',
             'is_super_admin' => 'boolean',
@@ -101,7 +110,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * 用户被物理删除时清理其个人快捷回复，避免私有内容因外键置空变成工作区共享。
+     * 用户被物理删除时清理其个人快捷回复，避免私有内容因外键置空变成系统共享。
      */
     protected static function booted(): void
     {
@@ -110,14 +119,6 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
                 ->where('user_id', $user->id)
                 ->delete();
         });
-    }
-
-    /**
-     * 用户加入的工作区列表。
-     */
-    public function workspaces(): BelongsToMany
-    {
-        return $this->belongsToMany(Workspace::class)->withPivot('role', 'nickname', 'online_status', 'last_active_at')->withTimestamps();
     }
 
     /**
@@ -144,6 +145,46 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function notificationPreferences(): UserNotificationPreferencesData
     {
         return $this->notification_preferences;
+    }
+
+    /**
+     * 判断用户是否拥有指定后台权限。
+     */
+    public function hasPermission(UserPermission|string $permission): bool
+    {
+        if ($this->is_super_admin) {
+            return true;
+        }
+
+        $permissionValue = $permission instanceof UserPermission ? $permission->value : $permission;
+        $permissions = array_values(array_filter(array_map('strval', $this->permissions ?? [])));
+
+        if (in_array($permissionValue, $permissions, true)) {
+            return true;
+        }
+
+        $permissionEnum = $permission instanceof UserPermission ? $permission : UserPermission::tryFrom($permissionValue);
+        if (! $permissionEnum instanceof UserPermission) {
+            return false;
+        }
+
+        return in_array($permissionEnum->managePermission()->value, $permissions, true);
+    }
+
+    /**
+     * 判断用户是否拥有任意一个后台权限。
+     *
+     * @param  list<UserPermission|string>  $permissions
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace App\Actions\Reception;
 
 use App\Data\Reception\HandoffDecisionData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\ConversationEventType;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\MessageKind;
@@ -14,11 +14,11 @@ use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
+use App\Services\Localization\LocalePreference;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use App\Services\Reception\ChannelTeammateAvailability;
 use App\Services\Reception\ReceptionPresetMessageTranslator;
 use App\Services\Reception\ReceptionStateBuilder;
-use App\Support\LocalePreference;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -90,7 +90,6 @@ class RequestHandoffAction
                 quotedMessageId: $resolvedQuotedMessageId,
             );
             ConversationEvent::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'type' => ConversationEventType::HandoffRequested,
                 'payload' => [
@@ -217,7 +216,6 @@ class RequestHandoffAction
         [$aiSenderName] = ReceptionStateBuilder::channelMessageIdentity($channel, $conversation);
 
         return ConversationMessage::query()->create([
-            'workspace_id' => $conversation->workspace_id,
             'conversation_id' => $conversation->id,
             'role' => MessageRole::Ai,
             'kind' => MessageKind::Text,

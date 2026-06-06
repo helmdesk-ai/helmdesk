@@ -94,7 +94,6 @@ class KnowledgeFullTextRepository
                 $now = now();
                 DB::connection('sqlite_rag')->table('knowledge_outlines')->insert([
                     'id' => (string) Str::ulid(),
-                    'workspace_id' => (string) $knowledgeBase->workspace_id,
                     'knowledge_base_id' => (string) $knowledgeBase->id,
                     'document_id' => (string) $document->id,
                     'outline' => json_encode($outline, JSON_THROW_ON_ERROR),
@@ -152,7 +151,6 @@ class KnowledgeFullTextRepository
             'qa_entry_id' => $node->qa_entry_id !== null ? (string) $node->qa_entry_id : null,
             'qa_question_id' => $node->qa_question_id !== null ? (string) $node->qa_question_id : null,
             'knowledge_base_id' => (string) $knowledgeBase->id,
-            'workspace_id' => (string) $knowledgeBase->workspace_id,
             'group_id' => $groupId,
             'byte_start' => $node->byte_start,
             'byte_end' => $node->byte_end,

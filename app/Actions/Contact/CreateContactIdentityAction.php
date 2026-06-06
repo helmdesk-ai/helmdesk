@@ -3,14 +3,12 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormCreateContactIdentityData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ContactType;
 use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Http\Request;
@@ -27,13 +25,11 @@ class CreateContactIdentityAction
     use AsAction;
 
     public function handle(
-        Workspace $workspace,
         string $contactId,
         FormCreateContactIdentityData $data,
         ?User $actor = null,
     ): ContactIdentity {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $type = IdentityType::from($data->type);
@@ -60,7 +56,6 @@ class CreateContactIdentityAction
         }
 
         $existing = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', $type)
             ->where('namespace', $namespace)
             ->where('value', $value)
@@ -85,7 +80,6 @@ class CreateContactIdentityAction
             $wasVisitor = $contact->type === ContactType::Visitor;
 
             $identity = ContactIdentity::query()->create([
-                'workspace_id' => $contact->workspace_id,
                 'contact_id' => $contact->id,
                 'type' => $type,
                 'namespace' => $namespace,
@@ -115,13 +109,11 @@ class CreateContactIdentityAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $contactId): Response
+    public function asController(Request $request, string $contactId): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
         $data = FormCreateContactIdentityData::from($request);
 
-        $this->handle($workspace, $contactId, $data, $request->user());
+        $this->handle($contactId, $data, $request->user());
 
         return back();
     }

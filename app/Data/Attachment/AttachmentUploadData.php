@@ -12,13 +12,12 @@ use Spatie\LaravelData\Data;
 class AttachmentUploadData extends Data
 {
     /**
-     * 承载上传意图 ID、模式、过期时间和可选分片大小。
+     * 承载上传意图 ID、模式和过期时间。
      */
     public function __construct(
         public string $id,
         public AttachmentUploadMode $mode,
         public string $expires_at,
-        public ?int $part_size = null,
     ) {}
 
     /**
@@ -30,7 +29,6 @@ class AttachmentUploadData extends Data
             id: (string) $upload->id,
             mode: $upload->mode,
             expires_at: $upload->expires_at->toIso8601String(),
-            part_size: $upload->part_size,
         );
     }
 }

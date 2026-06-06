@@ -2,9 +2,8 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -13,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 保存工作区内 AI 供应商凭据。
+ * 保存系统内 AI 供应商凭据。
  */
 class UpdateAiProviderCredentialsAction
 {
@@ -22,9 +21,9 @@ class UpdateAiProviderCredentialsAction
     /**
      * @param  array<string, mixed>  $configuration
      */
-    public function handle(Workspace $workspace, string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
+    public function handle(string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
     {
-        $provider = $this->findProvider($workspace, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
         $configuration = $this->withoutLockedEndpointConfiguration($provider, $configuration, $allowEndpointUpdate);
         $this->validateConfiguration($provider, $configuration);
 
@@ -36,20 +35,19 @@ class UpdateAiProviderCredentialsAction
         return $provider;
     }
 
-    public function asController(Request $request, string $slug, string $provider)
+    public function asController(Request $request, string $provider)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $configuration = $request->input('configuration');
-        $this->handle($workspace, $provider, is_array($configuration) ? $configuration : []);
+        $this->handle($provider, is_array($configuration) ? $configuration : []);
 
         return back();
     }
 
-    private function findProvider(Workspace $workspace, string $slug): AiProvider
+    private function findProvider(string $slug): AiProvider
     {
-        return $workspace->aiProviders()->where('slug', $slug)->firstOrFail();
+        return AiProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

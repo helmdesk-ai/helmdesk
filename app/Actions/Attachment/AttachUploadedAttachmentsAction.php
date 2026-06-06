@@ -26,12 +26,12 @@ class AttachUploadedAttachmentsAction
     public function handle(
         Model $attachable,
         string $attachmentId,
-        ?string $workspaceId = null,
+        ?string $scope = null,
         ?User $actor = null,
         ?string $sessionToken = null,
         array $allowedPurposes = [],
     ): Attachment {
-        $attachment = $this->assertCanAttach($attachable, $attachmentId, $workspaceId, $actor, $sessionToken, $allowedPurposes);
+        $attachment = $this->assertCanAttach($attachable, $attachmentId, $scope, $actor, $sessionToken, $allowedPurposes);
 
         $attachment->update([
             'attachable_type' => $attachable->getMorphClass(),
@@ -52,7 +52,7 @@ class AttachUploadedAttachmentsAction
     public function assertCanAttach(
         Model $attachable,
         string $attachmentId,
-        ?string $workspaceId = null,
+        ?string $scope = null,
         ?User $actor = null,
         ?string $sessionToken = null,
         array $allowedPurposes = [],
@@ -63,7 +63,7 @@ class AttachUploadedAttachmentsAction
             throw ValidationException::withMessages(['attachment_ids' => __('attachments.errors.not_uploaded')]);
         }
 
-        $this->assertAttachmentCanAttach($attachment, $attachable, $workspaceId, $actor, $sessionToken, $allowedPurposes);
+        $this->assertAttachmentCanAttach($attachment, $attachable, $scope, $actor, $sessionToken, $allowedPurposes);
 
         return $attachment;
     }
@@ -76,15 +76,11 @@ class AttachUploadedAttachmentsAction
     private function assertAttachmentCanAttach(
         Attachment $attachment,
         Model $attachable,
-        ?string $workspaceId,
+        ?string $scope,
         ?User $actor,
         ?string $sessionToken,
         array $allowedPurposes,
     ): void {
-        if ($workspaceId !== null && $attachment->workspace_id !== null && (string) $attachment->workspace_id !== $workspaceId) {
-            throw ValidationException::withMessages(['attachment_ids' => __('auth.unauthorized')]);
-        }
-
         $isSameAttachable = $attachment->attachable_id !== null
             && (string) $attachment->attachable_id === (string) $attachable->getKey()
             && $attachment->attachable_type === $attachable->getMorphClass();

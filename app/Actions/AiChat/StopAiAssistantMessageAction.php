@@ -2,8 +2,7 @@
 
 namespace App\Actions\AiChat;
 
-use App\Data\WorkspaceUserContextData;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\GoBridge\Exceptions\GoBridgeException;
 use App\Services\GoBridge\GoBridgeClient;
 use Illuminate\Http\JsonResponse;
@@ -30,10 +29,10 @@ class StopAiAssistantMessageAction
     /**
      * @return array{stopped: bool}
      */
-    public function handle(Workspace $workspace, string $topic): array
+    public function handle(SystemContext $systemContext, string $topic): array
     {
         $topic = trim($topic);
-        if ($topic === '' || ! str_starts_with($topic, $this->topicPrefix($workspace))) {
+        if ($topic === '' || ! str_starts_with($topic, $this->topicPrefix($systemContext))) {
             throw ValidationException::withMessages([
                 'topic' => __('ai.chat.invalid_topic'),
             ]);
@@ -47,7 +46,6 @@ class StopAiAssistantMessageAction
             // 不要把完整 topic 写日志：当前 Mercure 是匿名订阅，topic 字符串就是订阅密钥，
             // 任何能 grep 日志的人都能在窗口期内拉到这一轮对话的内容。
             Log::warning('AI chat stop bridge call failed.', [
-                'workspace_id' => $workspace->id,
                 'topic_hash' => substr(hash('sha256', $topic), 0, 12),
                 'exception' => $exception->getMessage(),
             ]);
@@ -74,20 +72,20 @@ class StopAiAssistantMessageAction
 
     public function asController(Request $request): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
+        $systemContext = SystemContext::current();
 
         $validated = $request->validate([
             'topic' => ['required', 'string'],
         ]);
 
         return response()->json(
-            $this->handle($workspace, (string) $validated['topic']),
+            $this->handle($systemContext, (string) $validated['topic']),
             Response::HTTP_OK,
         );
     }
 
-    private function topicPrefix(Workspace $workspace): string
+    private function topicPrefix(SystemContext $systemContext): string
     {
-        return sprintf('urn:helmdesk:ai-chat:%s:', $workspace->id);
+        return sprintf('urn:helmdesk:ai-chat:%s:', $systemContext->id);
     }
 }

@@ -4,8 +4,8 @@ namespace App\Actions\Channel\Telegram;
 
 use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Telegram\FormUpdateTelegramChannelTokenData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Exceptions\TelegramApiException;
 use App\Models\Channel;
@@ -64,20 +64,17 @@ class UpdateTelegramChannelTokenAction
     /**
      * 接收 Token 轮换表单并返回详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->findOrFail($channel);
 
         $this->handle($channelModel, FormUpdateTelegramChannelTokenData::from($request));
 
-        return redirect()->route('workspace.manage.channels.telegram.show', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.channels.telegram.show', [
             'channel' => $channelModel->id,
         ]);
     }

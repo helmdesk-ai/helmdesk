@@ -7,15 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { getAvatarInitial } from '@/lib/initials';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ConversationDetailData,
   ListConversationItemData,
   TimelineEntryData,
 } from '@/types/generated';
-import { ArrowUpRight } from 'lucide-vue-next';
+import { ArrowUpRight } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import ConversationEventLine from './ConversationEventLine.vue';
@@ -33,7 +32,6 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { formatDateTime } = useDateTime();
 const { formatVisitorName } = useVisitorDisplay();
-const currentWorkspace = useRequiredWorkspace();
 
 const loading = ref(false);
 const loadingMore = ref(false);
@@ -114,9 +112,8 @@ const fetchDetail = async (append = false) => {
 
   try {
     const response = await fetch(
-      workspace.conversations.show.url(
+      admin.conversations.show.url(
         {
-          slug: currentWorkspace.value.slug,
           id: requestedConversationId,
         },
         {

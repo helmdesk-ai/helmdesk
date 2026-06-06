@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -36,7 +35,6 @@ class KnowledgeBaseFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'name' => fake()->words(3, true),
             'avatar_id' => null,
             'description' => fake()->sentence(),

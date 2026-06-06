@@ -3,20 +3,20 @@
 namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\FormCreateCannedReplyData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\CannedReply;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\CannedReply\CannedReplyPermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * 创建快捷回复模版。
- * 个人模版任何成员都可创建；共享模版仅工作区管理员可创建。
+ * 个人模版需要快捷回复编辑权限；共享模版需要快捷回复管理权限。
  */
 class CreateCannedReplyAction
 {
@@ -29,21 +29,22 @@ class CreateCannedReplyAction
     /**
      * 持久化新模版并返回模型。
      */
-    public function handle(Workspace $workspace, User $user, FormCreateCannedReplyData $data): CannedReply
+    public function handle(User $user, FormCreateCannedReplyData $data): CannedReply
     {
+        Gate::forUser($user)->authorize('user.permission', UserPermission::CannedRepliesEdit);
+
         $isPersonal = $data->is_personal;
 
-        if (! $isPersonal && ! $this->policy->canManageWorkspaceShared($workspace, $user)) {
-            throw new BusinessException(__('canned_reply.errors.workspace_create_forbidden'));
+        if (! $isPersonal && ! $this->policy->canManageSystemShared($user)) {
+            throw new BusinessException(__('canned_reply.errors.system_create_forbidden'));
         }
 
         $shortcut = $this->normalizeShortcut($data->shortcut);
         $userId = $isPersonal ? (string) $user->id : null;
 
-        $this->guardShortcutUnique($workspace, $userId, $shortcut);
+        $this->guardShortcutUnique($userId, $shortcut);
 
         return CannedReply::query()->create([
-            'workspace_id' => $workspace->id,
             'user_id' => $userId,
             'name' => trim($data->name),
             'shortcut' => $shortcut,
@@ -58,13 +59,11 @@ class CreateCannedReplyAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
-        $this->handle($workspace, $user, FormCreateCannedReplyData::from($request));
+        $this->handle($user, FormCreateCannedReplyData::from($request));
 
-        return redirect()->route('workspace.canned-replies.index', ['slug' => $workspace->slug]);
+        return redirect()->route('admin.canned-replies.index');
     }
 
     /**
@@ -82,16 +81,15 @@ class CreateCannedReplyAction
     }
 
     /**
-     * 同 workspace + 同归属下，shortcut 不可重复。
+     * 同 system + 同归属下，shortcut 不可重复。
      */
-    private function guardShortcutUnique(Workspace $workspace, ?string $userId, ?string $shortcut): void
+    private function guardShortcutUnique(?string $userId, ?string $shortcut): void
     {
         if ($shortcut === null) {
             return;
         }
 
         $query = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->where('shortcut', $shortcut);
 
         if ($userId === null) {

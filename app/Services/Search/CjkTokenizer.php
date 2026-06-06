@@ -65,14 +65,6 @@ class CjkTokenizer extends AbstractTokenizer implements TokenizerInterface
     }
 
     /**
-     * 返回拉丁文本的切词正则。
-     */
-    public function getPattern(): string
-    {
-        return static::$pattern;
-    }
-
-    /**
      * 生成数字串的前缀 token。
      *
      * @return array<int, string>

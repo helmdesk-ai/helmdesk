@@ -15,7 +15,6 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $knowledge_base_id
  * @property string|null $document_id
  * @property string|null $qa_entry_id

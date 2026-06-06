@@ -8,8 +8,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * AI供应商数据。
- * 由后端组装后传给 resources/js/pages/workspaceSettings/aiProviders/Index.vue，
- * 用于页面展示工作区下的供应商、凭据状态与模型列表。
+ * 由后端组装后传给 resources/js/pages/systemSettings/aiProviders/Index.vue，
+ * 用于页面展示系统下的供应商、凭据状态与模型列表。
  */
 class AiProviderData extends Data
 {

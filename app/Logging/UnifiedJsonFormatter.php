@@ -10,7 +10,7 @@ use Monolog\LogRecord;
  * 统一日志 JSON 格式化器，作为 Go + Laravel 共同日志地基的 Laravel 一半。
  *
  * 输出与 Go 侧 slog 对齐的同一套字段（ts / level / service / msg），
- * 并把请求上下文里的关联 ID（request_id / trace_id / tenant_id）提升到顶层，
+ * 并把请求上下文里的关联 ID（request_id / trace_id / context_id）提升到顶层，
  * 便于多实例集中后按单次请求把 Go 与 PHP 的日志串联检索。
  */
 class UnifiedJsonFormatter extends JsonFormatter
@@ -19,7 +19,7 @@ class UnifiedJsonFormatter extends JsonFormatter
     public const SERVICE = 'laravel';
 
     /** 从请求上下文提升到日志顶层的关联字段。 */
-    private const CONTEXT_KEYS = ['request_id', 'trace_id', 'tenant_id'];
+    private const CONTEXT_KEYS = ['request_id', 'trace_id', 'context_id'];
 
     /**
      * 开启异常堆栈输出：JsonFormatter 默认会丢掉 trace，但集中检索时最需要的就是堆栈。

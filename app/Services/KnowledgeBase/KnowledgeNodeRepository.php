@@ -8,6 +8,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
+use App\Settings\KnowledgeSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -141,7 +142,6 @@ class KnowledgeNodeRepository
             $ids[] = $id;
             $rows[] = [
                 'id' => $id,
-                'workspace_id' => (string) $knowledgeBase->workspace_id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => (string) $document->id,
                 'qa_entry_id' => null,
@@ -198,7 +198,6 @@ class KnowledgeNodeRepository
             $ids[] = $id;
             $rows[] = [
                 'id' => $id,
-                'workspace_id' => (string) $knowledgeBase->workspace_id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => null,
                 'qa_entry_id' => (string) $entry->id,
@@ -243,7 +242,7 @@ class KnowledgeNodeRepository
         }
 
         $nodeIds = array_keys($embeddings);
-        $modelId = $this->embeddingModelId($knowledgeBase);
+        $modelId = $this->embeddingModelId();
 
         DB::connection('sqlite_rag')->transaction(function () use ($embeddingDimension, $embeddings, $nodeIds, $modelId): void {
             foreach ($embeddings as $nodeId => $embedding) {
@@ -308,7 +307,6 @@ class KnowledgeNodeRepository
         ): void {
             KnowledgeNode::query()->insert([
                 'id' => $id,
-                'workspace_id' => (string) $knowledgeBase->workspace_id,
                 'knowledge_base_id' => (string) $knowledgeBase->id,
                 'document_id' => (string) $document->id,
                 'qa_entry_id' => null,
@@ -323,7 +321,7 @@ class KnowledgeNodeRepository
                 'byte_start' => null,
                 'byte_end' => null,
                 'token_count' => null,
-                'embedding_model_id' => $embeddingDimension > 0 ? $this->embeddingModelId($knowledgeBase) : null,
+                'embedding_model_id' => $embeddingDimension > 0 ? $this->embeddingModelId() : null,
                 'embedding_dim' => $embeddingDimension,
                 'metadata' => json_encode($metadataPayload, JSON_THROW_ON_ERROR),
                 'created_at' => $now,
@@ -363,14 +361,16 @@ class KnowledgeNodeRepository
     }
 
     /**
-     * 返回当前知识库所在工作区配置的嵌入模型 ID；未配置时返回 null。
+     * 返回当前知识库配置的嵌入模型 ID；未配置时返回 null。
      */
-    private function embeddingModelId(KnowledgeBase $knowledgeBase): ?string
+    private function embeddingModelId(): ?string
     {
-        $knowledgeBase->loadMissing('workspace');
+        /** @var KnowledgeSettings $settings */
+        $settings = app(KnowledgeSettings::class);
+        $settings->refresh();
 
-        return filled($knowledgeBase->workspace?->knowledge_embedding_model_id)
-            ? (string) $knowledgeBase->workspace->knowledge_embedding_model_id
+        return filled($settings->embedding_model_id)
+            ? (string) $settings->embedding_model_id
             : null;
     }
 

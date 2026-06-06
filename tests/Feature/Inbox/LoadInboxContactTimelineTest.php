@@ -11,30 +11,27 @@ use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 test('联系人时间线默认返回最新窗口并可以继续加载更早消息', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $baseTime = now()->subHour()->startOfSecond();
     $messages = collect(range(1, 5))->map(fn (int $index) => ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -47,7 +44,7 @@ test('联系人时间线默认返回最新窗口并可以继续加载更早消�
     expect(DB::table('conversation_timeline_entries')->where('entry_id', $messages[0]->id)->exists())->toBeTrue();
 
     $latest = $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/timeline?per_page=3')
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/timeline?per_page=3')
         ->assertOk()
         ->assertJsonPath('timeline.next_cursor', null)
         ->json('timeline');
@@ -60,7 +57,7 @@ test('联系人时间线默认返回最新窗口并可以继续加载更早消�
     expect($latest['previous_cursor'])->not->toBeNull();
 
     $older = $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/timeline?per_page=3&before='.urlencode($latest['previous_cursor']))
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/timeline?per_page=3&before='.urlencode($latest['previous_cursor']))
         ->assertOk()
         ->json('timeline');
 
@@ -74,20 +71,17 @@ test('联系人时间线默认返回最新窗口并可以继续加载更早消�
 
 test('联系人时间线可以加载搜索消息所在的锚点窗口', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $baseTime = now()->subHour()->startOfSecond();
     $messages = collect(range(1, 6))->map(fn (int $index) => ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -100,7 +94,7 @@ test('联系人时间线可以加载搜索消息所在的锚点窗口', function
     $target = $messages[1];
 
     $timeline = $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/timeline?per_page=3&anchor_type=message&anchor_id='.$target->id)
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/timeline?per_page=3&anchor_type=message&anchor_id='.$target->id)
         ->assertOk()
         ->assertJsonPath('timeline.anchor_entry_id', $target->id)
         ->json('timeline');
@@ -116,13 +110,11 @@ test('联系人时间线可以加载搜索消息所在的锚点窗口', function
 
 test('联系人时间线按同一索引混合排序消息和事件', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -130,7 +122,6 @@ test('联系人时间线按同一索引混合排序消息和事件', function ()
     $baseTime = now()->subHour()->startOfSecond();
 
     $firstMessage = ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -147,7 +138,6 @@ test('联系人时间线按同一索引混合排序消息和事件', function ()
     ]);
 
     $secondMessage = ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -158,7 +148,7 @@ test('联系人时间线按同一索引混合排序消息和事件', function ()
     ]);
 
     $timeline = $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/timeline?per_page=10')
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/timeline?per_page=10')
         ->assertOk()
         ->json('timeline');
 
@@ -171,13 +161,11 @@ test('联系人时间线按同一索引混合排序消息和事件', function ()
 
 test('联系人时间线分页只统计客服时间线展示的事件', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -185,7 +173,6 @@ test('联系人时间线分页只统计客服时间线展示的事件', function
     $baseTime = now()->subHour()->startOfSecond();
 
     $firstMessage = ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -202,7 +189,6 @@ test('联系人时间线分页只统计客服时间线展示的事件', function
     ]);
 
     $secondMessage = ConversationMessage::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -213,7 +199,7 @@ test('联系人时间线分页只统计客服时间线展示的事件', function
     ]);
 
     $timeline = $this->actingAs($this->user)
-        ->getJson('/w/'.$this->workspaceSlug().'/inbox/contacts/'.$contact->id.'/timeline?per_page=2')
+        ->getJson('/admin/inbox/contacts/'.$contact->id.'/timeline?per_page=2')
         ->assertOk()
         ->json('timeline');
 

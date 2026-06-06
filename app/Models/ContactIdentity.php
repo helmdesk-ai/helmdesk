@@ -12,19 +12,17 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property string $workspace_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property string $contact_id
- * @property \App\Enums\IdentityType $type
+ * @property IdentityType $type
  * @property string $namespace
  * @property string $value
  * @property string|null $display_value
  * @property mixed $use_factory
  * @property int|null $contacts_count
- *
- * @property-read \App\Models\Contact $contact
+ * @property-read Contact $contact
  *
  * @method static \Database\Factories\ContactIdentityFactory<self> factory($count = null, $state = [])
  */

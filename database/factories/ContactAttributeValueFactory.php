@@ -19,12 +19,7 @@ class ContactAttributeValueFactory extends Factory
     {
         return [
             'contact_id' => Contact::factory(),
-            'workspace_id' => fn (array $attributes) => Contact::query()
-                ->find($attributes['contact_id'])
-                ?->workspace_id,
-            'definition_id' => fn (array $attributes) => AttributeDefinition::factory()->create([
-                'workspace_id' => Contact::query()->find($attributes['contact_id'])?->workspace_id,
-            ])->id,
+            'definition_id' => fn () => AttributeDefinition::factory()->create()->id,
             'value_json' => ['value' => fake()->word()],
             'source' => AttributeValueSource::Manual,
         ];

@@ -3,9 +3,8 @@
 namespace App\Actions\AiProvider;
 
 use App\Data\AiProvider\FormCreateAiProviderData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\Workspace;
 use App\Services\AiProvider\AiProviderCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +13,7 @@ use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 从品牌目录一步创建工作区 AI 供应商：写入协议/图标/凭据字段，校验并保存凭据，带上该品牌的内置模型。
+ * 从品牌目录一步创建系统 AI 供应商：写入协议/图标/凭据字段，校验并保存凭据，带上该品牌的内置模型。
  */
 class CreateAiProviderAction
 {
@@ -24,16 +23,16 @@ class CreateAiProviderAction
         private readonly AiProviderCatalog $catalog,
     ) {}
 
-    public function handle(Workspace $workspace, FormCreateAiProviderData $data): AiProvider
+    public function handle(FormCreateAiProviderData $data): AiProvider
     {
         $brand = $this->catalog->brand($data->brand);
         $isCustom = (bool) ($brand['is_custom'] ?? false);
         $name = filled($data->name) ? trim((string) $data->name) : (string) $brand['label'];
 
-        return DB::transaction(function () use ($workspace, $data, $brand, $isCustom, $name) {
-            $maxSort = $workspace->aiProviders()->max('sort_order') ?? 0;
+        return DB::transaction(function () use ($data, $brand, $isCustom, $name) {
+            $maxSort = AiProvider::query()->max('sort_order') ?? 0;
 
-            $provider = $workspace->aiProviders()->create([
+            $provider = AiProvider::query()->create([
                 'brand' => $data->brand,
                 'slug' => Str::slug($data->brand).'-'.Str::random(6),
                 'name' => $name,
@@ -50,7 +49,7 @@ class CreateAiProviderAction
                 $this->catalog->defaultConfigurationForBrand($data->brand),
                 $data->configuration,
             );
-            UpdateAiProviderCredentialsAction::run($workspace, $provider->slug, $configuration, allowEndpointUpdate: true);
+            UpdateAiProviderCredentialsAction::run($provider->slug, $configuration, allowEndpointUpdate: true);
 
             foreach ($this->catalog->defaultModelsForBrand($data->brand) as $index => $model) {
                 $provider->models()->create([
@@ -69,11 +68,10 @@ class CreateAiProviderAction
 
     public function asController(Request $request)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateAiProviderData::from($request);
-        $this->handle($workspace, $data);
+        $this->handle($data);
 
         return back();
     }

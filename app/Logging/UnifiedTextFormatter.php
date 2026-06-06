@@ -12,7 +12,7 @@ use Monolog\LogRecord;
 class UnifiedTextFormatter extends JsonFormatter
 {
     /** 从请求上下文提升到日志行上的关联字段。 */
-    private const CONTEXT_KEYS = ['request_id', 'trace_id', 'tenant_id'];
+    private const CONTEXT_KEYS = ['request_id', 'trace_id', 'context_id'];
 
     /** 日志级别颜色，仅用于开发态 TTY 文本输出。 */
     private const LEVEL_COLORS = [

@@ -24,7 +24,6 @@ use Laravel\Scout\Searchable;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $conversation_id
  * @property string|null $sender_user_id
  * @property MessageRole $role
@@ -97,7 +96,6 @@ class ConversationMessage extends Model
             RecordConversationTimelineEntryAction::run(
                 entryType: ConversationTimelineEntryType::Message,
                 entryId: (string) $message->id,
-                workspaceId: (string) $message->workspace_id,
                 conversationId: (string) $message->conversation_id,
                 occurredAt: $message->created_at,
             );
@@ -226,7 +224,7 @@ class ConversationMessage extends Model
             // 全文搜索索引需要立即剔除撤回内容，避免 inbox 搜索到已撤回文本。
             $this->unsearchable();
 
-            // 撤回的若是会话最近一条消息，预览也要同步覆盖，避免列表里残留旧文本。
+            // 撤回的若是会话最近一条消息，预览也要同步覆盖，避免列表里残留原文本。
             if (
                 $conversation->last_message_at !== null
                 && $this->created_at !== null
@@ -285,7 +283,6 @@ class ConversationMessage extends Model
     {
         return [
             'id' => $this->id,
-            'workspace_id' => $this->workspace_id,
             'conversation_id' => $this->conversation_id,
             'search_text' => $this->searchableText(),
         ];

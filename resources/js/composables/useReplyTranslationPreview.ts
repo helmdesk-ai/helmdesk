@@ -6,7 +6,7 @@
  */
 import { useI18n } from '@/composables/useI18n';
 import { localeMatches } from '@/lib/locale';
-import inboxActions from '@/routes/workspace/inbox';
+import inboxActions from '@/routes/admin/inbox';
 import type { InboxSelectionData } from '@/types/generated';
 import axios from 'axios';
 import {
@@ -19,8 +19,6 @@ import {
 } from 'vue';
 
 export interface UseReplyTranslationPreviewOptions {
-  /** 当前工作区 slug */
-  workspaceSlug: ComputedRef<string>;
   /** 当前选中的会话数据 */
   selection: ComputedRef<InboxSelectionData | null>;
   /** 当前登录用户语言 */
@@ -81,8 +79,7 @@ const REPLY_TRANSLATION_DEBOUNCE_MS = 600;
 export function useReplyTranslationPreview(
   options: UseReplyTranslationPreviewOptions,
 ): UseReplyTranslationPreviewReturn {
-  const { workspaceSlug, selection, currentUserLocale, replyContent, enabled } =
-    options;
+  const { selection, currentUserLocale, replyContent, enabled } = options;
 
   const { t } = useI18n();
 
@@ -234,7 +231,6 @@ export function useReplyTranslationPreview(
         source_locale: string | null;
       }>(
         inboxActions.conversations.reply.translationPreview.url({
-          slug: workspaceSlug.value,
           conversation: conversationId,
         }),
         { content },

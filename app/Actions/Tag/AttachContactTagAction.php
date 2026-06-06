@@ -3,12 +3,10 @@
 namespace App\Actions\Tag;
 
 use App\Data\Tag\FormAttachContactTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\Tag;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,14 +20,12 @@ class AttachContactTagAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, FormAttachContactTagData $data, ?User $actor = null): void
+    public function handle(string $contactId, FormAttachContactTagData $data, ?User $actor = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($data->tag_id);
 
         $alreadyAttached = DB::table('contact_tag_assignments')
@@ -61,11 +57,10 @@ class AttachContactTagAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): JsonResponse
+    public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormAttachContactTagData::from($request);
-        $this->handle($ctx->workspace(), $id, $data, $request->user());
+        $this->handle($id, $data, $request->user());
 
         return response()->json(['success' => true]);
     }

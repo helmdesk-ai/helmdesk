@@ -3,7 +3,6 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormCreateContactData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ContactSource;
 use App\Enums\ContactType;
 use App\Enums\IdentityType;
@@ -11,7 +10,6 @@ use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Http\Request;
@@ -27,7 +25,7 @@ class CreateContactAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, FormCreateContactData $data, ?User $actor = null): Contact
+    public function handle(FormCreateContactData $data, ?User $actor = null): Contact
     {
         if ($data->phone !== null && ! ContactIdentityNormalizer::isPhoneInputFormatValid($data->phone)) {
             throw ValidationException::withMessages([
@@ -54,12 +52,11 @@ class CreateContactAction
             ]);
         }
 
-        $this->checkDuplicateIdentity($workspace, IdentityType::Email, $email);
-        $this->checkDuplicateIdentity($workspace, IdentityType::Phone, $phone);
+        $this->checkDuplicateIdentity(IdentityType::Email, $email);
+        $this->checkDuplicateIdentity(IdentityType::Phone, $phone);
 
-        return DB::transaction(function () use ($workspace, $data, $email, $phone, $actor) {
+        return DB::transaction(function () use ($data, $email, $phone, $actor) {
             $contact = Contact::query()->create([
-                'workspace_id' => $workspace->id,
                 'type' => ContactType::Contact,
                 'source' => ContactSource::Manual,
                 'name' => $data->name ? trim($data->name) : null,
@@ -68,7 +65,6 @@ class CreateContactAction
 
             if ($email) {
                 ContactIdentity::query()->create([
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $contact->id,
                     'type' => IdentityType::Email,
                     'namespace' => '',
@@ -79,7 +75,6 @@ class CreateContactAction
 
             if ($phone) {
                 ContactIdentity::query()->create([
-                    'workspace_id' => $workspace->id,
                     'contact_id' => $contact->id,
                     'type' => IdentityType::Phone,
                     'namespace' => '',
@@ -106,25 +101,22 @@ class CreateContactAction
         });
     }
 
-    public function asController(Request $request, string $slug): Response
+    public function asController(Request $request): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
         $data = FormCreateContactData::from($request);
 
-        $this->handle($workspace, $data, $request->user());
+        $this->handle($data, $request->user());
 
         return back();
     }
 
-    private function checkDuplicateIdentity(Workspace $workspace, IdentityType $type, ?string $value): void
+    private function checkDuplicateIdentity(IdentityType $type, ?string $value): void
     {
         if (! $value) {
             return;
         }
 
         $existing = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', $type)
             ->where('namespace', '')
             ->where('value', $value)

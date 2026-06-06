@@ -5,7 +5,6 @@ namespace App\Actions\KnowledgeBase\Document;
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormUploadKnowledgeDocumentData;
 use App\Data\KnowledgeBase\ListKnowledgeDocumentItemData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\AttachmentStatus;
 use App\Enums\AttachmentVisibility;
@@ -13,6 +12,7 @@ use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\KnowledgeDocumentStatus;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\Attachment;
 use App\Models\KnowledgeBase;
@@ -79,7 +79,6 @@ class UploadKnowledgeDocumentAction
         $document = DB::transaction(function () use ($knowledgeBase, $file, $group, $uploaderUserId, $extension, $byteSize, $checksum, $content): KnowledgeDocument {
             /** @var KnowledgeDocument $document */
             $document = KnowledgeDocument::query()->create([
-                'workspace_id' => $knowledgeBase->workspace_id,
                 'knowledge_base_id' => $knowledgeBase->id,
                 'group_id' => $group->id,
                 'uploaded_by_user_id' => $uploaderUserId,
@@ -122,13 +121,11 @@ class UploadKnowledgeDocumentAction
      *  - axios（弹窗串行调用）：返回 JSON，前端逐个文件展示状态。
      *  - Inertia / 表单回退：批量入库后重定向到列表。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): RedirectResponse|JsonResponse
+    public function asController(Request $request, string $knowledgeBase): RedirectResponse|JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $data = FormUploadKnowledgeDocumentData::from($request);
@@ -141,7 +138,7 @@ class UploadKnowledgeDocumentAction
             return $this->handleJsonRequest($kb, $data, (string) $group->id, $userId);
         }
 
-        return $this->handleInertiaRequest($workspace->slug, $kb, $data, (string) $group->id, $userId);
+        return $this->handleInertiaRequest($kb, $data, (string) $group->id, $userId);
     }
 
     /**
@@ -160,7 +157,7 @@ class UploadKnowledgeDocumentAction
     /**
      * Inertia / 表单回退入口：批量入库后跳回列表。
      */
-    private function handleInertiaRequest(string $workspaceSlug, KnowledgeBase $kb, FormUploadKnowledgeDocumentData $data, string $groupId, string $userId): RedirectResponse
+    private function handleInertiaRequest(KnowledgeBase $kb, FormUploadKnowledgeDocumentData $data, string $groupId, string $userId): RedirectResponse
     {
         foreach ($data->files as $file) {
             $this->handle($kb, $file, $groupId, $userId);
@@ -171,8 +168,7 @@ class UploadKnowledgeDocumentAction
             $query['group'] = $groupId;
         }
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspaceSlug,
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             ...$query,
         ]);
     }
@@ -236,7 +232,6 @@ class UploadKnowledgeDocumentAction
         $objectKey = $this->pathGenerator->generate(
             attachmentId: $attachmentId,
             purpose: AttachmentPurpose::KnowledgeDocument,
-            workspaceId: (string) $document->workspace_id,
             originalName: $file->getClientOriginalName(),
             mimeType: $mimeType,
         );
@@ -257,7 +252,6 @@ class UploadKnowledgeDocumentAction
 
         return Attachment::query()->create([
             'id' => $attachmentId,
-            'workspace_id' => $document->workspace_id,
             'uploaded_by_user_id' => $uploaderUserId,
             'storage_profile_id' => $profile->id,
             'disk' => $profile->driver,

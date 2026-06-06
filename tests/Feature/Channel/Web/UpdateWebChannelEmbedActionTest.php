@@ -8,7 +8,7 @@ use App\Enums\Channel\Web\WebChannelParamTarget;
 use App\Enums\Channel\Web\WebChannelParamTrust;
 use App\Enums\Channel\Web\WebChannelParamWriteMode;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Spatie\LaravelData\DataCollection;
@@ -16,8 +16,8 @@ use Spatie\LaravelData\DataCollection;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->workspace = Workspace::factory()->create();
-    $this->channel = Channel::factory()->for($this->workspace)->create([
+    $this->systemContext = SystemContext::factory()->create();
+    $this->channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'existing-secret-1234567890abcdef',
         ]),

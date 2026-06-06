@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,7 +20,6 @@ use Laravel\Scout\Searchable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
- * @property string $workspace_id
  * @property ContactType $type
  * @property ContactSource $source
  * @property string|null $name
@@ -41,13 +39,11 @@ use Laravel\Scout\Searchable;
  * @property string|null $important_source
  * @property Carbon|null $last_seen_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $identities_count
  * @property int|null $activity_logs_count
  * @property int|null $conversations_count
  * @property int|null $custom_attribute_values_count
  * @property int|null $tags_count
- * @property-read Workspace $workspace
  * @property-read Collection|ContactIdentity[] $identities
  * @property-read Collection|ContactActivityLog[] $activityLogs
  * @property-read Collection|Conversation[] $conversations
@@ -85,11 +81,9 @@ class Contact extends Model
         ];
     }
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
+    /**
+     * 联系人的身份标识列表。
+     */
     public function identities(): HasMany
     {
         return $this->hasMany(ContactIdentity::class);
@@ -135,7 +129,6 @@ class Contact extends Model
 
         return [
             'id' => $this->id,
-            'workspace_id' => $this->workspace_id,
             'type' => $this->type->value,
             'source' => $this->source->value,
             'name' => $this->name ?? '',

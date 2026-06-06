@@ -1,6 +1,6 @@
 <!--
   知识库召回测试面板，内嵌在知识库列表右侧区域。
-  管理员输入一段查询并选择检索模式（grep / 语义 / 混合），实时查看当前知识库的召回命中、
+  有权限的用户输入一段查询并选择检索模式（grep / 语义 / 混合），实时查看当前知识库的召回命中、
   来源、得分与诊断信息；走 useHttp 请求 RunKnowledgeRecallTestAction，不触发页面导航。
   消费后端 KnowledgeRecallTestResultData。
 -->
@@ -21,14 +21,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   EnumOptionData,
   KnowledgeRecallTestResultData,
   KnowledgeSearchMode,
 } from '@/types/generated';
 import { useHttp } from '@inertiajs/vue3';
-import { FileText, MessageSquareText, Search } from 'lucide-vue-next';
+import { FileText, MessageSquareText, Search } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -42,7 +41,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { toast } = useToast();
-const currentWorkspace = useRequiredWorkspace();
 
 const defaultMode: KnowledgeSearchMode = props.modeOptions.some(
   (option) => option.value === 'semantic',
@@ -101,7 +99,6 @@ function runSearch(): void {
 
   http.post(
     KnowledgeBase.RunKnowledgeRecallTestAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: props.knowledgeBaseId,
     }),
     {

@@ -1,8 +1,7 @@
 <?php
 
-use App\Enums\WorkspaceRole;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Tests\TestCase;
 
 /*
@@ -27,19 +26,20 @@ pest()->extend(TestCase::class)
 
 /**
  * @param  array<string, mixed>  $userAttributes
- * @param  array<string, mixed>  $workspaceAttributes
- * @return array{0: Workspace, 1: User}
+ * @param  array<string, mixed>  $systemAttributes
+ * @return array{0: SystemContext, 1: User}
  */
-function createWorkspaceWithOwner(array $userAttributes = [], array $workspaceAttributes = []): array
+function createSystemWithOwner(array $userAttributes = [], array $systemAttributes = []): array
 {
-    $user = User::factory()->create($userAttributes);
-    $workspace = Workspace::factory()->create(array_merge([
+    $user = User::factory()->create(array_merge([
+        'is_super_admin' => true,
+    ], $userAttributes));
+
+    $systemContext = SystemContext::factory()->create(array_merge([
         'owner_id' => $user->id,
-    ], $workspaceAttributes));
+    ], $systemAttributes));
 
-    $user->workspaces()->attach($workspace, ['role' => WorkspaceRole::Owner->value]);
-
-    return [$workspace, $user];
+    return [$systemContext, $user];
 }
 
 function createSuperAdmin(array $attributes = []): User

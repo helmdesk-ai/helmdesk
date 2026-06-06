@@ -29,7 +29,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PlanBasicsForm, {
   type MessageTranslationConfigDraft,
@@ -58,7 +57,7 @@ import {
   Smartphone,
   Trash2,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch, type Component } from 'vue';
 
 type PlanFormTab =
@@ -86,7 +85,6 @@ type ServiceScenarioFormState =
 
 const props = defineProps<ShowReceptionPlanDetailPagePropsData>();
 const { t } = useI18n();
-const workspace = useRequiredWorkspace();
 const displayNameVariable = '{{display_name}}';
 const teammateNameVariable = '{{teammate_name}}';
 
@@ -144,9 +142,7 @@ const activePlanBasicsSection = computed<PlanBasicsFormSection>(() =>
     : activePlanFormTab.value,
 );
 
-const listUrl = computed(() =>
-  Plan.ShowReceptionPlanIndexPageAction.url(workspace.value.slug),
-);
+const listUrl = computed(() => Plan.ShowReceptionPlanIndexPageAction.url());
 
 // ---------- 方案表单：基础字段 + 服务场景 + 方案级 KB/MCP 统一存放在 useForm 里 ----------
 type PlanFormState = PlanBasicsFormShape & {
@@ -286,7 +282,6 @@ function savePlan(): void {
 
   planForm.put(
     Plan.UpdateReceptionPlanAction.url({
-      slug: workspace.value.slug,
       plan: props.plan.id,
     }),
     {

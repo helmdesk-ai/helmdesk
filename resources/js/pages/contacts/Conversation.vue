@@ -8,15 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ListConversationItemData,
   ShowConversationListPagePropsData,
 } from '@/types/generated';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronLeft, Search } from 'lucide-vue-next';
+import { ChevronLeft, Search } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import ContactDetailDrawer from './ContactDetailDrawer.vue';
@@ -27,7 +26,6 @@ import ConversationListTable from './ConversationListTable.vue';
 
 const { t } = useI18n();
 const props = defineProps<ShowConversationListPagePropsData>();
-const currentWorkspace = useRequiredWorkspace();
 
 const readSelectedConversationIdFromUrl = (): string | null => {
   if (typeof window === 'undefined') {
@@ -90,7 +88,7 @@ const buildQuery = (page?: number) => ({
 
 const navigate = (page?: number) => {
   router.get(
-    workspace.conversations.index.url(currentWorkspace.value.slug, {
+    admin.conversations.index.url({
       query: buildQuery(page),
     }),
     {},
@@ -99,7 +97,7 @@ const navigate = (page?: number) => {
 };
 
 const buildConversationPageUrl = (page: number): string =>
-  workspace.conversations.index.url(currentWorkspace.value.slug, {
+  admin.conversations.index.url({
     query: buildQuery(page),
   });
 

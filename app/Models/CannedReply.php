@@ -12,32 +12,28 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property string $workspace_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property string|null $user_id
  * @property string $name
  * @property string|null $shortcut
  * @property string $content
  * @property int $usage_count
- * @property \Illuminate\Support\Carbon|null $last_used_at
+ * @property Carbon|null $last_used_at
  * @property array|null $metadata
  * @property string|null $created_by_user_id
  * @property string|null $updated_by_user_id
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $owners_count
- *
- * @property-read \App\Models\Workspace $workspace
- * @property-read \App\Models\User|null $owner
+ * @property-read User|null $owner
  *
  * @method static \Database\Factories\CannedReplyFactory<self> factory($count = null, $state = [])
  */
 class CannedReply extends Model
 {
     /**
-     * 快捷回复模版，承载工作区共享或客服个人沉淀的可复用回复内容。
+     * 快捷回复模版，承载系统共享或客服个人沉淀的可复用回复内容。
      */
 
     /** @use HasFactory<CannedReplyFactory> */
@@ -60,15 +56,7 @@ class CannedReply extends Model
     }
 
     /**
-     * 所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
-    /**
-     * 个人模版的归属用户；工作区共享时为 null。
+     * 个人模版的归属用户；系统共享时为 null。
      */
     public function owner(): BelongsTo
     {
@@ -76,9 +64,9 @@ class CannedReply extends Model
     }
 
     /**
-     * 是否为工作区共享模版（非个人）。
+     * 是否为系统共享模版（非个人）。
      */
-    public function isWorkspaceShared(): bool
+    public function isSystemShared(): bool
     {
         return $this->user_id === null;
     }

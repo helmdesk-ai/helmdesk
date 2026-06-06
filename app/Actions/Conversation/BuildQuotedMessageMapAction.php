@@ -26,7 +26,7 @@ class BuildQuotedMessageMapAction
      * @param  Collection<int, object>  $rows
      * @return array<string, QuotedMessageData>
      */
-    public function handle(Collection $rows, string $workspaceId): array
+    public function handle(Collection $rows): array
     {
         $quotedIds = $rows
             ->pluck('quoted_message_id')
@@ -40,7 +40,6 @@ class BuildQuotedMessageMapAction
 
         return DB::table('conversation_messages')
             ->select('id', 'role', 'kind', 'content', 'payload', 'recalled_at', 'sender_name')
-            ->where('workspace_id', $workspaceId)
             ->whereIn('id', $quotedIds->all())
             ->get()
             ->mapWithKeys(fn ($row): array => [

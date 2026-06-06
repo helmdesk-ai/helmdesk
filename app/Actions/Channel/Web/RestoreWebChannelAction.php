@@ -2,8 +2,8 @@
 
 namespace App\Actions\Channel\Web;
 
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,14 +28,12 @@ class RestoreWebChannelAction
     /**
      * 接收渠道恢复请求并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->findOrFail($channel);
 

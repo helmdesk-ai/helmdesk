@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\CannedReply;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +16,6 @@ class CannedReplyFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'user_id' => null,
             'name' => fake()->unique()->sentence(3),
             'shortcut' => null,

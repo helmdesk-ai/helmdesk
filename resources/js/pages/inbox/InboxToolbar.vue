@@ -22,8 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
-import workspaceRoutes from '@/routes/workspace';
+import systemRoutes from '@/routes/admin';
 import type { AppPageProps } from '@/types';
 import type {
   EnabledWebChannelData,
@@ -32,7 +31,7 @@ import type {
   UserOptionData,
 } from '@/types/generated';
 import { router, usePage } from '@inertiajs/vue3';
-import { ChevronDown, Search, X } from 'lucide-vue-next';
+import { ChevronDown, Search, X } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 interface Props {
@@ -50,7 +49,6 @@ interface Props {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 const page = usePage<AppPageProps>();
 
 const ANY_VALUE = '__any__';
@@ -153,7 +151,7 @@ function buildUrl(overrides: Record<string, string | null>): string {
     }
   }
 
-  return workspaceRoutes.inbox.show.url(currentWorkspace.value.slug, { query });
+  return systemRoutes.inbox.show.url({ query });
 }
 
 function navigatePartial(url: string, replace = false): void {

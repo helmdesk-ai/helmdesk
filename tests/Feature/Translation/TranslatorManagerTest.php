@@ -10,17 +10,16 @@ use App\Services\Translation\Drivers\GoogleTranslateDriver;
 use App\Services\Translation\Drivers\TencentCloudTranslateDriver;
 use App\Services\Translation\TranslatorManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->createUserWithWorkspace();
+    $this->createUserWithSystem();
 });
 
 it('google-translate 协议返回 GoogleTranslateDriver', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'protocol' => TranslationProviderType::GoogleTranslate,
     ]);
 
@@ -31,7 +30,6 @@ it('google-translate 协议返回 GoogleTranslateDriver', function () {
 
 it('每种翻译协议都返回配置的驱动', function (TranslationProviderType $protocol, string $driverClass) {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'protocol' => $protocol,
     ]);
 
@@ -49,7 +47,6 @@ it('每种翻译协议都返回配置的驱动', function (TranslationProviderTy
 
 it('按 provider 缓存驱动实例', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $manager = app(TranslatorManager::class);
@@ -62,11 +59,9 @@ it('按 provider 缓存驱动实例', function () {
 
 it('不同 provider 返回不同驱动实例', function () {
     $providerA = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'google-a',
     ]);
     $providerB = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'google-b',
     ]);
 

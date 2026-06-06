@@ -6,7 +6,6 @@ use App\Enums\ReceptionPlanVersionStatus;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -28,9 +27,9 @@ class EnsureReceptionPlanVersionAction
     /**
      * 编译当前草稿并与最新版本对比；有变化则建新版返回，无变化返回 null。
      */
-    public function handle(Workspace $workspace, ReceptionPlan $plan, ?User $publisher): ?ReceptionPlanVersion
+    public function handle(ReceptionPlan $plan, ?User $publisher): ?ReceptionPlanVersion
     {
-        $compiled = CompileReceptionPlanAction::run($workspace, $plan);
+        $compiled = CompileReceptionPlanAction::run($plan);
 
         $latest = ReceptionPlanVersion::query()
             ->where('reception_plan_id', $plan->id)

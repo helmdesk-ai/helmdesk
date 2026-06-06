@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Enums\TranslationProviderType;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -19,7 +18,6 @@ class TranslationProviderFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'slug' => 'google-translate-'.Str::lower(Str::random(6)),
             'name' => 'Google Translate',
             'protocol' => TranslationProviderType::GoogleTranslate,

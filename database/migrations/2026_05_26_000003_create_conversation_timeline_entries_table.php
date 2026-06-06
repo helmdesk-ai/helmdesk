@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('conversation_timeline_entries', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id');
             $table->ulid('contact_id')->nullable();
             $table->ulid('conversation_id');
             $table->string('entry_type', 20);
@@ -19,8 +18,8 @@ return new class extends Migration
             $table->timestamp('occurred_at');
 
             $table->unique(['entry_type', 'entry_id'], 'conversation_timeline_entry_unique');
-            $table->index(['workspace_id', 'contact_id', 'occurred_at', 'id'], 'conversation_timeline_contact_idx');
-            $table->index(['workspace_id', 'conversation_id', 'occurred_at', 'id'], 'conversation_timeline_conversation_idx');
+            $table->index(['contact_id', 'occurred_at', 'id'], 'conversation_timeline_contact_idx');
+            $table->index(['conversation_id', 'occurred_at', 'id'], 'conversation_timeline_conversation_idx');
         });
     }
 

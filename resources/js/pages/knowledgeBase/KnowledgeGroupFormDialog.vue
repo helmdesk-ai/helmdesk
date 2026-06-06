@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { KnowledgeGroupData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
@@ -42,7 +41,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const NONE_VALUE = '__none__';
 
@@ -117,7 +115,6 @@ function submit(): void {
   if (isEditMode.value && props.group) {
     form.put(
       KnowledgeBase.Group.UpdateKnowledgeGroupAction.url({
-        slug: currentWorkspace.value.slug,
         knowledgeBase: props.knowledgeBaseId,
         group: props.group.id,
       }),
@@ -128,7 +125,6 @@ function submit(): void {
 
   form.post(
     KnowledgeBase.Group.CreateKnowledgeGroupAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: props.knowledgeBaseId,
     }),
     { preserveScroll: true, onSuccess },

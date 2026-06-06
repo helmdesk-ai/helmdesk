@@ -8,10 +8,10 @@ use Spatie\LaravelData\Data;
 /**
  * 翻译供应商设置页 props。
  *
- * 由 ShowWorkspaceTranslationProvidersAction 返回，传给
- * resources/js/pages/workspaceSettings/translationProviders/Index.vue 渲染：
- * - providers：当前工作区已配置的翻译供应商列表（含脱敏后的凭据状态）
- * - protocolOptions：用于「添加供应商」下拉，由 TranslationProviderType 通过 EnumOptionData::fromCases() 生成
+ * 由 ShowSystemTranslationProvidersAction 返回，传给
+ * resources/js/pages/systemSettings/translationProviders/Index.vue 渲染：
+ * - providers：当前系统已配置的翻译供应商列表（含脱敏后的凭据状态）
+ * - protocolOptions：供应商协议选项，供创建 / 编辑页面沿用同一份页面数据契约
  */
 class ShowTranslationProviderPagePropsData extends Data
 {

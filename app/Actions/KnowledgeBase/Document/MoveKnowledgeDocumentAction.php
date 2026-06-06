@@ -3,7 +3,7 @@
 namespace App\Actions\KnowledgeBase\Document;
 
 use App\Data\KnowledgeBase\FormMoveKnowledgeDocumentData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeGroup;
@@ -37,13 +37,11 @@ class MoveKnowledgeDocumentAction
     /**
      * 处理文档移动分组请求。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $document): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $documentModel = KnowledgeDocument::query()

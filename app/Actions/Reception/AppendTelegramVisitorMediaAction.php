@@ -90,7 +90,6 @@ class AppendTelegramVisitorMediaAction
                 $fileContents, $fileName, $mimeType, $caption, $telegramPayload
             ): array {
                 $mediaMessage = ConversationMessage::query()->create([
-                    'workspace_id' => $conversation->workspace_id,
                     'conversation_id' => $conversation->id,
                     'role' => MessageRole::Visitor,
                     'sender_name' => $visitorSenderName,
@@ -100,7 +99,7 @@ class AppendTelegramVisitorMediaAction
                     'client_msg_id' => $clientMsgId,
                 ]);
 
-                $attachment = $this->storeAttachment($conversation, $mediaMessage, $purpose, $fileContents, $fileName, $mimeType);
+                $attachment = $this->storeAttachment($mediaMessage, $purpose, $fileContents, $fileName, $mimeType);
 
                 $mediaMessage->update([
                     'payload' => [
@@ -113,7 +112,6 @@ class AppendTelegramVisitorMediaAction
                 $captionMessage = null;
                 if ($caption !== '') {
                     $captionMessage = ConversationMessage::query()->create([
-                        'workspace_id' => $conversation->workspace_id,
                         'conversation_id' => $conversation->id,
                         'role' => MessageRole::Visitor,
                         'sender_name' => $visitorSenderName,
@@ -163,7 +161,6 @@ class AppendTelegramVisitorMediaAction
      * 把下载到的文件二进制写入私有存储并创建绑定到消息的附件记录。
      */
     private function storeAttachment(
-        Conversation $conversation,
         ConversationMessage $message,
         AttachmentPurpose $purpose,
         string $contents,
@@ -175,7 +172,6 @@ class AppendTelegramVisitorMediaAction
         $objectKey = $this->pathGenerator->generate(
             attachmentId: $attachmentId,
             purpose: $purpose,
-            workspaceId: (string) $conversation->workspace_id,
             originalName: $fileName,
             mimeType: $mimeType,
         );
@@ -197,7 +193,6 @@ class AppendTelegramVisitorMediaAction
 
         return Attachment::query()->create([
             'id' => $attachmentId,
-            'workspace_id' => $conversation->workspace_id,
             'uploaded_by_user_id' => null,
             'storage_profile_id' => $profile->id,
             'disk' => $profile->driver,

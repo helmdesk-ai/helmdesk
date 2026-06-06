@@ -31,7 +31,6 @@ import { Separator } from '@/components/ui/separator';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { EMAIL_MAX_LENGTH, isLikelyValidEmail } from '@/lib/email';
 import { getAvatarInitial } from '@/lib/initials';
 import {
@@ -42,7 +41,7 @@ import {
   isLikelyValidPhone,
   splitPhoneNumber,
 } from '@/lib/phone';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ContactAttributeFieldData,
   ContactDetailData,
@@ -55,7 +54,7 @@ import type {
 } from '@/types/generated';
 import { router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Star } from 'lucide-vue-next';
+import { Star } from '@lucide/vue';
 import {
   computed,
   nextTick,
@@ -84,7 +83,6 @@ const emit = defineEmits<{
 const { locale, t } = useI18n();
 const { formatDateTime } = useDateTime();
 const { formatVisitorName } = useVisitorDisplay();
-const currentWorkspace = useRequiredWorkspace();
 
 const contactDetail = ref<ContactDetailData | null>(null);
 const loading = ref(false);
@@ -191,8 +189,7 @@ const saveCustomAttributes = (silent = false) => {
   }
 
   attrForm.put(
-    workspace.contacts.attributes.update.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.attributes.update.url({
       id: props.contactId,
     }),
     {
@@ -584,9 +581,8 @@ const fetchDetail = async (id: string, silent = false) => {
   detailError.value = '';
   try {
     const response = await fetch(
-      workspace.contacts.show.url(
+      admin.contacts.show.url(
         {
-          slug: currentWorkspace.value.slug,
           id,
         },
         {
@@ -750,8 +746,7 @@ const openEdit = () => {
 
 const submitEdit = () => {
   editForm.put(
-    workspace.contacts.update.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.update.url({
       id: props.contactId,
     }),
     {
@@ -787,8 +782,7 @@ const submitAddIdentity = () => {
 
   identityForm.clearErrors('value');
   identityForm.post(
-    workspace.contacts.identities.store.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.identities.store.url({
       contactId: props.contactId,
     }),
     {
@@ -833,8 +827,7 @@ const submitReplaceIdentity = () => {
 
   replaceIdentityForm.clearErrors('value');
   replaceIdentityForm.put(
-    workspace.contacts.identities.replace.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.identities.replace.url({
       contactId: props.contactId,
       identityId: replacingIdentity.value.id,
     }),
@@ -857,8 +850,7 @@ const submitDeleteIdentity = () => {
   }
 
   deleteIdentityForm.delete(
-    workspace.contacts.identities.destroy.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.identities.destroy.url({
       contactId: props.contactId,
       identityId: deletingIdentity.value.id,
     }),
@@ -898,8 +890,7 @@ const toggleImportance = async (): Promise<void> => {
   importanceProcessing.value = true;
   try {
     await axios.put(
-      workspace.contacts.importance.update.url({
-        slug: currentWorkspace.value.slug,
+      admin.contacts.importance.update.url({
         id: props.contactId,
       }),
       { is_important: !contactDetail.value.is_important },
@@ -922,8 +913,7 @@ const handleAttachTag = async (tagId: string) => {
   tagProcessing.value = true;
   try {
     await axios.post(
-      workspace.contacts.tags.attach.url({
-        slug: currentWorkspace.value.slug,
+      admin.contacts.tags.attach.url({
         id: props.contactId,
       }),
       { tag_id: tagId },
@@ -945,8 +935,7 @@ const handleDetachTag = async (tagId: string) => {
   tagProcessing.value = true;
   try {
     await axios.delete(
-      workspace.contacts.tags.detach.url({
-        slug: currentWorkspace.value.slug,
+      admin.contacts.tags.detach.url({
         id: props.contactId,
         tagId,
       }),

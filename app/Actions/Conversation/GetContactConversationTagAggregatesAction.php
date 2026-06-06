@@ -3,7 +3,6 @@
 namespace App\Actions\Conversation;
 
 use App\Data\Conversation\ContactConversationTagAggregateData;
-use App\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -19,12 +18,11 @@ class GetContactConversationTagAggregatesAction
      *
      * @return list<ContactConversationTagAggregateData>
      */
-    public function handle(Workspace $workspace, string $contactId): array
+    public function handle(string $contactId): array
     {
         return DB::table('conversation_tag_assignments as cta')
             ->join('conversations as c', 'c.id', '=', 'cta.conversation_id')
             ->join('tags as t', 't.id', '=', 'cta.tag_id')
-            ->where('c.workspace_id', $workspace->id)
             ->where('c.contact_id', $contactId)
             ->whereNull('cta.removed_at')
             ->whereNull('t.deleted_at')

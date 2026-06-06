@@ -9,12 +9,11 @@ import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import PaginationNavigator from '@/components/common/PaginationNavigator.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowWebChannelListPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import {
@@ -26,13 +25,12 @@ import {
 
 const props = defineProps<ShowWebChannelListPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const deleteForm = useForm({});
 const deletingChannelId = ref<string | null>(null);
 
 const buildChannelListPageUrl = (page: number): string => {
-  return Web.ListWebChannelsAction.url(currentWorkspace.value.slug, {
+  return Web.ListWebChannelsAction.url({
     query: { page },
   });
 };
@@ -51,7 +49,6 @@ const confirmDelete = () => {
 
   deleteForm.delete(
     Web.DeleteWebChannelAction.url({
-      slug: currentWorkspace.value.slug,
       channel: selectedChannel.value.id,
     }),
     {
@@ -88,18 +85,12 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
 
           <div class="flex items-center gap-2">
             <Button as-child>
-              <Link
-                :href="
-                  Web.ShowCreateWebChannelPageAction.url(currentWorkspace.slug)
-                "
-              >
+              <Link :href="Web.ShowCreateWebChannelPageAction.url()">
                 {{ t('创建渠道') }}
               </Link>
             </Button>
             <Button variant="outline" as-child>
-              <Link
-                :href="Web.ListWebChannelTrashAction.url(currentWorkspace.slug)"
-              >
+              <Link :href="Web.ListWebChannelTrashAction.url()">
                 {{ t('回收站') }}
               </Link>
             </Button>
@@ -147,7 +138,6 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
                         <Link
                           :href="
                             Web.ShowWebChannelDetailPageAction.url({
-                              slug: currentWorkspace.slug,
                               channel: channel.id,
                             })
                           "

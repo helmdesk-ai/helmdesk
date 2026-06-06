@@ -4,9 +4,8 @@ namespace App\Actions\Mcp;
 
 use App\Data\Mcp\FormCreateMcpServerData;
 use App\Data\Mcp\FormUpdateMcpServerData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\McpServer;
-use App\Models\Workspace;
 use App\Services\Mcp\GoMcpRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,11 +33,11 @@ class CheckMcpServerAction
      *
      * @return array{success: bool, code: string, message: string, supported: bool, warnings: array<int, string>}
      */
-    public function handle(Workspace $workspace, ?string $slug, FormCreateMcpServerData|FormUpdateMcpServerData|null $data): array
+    public function handle(?string $slug, FormCreateMcpServerData|FormUpdateMcpServerData|null $data): array
     {
         $server = $slug === null
             ? null
-            : $workspace->mcpServers()->where('slug', $slug)->firstOrFail();
+            : McpServer::query()->where('slug', $slug)->firstOrFail();
         $runtimeServer = $data === null ? $server : $this->serverForRuntimeCheck($server, $data);
 
         $result = $this->bridge->checkServerConnection(
@@ -57,12 +56,11 @@ class CheckMcpServerAction
     }
 
     /**
-     * 路由入口：仅 manageAi 角色可调用。
+     * 路由入口：需要系统设置编辑权限。
      */
-    public function asController(Request $request, string $slug, ?string $server = null): JsonResponse
+    public function asController(Request $request, ?string $server = null): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         try {
             $data = match (true) {
@@ -70,7 +68,7 @@ class CheckMcpServerAction
                 $request->input() === [] => null,
                 default => FormUpdateMcpServerData::from($request),
             };
-            $this->handle($workspace, $server, $data);
+            $this->handle($server, $data);
         } catch (ValidationException $e) {
             $message = (string) collect($e->errors())
                 ->flatten()

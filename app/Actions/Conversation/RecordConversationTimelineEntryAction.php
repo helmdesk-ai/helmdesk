@@ -21,7 +21,6 @@ class RecordConversationTimelineEntryAction
     public function handle(
         ConversationTimelineEntryType $entryType,
         string $entryId,
-        string $workspaceId,
         string $conversationId,
         Carbon $occurredAt,
     ): void {
@@ -31,7 +30,6 @@ class RecordConversationTimelineEntryAction
             ->firstOrFail();
 
         ConversationTimelineEntry::query()->create([
-            'workspace_id' => $workspaceId,
             'contact_id' => $conversation->contact_id,
             'conversation_id' => $conversation->id,
             'entry_type' => $entryType,

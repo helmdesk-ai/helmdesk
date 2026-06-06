@@ -2,9 +2,9 @@
 
 namespace App\Actions\Reception;
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\PersonaConfigData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\PersonaConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\ConversationAutoMessageTrigger;
 use App\Enums\ConversationEventType;
@@ -122,7 +122,6 @@ class DispatchConversationAutoMessageAction
                 }
 
                 $message = ConversationMessage::query()->create([
-                    'workspace_id' => $locked->workspace_id,
                     'conversation_id' => $locked->id,
                     'sender_user_id' => $senderUserId,
                     'sender_name' => $senderName,
@@ -143,7 +142,6 @@ class DispatchConversationAutoMessageAction
                 }
 
                 ConversationAutoMessageReceipt::query()->create([
-                    'workspace_id' => $locked->workspace_id,
                     'conversation_id' => $locked->id,
                     'trigger' => $trigger->value,
                     'idempotency_key' => $receiptKey,
@@ -164,7 +162,6 @@ class DispatchConversationAutoMessageAction
             });
         } catch (UniqueConstraintViolationException) {
             Log::debug('会话自动回复写入遇到并发唯一约束。', [
-                'workspace_id' => (string) $conversation->workspace_id,
                 'conversation_id' => (string) $conversation->id,
                 'trigger' => $trigger->value,
                 'idempotency_key' => $receiptKey,
@@ -219,7 +216,6 @@ class DispatchConversationAutoMessageAction
             );
 
             ConversationAutoMessageReceipt::query()->create([
-                'workspace_id' => $locked->workspace_id,
                 'conversation_id' => $locked->id,
                 'trigger' => $trigger->value,
                 'idempotency_key' => $receiptKey,
@@ -242,7 +238,6 @@ class DispatchConversationAutoMessageAction
         string $content,
     ): void {
         ConversationEvent::query()->create([
-            'workspace_id' => $conversation->workspace_id,
             'conversation_id' => $conversation->id,
             'actor_user_id' => null,
             'type' => ConversationEventType::AutoMessageTranslationFailed,

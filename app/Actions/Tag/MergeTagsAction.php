@@ -3,10 +3,8 @@
 namespace App\Actions\Tag;
 
 use App\Data\Tag\FormMergeTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
 use App\Models\Tag;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,9 +17,9 @@ class MergeTagsAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, FormMergeTagData $data): Tag
+    public function handle(FormMergeTagData $data): Tag
     {
-        return DB::transaction(function () use ($workspace, $data): Tag {
+        return DB::transaction(function () use ($data): Tag {
             if ($data->target_tag_id === $data->merged_tag_id) {
                 throw ValidationException::withMessages([
                     'merged_tag_id' => __('tag.errors.merge_same_tag'),
@@ -29,11 +27,9 @@ class MergeTagsAction
             }
 
             $targetTag = Tag::query()
-                ->where('workspace_id', $workspace->id)
                 ->findOrFail($data->target_tag_id);
 
             $mergedTag = Tag::query()
-                ->where('workspace_id', $workspace->id)
                 ->findOrFail($data->merged_tag_id);
 
             if ($mergedTag->is_locked) {
@@ -73,11 +69,10 @@ class MergeTagsAction
         });
     }
 
-    public function asController(Request $request, string $slug)
+    public function asController(Request $request)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormMergeTagData::from($request);
-        $this->handle($ctx->workspace(), $data);
+        $this->handle($data);
 
         return back();
     }

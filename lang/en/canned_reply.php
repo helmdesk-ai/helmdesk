@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 return [
     'visibilities' => [
-        'workspace' => 'Workspace shared',
+        'system' => 'System shared',
         'personal' => 'Only me',
     ],
     'token_kinds' => [
         'contact' => 'Contact',
         'conversation' => 'Conversation',
         'teammate' => 'Teammate',
-        'workspace' => 'Workspace',
+        'system' => 'System',
         'ai' => 'AI (coming soon)',
     ],
     'tokens' => [
@@ -21,7 +21,7 @@ return [
         'conversation_id' => 'Conversation ID',
         'conversation_subject' => 'Conversation subject',
         'teammate_name' => 'Current teammate',
-        'workspace_name' => 'Workspace name',
+        'system_name' => 'System name',
     ],
     'warnings' => [
         'ai_token_disabled' => 'AI token :token is not enabled yet; kept as-is.',
@@ -29,7 +29,7 @@ return [
     ],
     'errors' => [
         'forbidden' => 'You do not have permission to manage this canned reply.',
-        'workspace_create_forbidden' => 'Only workspace administrators can create workspace-shared canned replies.',
+        'system_create_forbidden' => 'Canned reply management permission is required to create system-shared canned replies.',
         'shortcut_exists' => 'A canned reply with the same shortcut already exists in this scope.',
     ],
 ];

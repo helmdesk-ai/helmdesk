@@ -40,7 +40,6 @@ class CloseConversationAction
             ]);
 
             ConversationEvent::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'actor_user_id' => $actor?->id,
                 'type' => ConversationEventType::StatusChanged,

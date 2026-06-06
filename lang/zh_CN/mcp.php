@@ -17,6 +17,7 @@ return [
     ],
     'sync_statuses' => [
         'pending' => '尚未同步',
+        'syncing' => '同步中',
         'success' => '同步成功',
         'failed' => '同步失败',
     ],
@@ -47,8 +48,7 @@ return [
         'created' => 'MCP 服务已创建。',
         'check_succeeded' => '连接正常。',
         'sync_succeeded' => '同步完成，共 :total 个工具（新增 :added、下线 :removed）。',
-        'cannot_toggle_without_endpoint' => '请先配置 Endpoint URL 后再启用。',
-        'tool_disabled_due_to_removal' => '该工具已从远端下线，无法启用。',
+        'sync_all_queued' => '已开始同步 :count 个 MCP 服务。',
     ],
     'tool' => [
         'removed_badge' => '已下线',

@@ -5,25 +5,20 @@ namespace App\Data\Attachment;
 use Spatie\LaravelData\Data;
 
 /**
- * 浏览器直传对象存储所需的临时参数。
+ * 浏览器预签名表单直传对象存储所需的临时参数。
  */
 class AttachmentDirectUploadData extends Data
 {
     /**
-     * 承载前端直传对象存储所需的 URL、表单字段和请求头。
+     * 承载前端直传对象存储所需的 URL 和表单字段。
      *
      * @param  array<string, string>|null  $fields
-     * @param  array<string, string>|null  $headers
      */
     public function __construct(
         public ?string $url = null,
         public ?string $method = null,
         /** @var array<string,string>|null */
         public ?array $fields = null,
-        /** @var array<string,string>|null */
-        public ?array $headers = null,
-        public ?string $upload_id = null,
-        public ?int $part_size = null,
     ) {}
 
     /**
@@ -41,9 +36,6 @@ class AttachmentDirectUploadData extends Data
             url: isset($payload['url']) ? (string) $payload['url'] : null,
             method: isset($payload['method']) ? (string) $payload['method'] : null,
             fields: $payload['fields'] ?? null,
-            headers: $payload['headers'] ?? null,
-            upload_id: isset($payload['upload_id']) ? (string) $payload['upload_id'] : null,
-            part_size: isset($payload['part_size']) ? (int) $payload['part_size'] : null,
         );
     }
 }

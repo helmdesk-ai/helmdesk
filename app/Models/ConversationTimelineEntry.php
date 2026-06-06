@@ -11,7 +11,6 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string|null $contact_id
  * @property string $conversation_id
  * @property ConversationTimelineEntryType $entry_type

@@ -6,7 +6,6 @@ use App\Data\AiRuntime\ModelSelectionStatusData;
 use App\Enums\ReceptionPlanVersionStatus;
 use App\Models\Channel;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
 
 /**
@@ -31,7 +30,7 @@ class ChannelReceptionPlanVersionResolver
     /**
      * 解析渠道绑定方案最新已发布版本的状态；未绑定方案时返回 null。
      */
-    public function resolveChannelStatus(Workspace $workspace, Channel $channel): ?ModelSelectionStatusData
+    public function resolveChannelStatus(Channel $channel): ?ModelSelectionStatusData
     {
         if (! filled($channel->reception_plan_id)) {
             return null;
@@ -51,13 +50,13 @@ class ChannelReceptionPlanVersionResolver
             );
         }
 
-        return $this->resolveVersionStatus($workspace, $version);
+        return $this->resolveVersionStatus($version);
     }
 
     /**
      * 直接对版本对象做可用性解析；用于版本列表 / 选项渲染等需要复用同一规则的场景。
      */
-    public function resolveVersionStatus(Workspace $workspace, ReceptionPlanVersion $version): ModelSelectionStatusData
+    public function resolveVersionStatus(ReceptionPlanVersion $version): ModelSelectionStatusData
     {
         $label = $this->formatVersionLabel($version);
 
@@ -74,7 +73,7 @@ class ChannelReceptionPlanVersionResolver
         $compiled = $version->compiled_config;
         $modelId = $compiled['reception_config']['default_model']['ai_model_id'] ?? null;
         $modelId = is_string($modelId) ? $modelId : null;
-        $modelStatus = $this->resolver->resolveModelStatus($workspace, $modelId);
+        $modelStatus = $this->resolver->resolveModelStatus($modelId);
 
         if (! $modelStatus->isValid) {
             return new ModelSelectionStatusData(

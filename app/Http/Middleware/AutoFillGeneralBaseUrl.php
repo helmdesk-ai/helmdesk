@@ -62,7 +62,7 @@ class AutoFillGeneralBaseUrl
      */
     private function isSuperAdminRequest(Request $request): bool
     {
-        $user = $request->user('admin');
+        $user = $request->user();
 
         return $user !== null && (bool) $user->is_super_admin;
     }

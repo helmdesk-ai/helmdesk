@@ -13,17 +13,13 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property string|null $workspace_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property string $attachment_id
  * @property string $storage_profile_id
- * @property \App\Enums\AttachmentUploadMode $mode
- * @property \App\Enums\AttachmentUploadStatus $status
+ * @property AttachmentUploadMode $mode
+ * @property AttachmentUploadStatus $status
  * @property string $object_key
- * @property string|null $upload_id
- * @property int|null $part_size
- * @property array|null $parts
  * @property string $expected_name
  * @property string $expected_mime_type
  * @property int $expected_byte_size
@@ -32,14 +28,13 @@ use Illuminate\Support\Carbon;
  * @property string|null $session_token_hash
  * @property string|null $client_ip
  * @property string|null $user_agent
- * @property \Illuminate\Support\Carbon $expires_at
- * @property \Illuminate\Support\Carbon|null $completed_at
+ * @property Carbon $expires_at
+ * @property Carbon|null $completed_at
  * @property mixed $use_factory
  * @property int|null $attachments_count
  * @property int|null $storage_profiles_count
- *
- * @property-read \App\Models\Attachment $attachment
- * @property-read \App\Models\StorageProfile $storageProfile
+ * @property-read Attachment $attachment
+ * @property-read StorageProfile $storageProfile
  *
  * @method static \Database\Factories\AttachmentUploadFactory<self> factory($count = null, $state = [])
  */
@@ -64,8 +59,6 @@ class AttachmentUpload extends Model
         return [
             'mode' => AttachmentUploadMode::class,
             'status' => AttachmentUploadStatus::class,
-            'part_size' => 'integer',
-            'parts' => 'array',
             'expected_byte_size' => 'integer',
             'expires_at' => 'datetime',
             'completed_at' => 'datetime',

@@ -67,7 +67,7 @@ class KnowledgeEmbeddingService
     }
 
     /**
-     * 解密供应商凭据为 PHP 数组；既兼容已解密的数组也兼容仍是字符串的旧值。
+     * 将供应商凭据规整为 PHP 数组。
      *
      * @return array<string, mixed>
      */

@@ -29,13 +29,14 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
+import SystemSettingsLayout from '@/layouts/SystemSettingsLayout.vue';
 import type {
   FormSendMailSettingsTestEmailData,
   FormUpdateMailSettingData,
   ShowMailSettingsPagePropsData,
 } from '@/types/generated';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Trash2, Undo2 } from 'lucide-vue-next';
+import { Trash2, Undo2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowMailSettingsPagePropsData>();
@@ -190,7 +191,7 @@ const handleTestMailDialogOpen = (open: boolean) => {
   <SystemAppLayout>
     <Head :title="t('邮箱服务器')" />
 
-    <div class="px-4 py-6 sm:px-6">
+    <SystemSettingsLayout>
       <div class="mx-auto w-full max-w-none space-y-12">
         <div class="space-y-6">
           <HeadingSmall
@@ -756,7 +757,7 @@ const handleTestMailDialogOpen = (open: boolean) => {
           </form>
         </div>
       </div>
-    </div>
+    </SystemSettingsLayout>
 
     <Dialog :open="testMailDialogOpen" @update:open="handleTestMailDialogOpen">
       <DialogContent class="sm:max-w-md">

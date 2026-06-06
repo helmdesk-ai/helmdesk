@@ -16,7 +16,6 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
 
             $table->unique(['tag_id', 'contact_id']);
-            $table->index('contact_id');
             $table->index(['contact_id', 'tag_id'], 'cta_contact_tag_idx');
             $table->index(['tag_id', 'created_at'], 'cta_tag_created_at_idx');
         });

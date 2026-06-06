@@ -18,7 +18,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useChannelPreviewDraft } from '@/composables/useChannelPreviewDraft';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   WebChannelData,
   WebChannelFormOptionsData,
@@ -43,7 +42,6 @@ type SelectModelValue =
   | null;
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 const draft = useChannelPreviewDraft();
 
 const entryMode = ref<EntryMode>(props.channel.widget.entry.mode);
@@ -133,7 +131,6 @@ const updateEntryBottomOffset = (value: string | number) => {
   <Form
     :action="
       Web.UpdateWebChannelWidgetAction.url({
-        slug: currentWorkspace.slug,
         channel: props.channel.id,
       })
     "
@@ -311,7 +308,6 @@ const updateEntryBottomOffset = (value: string | number) => {
                 name="entry_default_icon_id"
                 purpose="channel_icon"
                 variant="logo"
-                :upload-context="{ workspace_id: currentWorkspace.id }"
                 :initial-preview="
                   props.channel.widget.entry.default_icon_url ?? ''
                 "
@@ -329,7 +325,6 @@ const updateEntryBottomOffset = (value: string | number) => {
                 name="entry_active_icon_id"
                 purpose="channel_icon"
                 variant="logo"
-                :upload-context="{ workspace_id: currentWorkspace.id }"
                 :initial-preview="
                   props.channel.widget.entry.active_icon_url ?? ''
                 "
@@ -386,10 +381,7 @@ const updateEntryBottomOffset = (value: string | number) => {
           </div>
         </section>
 
-        <FormActions
-          :submit-label="t('保存')"
-          :processing="processing"
-        />
+        <FormActions :submit-label="t('保存')" :processing="processing" />
       </div>
     </template>
   </Form>

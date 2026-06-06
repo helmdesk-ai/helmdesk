@@ -2,7 +2,7 @@
 
 namespace App\Actions\Reception;
 
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\ConversationEventType;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\MessageKind;
@@ -61,7 +61,6 @@ class HandleAiUnavailableAction
 
         $message = DB::transaction(function () use ($conversation, $visitorNotice, $translation, $aiSenderName): ConversationMessage {
             $message = ConversationMessage::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'role' => MessageRole::Ai,
                 'kind' => MessageKind::Text,
@@ -72,7 +71,6 @@ class HandleAiUnavailableAction
             ]);
 
             ConversationEvent::query()->create([
-                'workspace_id' => $conversation->workspace_id,
                 'conversation_id' => $conversation->id,
                 'type' => ConversationEventType::HandoffRequested,
                 'payload' => [

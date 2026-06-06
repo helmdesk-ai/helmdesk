@@ -15,7 +15,7 @@ class FormCreateWebChannelData extends Data
     /**
      * 创建网站渠道表单字段。
      *
-     * reception_plan_id 必须指向工作区内存在可用最新版本的接待方案；渠道自动跟随该方案最新版。
+     * reception_plan_id 必须指向系统内存在可用最新版本的接待方案；渠道自动跟随该方案最新版。
      * default_visitor_locale 是渠道访客界面的默认展示语言。
      */
     public function __construct(

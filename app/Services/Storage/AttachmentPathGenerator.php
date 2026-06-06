@@ -46,14 +46,11 @@ class AttachmentPathGenerator
     public function generate(
         string $attachmentId,
         AttachmentPurpose $purpose,
-        ?string $workspaceId,
         string $originalName,
         string $mimeType,
     ): string {
         $date = now();
-        $prefix = $workspaceId
-            ? 'workspaces/'.$workspaceId
-            : 'system';
+        $prefix = 'attachments';
         $extension = $this->extension($originalName, $mimeType);
         $suffix = $extension ? '.'.$extension : '';
 

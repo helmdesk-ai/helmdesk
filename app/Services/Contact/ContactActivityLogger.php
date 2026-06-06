@@ -24,7 +24,6 @@ class ContactActivityLogger
         ?array $payload = null,
     ): void {
         ContactActivityLog::query()->create([
-            'workspace_id' => $contact->workspace_id,
             'contact_id' => $contact->id,
             'related_contact_id' => $relatedContact?->id,
             'action' => $action,

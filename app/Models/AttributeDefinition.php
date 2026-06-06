@@ -8,33 +8,28 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property string $workspace_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property string $key
  * @property string $name
  * @property string|null $description
- * @property \App\Enums\AttributeType $type
+ * @property AttributeType $type
  * @property array|null $config
  * @property int $display_order
  * @property bool $is_filterable
  * @property bool $is_api_writable
  * @property bool $is_ai_readable
  * @property bool $is_ai_writable
- * @property \Illuminate\Support\Carbon|null $deleted_at
+ * @property Carbon|null $deleted_at
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $contact_attribute_values_count
- *
- * @property-read \App\Models\Workspace $workspace
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ContactAttributeValue[] $contactAttributeValues
+ * @property-read Collection|ContactAttributeValue[] $contactAttributeValues
  *
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\AttributeDefinition active()
  * @method static \Illuminate\Database\Eloquent\Builder|\App\Models\AttributeDefinition ordered()
@@ -84,11 +79,9 @@ class AttributeDefinition extends Model
         ];
     }
 
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
-    }
-
+    /**
+     * 当前属性定义下已写入的联系人属性值。
+     */
     public function contactAttributeValues(): HasMany
     {
         return $this->hasMany(ContactAttributeValue::class, 'definition_id');

@@ -2,48 +2,90 @@
 
 namespace App\Actions\Teammate;
 
+use App\Actions\Attachment\AttachUploadedAttachmentsAction;
+use App\Actions\Attachment\DeleteAttachmentAction;
 use App\Data\Teammate\FormUpdateTeammateData;
-use App\Data\WorkspaceUserContextData;
-use App\Models\Workspace;
+use App\Enums\AttachmentPurpose;
+use App\Enums\UserPermission;
+use App\Models\Attachment;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 更新工作区客服成员资料和角色。
+ * 更新客服账号资料和权限。
  */
 class UpdateTeammateAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, $userId, FormUpdateTeammateData $data): void
+    /**
+     * 保存客服资料、密码、头像和权限变更。
+     */
+    public function handle(User $actor, string $id, FormUpdateTeammateData $data): void
     {
-        $targetUser = $workspace->users()->whereKey($userId)->firstOrFail();
+        Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersEdit);
 
-        $currentNickname = filled($targetUser->pivot?->nickname) ? (string) $targetUser->pivot->nickname : null;
-        $nextNickname = filled($data->nickname) ? $data->nickname : null;
+        DB::transaction(function () use ($actor, $id, $data): void {
+            $user = User::query()
+                ->where('is_super_admin', false)
+                ->findOrFail($id);
 
-        if ($nextNickname !== $currentNickname) {
-            Gate::authorize('workspace-users.updateProfile', [$workspace, $targetUser]);
-        }
+            Gate::forUser($actor)->authorize('users.updateProfile', $user);
 
-        if ($data->role->value !== (string) ($targetUser->pivot?->role ?? '')) {
-            Gate::authorize('workspace-users.updateRole', [$workspace, $targetUser, $data->role]);
-        }
+            $originalAvatar = $user->avatarAttachment()->first();
+            $user->update([
+                'name' => $data->name,
+                'email' => $data->email,
+                'nickname' => filled($data->nickname) ? $data->nickname : null,
+                'permissions' => $data->permissions,
+            ]);
 
-        $targetUser->pivot->update([
-            'nickname' => $nextNickname,
-            'role' => $data->role,
-        ]);
+            if (filled($data->password)) {
+                $user->update(['password' => $data->password]);
+            }
+
+            $user->refresh();
+            $this->syncUploadedAvatar($user, $originalAvatar, $data->avatar_id);
+        });
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    /**
+     * 接收客服编辑表单并返回客服列表。
+     */
+    public function asController(Request $request, string $teammate): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
-        $data = FormUpdateTeammateData::from($request);
-        $this->handle($workspace, $id, $data);
+        $actor = $request->user();
 
-        return redirect()->route('workspace.manage.teammates.index', ['slug' => $ctx->workspaceSlug()]);
+        $this->handle($actor, $teammate, FormUpdateTeammateData::from($request));
+
+        return redirect()->route('admin.manage.teammates.index');
+    }
+
+    /**
+     * 同步客服头像附件并清理被替换的旧头像。
+     */
+    private function syncUploadedAvatar(User $user, ?Attachment $originalAvatar, ?string $nextAttachmentId): void
+    {
+        if (! filled($nextAttachmentId)) {
+            return;
+        }
+
+        if ($originalAvatar !== null && (string) $originalAvatar->id === $nextAttachmentId) {
+            return;
+        }
+
+        $attachment = AttachUploadedAttachmentsAction::run($user, $nextAttachmentId, null, null, null, [AttachmentPurpose::Avatar]);
+
+        if ($attachment instanceof Attachment) {
+            $user->update(['avatar' => $attachment->full_url]);
+        }
+
+        if ($originalAvatar !== null) {
+            DeleteAttachmentAction::run($originalAvatar);
+        }
     }
 }

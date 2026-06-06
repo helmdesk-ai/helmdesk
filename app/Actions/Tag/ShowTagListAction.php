@@ -5,10 +5,8 @@ namespace App\Actions\Tag;
 use App\Data\EnumOptionData;
 use App\Data\Tag\ListTagGroupItemData;
 use App\Data\Tag\ShowListTagPagePropsData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\TagScope;
 use App\Models\TagGroup;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,11 +20,11 @@ class ShowTagListAction
     use AsAction;
 
     /**
-     * 查询当前工作区标签组及组内标签。
+     * 查询当前系统标签组及组内标签。
      */
-    public function handle(Workspace $workspace): ShowListTagPagePropsData
+    public function handle(): ShowListTagPagePropsData
     {
-        $groups = $workspace->tagGroups()
+        $groups = TagGroup::query()
             ->with(['tags' => function ($query) {
                 $query->withCount(['contacts', 'conversations'])->orderBy('name', 'asc');
             }])
@@ -46,8 +44,7 @@ class ShowTagListAction
      */
     public function asController(Request $request): Response
     {
-        $currentWorkspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        $props = $this->handle($currentWorkspace);
+        $props = $this->handle();
 
         return Inertia::render('tags/Index', $props->toArray());
     }

@@ -2,11 +2,9 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
 use App\Models\Tag;
 use App\Models\TagGroup;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,15 +17,13 @@ class RestoreTagAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $id): Tag
+    public function handle(string $id): Tag
     {
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->onlyTrashed()
             ->findOrFail($id);
 
         $conflict = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->where('tag_group_id', $tag->tag_group_id)
             ->where('normalized_name', $tag->normalized_name)
             ->whereNull('deleted_at')
@@ -42,7 +38,6 @@ class RestoreTagAction
         // 标签必须有可见的归属组：若其标签组在标签删除后被一并删掉，恢复标签时连带恢复该组，
         // 否则恢复出来的标签会因为组不可见而在管理页消失。
         $group = TagGroup::withTrashed()
-            ->where('workspace_id', $workspace->id)
             ->find($tag->tag_group_id);
 
         if ($group !== null && $group->trashed()) {
@@ -66,10 +61,9 @@ class RestoreTagAction
         return $tag;
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $this->handle($ctx->workspace(), $id);
+        $this->handle($id);
 
         return back();
     }

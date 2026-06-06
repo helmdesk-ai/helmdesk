@@ -2,13 +2,12 @@
  * 文件说明：前端共享类型声明，补充页面 props、全局对象和模块类型。
  */
 import { InertiaLinkProps } from '@inertiajs/vue3';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { LucideIcon } from '@lucide/vue';
 import type {
   AiModelOptionData,
   GeneralSettingsData,
+  SystemUserContextData,
   UserNotificationPreferencesData,
-  WorkspaceData,
-  WorkspaceUserContextData,
 } from './generated';
 
 export interface Auth {
@@ -28,11 +27,18 @@ export type AppPageProps<T extends object = Record<string, never>> = T & {
   auth: Auth;
   sidebarOpen: boolean;
   generalSettings: GeneralSettingsData;
-  canAccessManageCenter?: boolean;
-  canManageAi?: boolean;
+  canAccessUsers?: boolean;
+  canAccessContacts?: boolean;
+  canAccessConversations?: boolean;
+  canAccessTags?: boolean;
+  canAccessAttributes?: boolean;
+  canAccessCannedReplies?: boolean;
+  canAccessKnowledgeBases?: boolean;
+  canAccessReceptionPlans?: boolean;
+  canAccessChannels?: boolean;
+  canManageSystemSettings?: boolean;
   aiAssistantLlmModelOptions?: AiModelOptionData[];
-  workspaces?: WorkspaceData[];
-  workspaceUserContext?: WorkspaceUserContextData;
+  systemUserContext?: SystemUserContextData;
 };
 
 export interface User {

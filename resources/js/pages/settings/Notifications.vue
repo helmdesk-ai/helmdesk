@@ -19,7 +19,6 @@ import { Switch } from '@/components/ui/switch';
 import { showBrowserNotification } from '@/composables/useBrowserNotification';
 import { useI18n } from '@/composables/useI18n';
 import { playNotificationSound } from '@/composables/useNotificationSound';
-import { useCurrentWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/SettingsLayout.vue';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
@@ -41,26 +40,11 @@ type BrowserPermission = NotificationPermission | 'unsupported';
 
 const { t } = useI18n();
 const page = usePage();
-const currentWorkspace = useCurrentWorkspace();
 const permission = ref<BrowserPermission>('unsupported');
 
 const RootLayout = computed(() =>
   page.props.auth.user.is_super_admin ? SystemAppLayout : AppLayout,
 );
-const linkOptions = computed(() => {
-  if (currentWorkspace.value) {
-    return {
-      mergeQuery: {
-        from_workspace: currentWorkspace.value.slug,
-      },
-    };
-  }
-
-  return {
-    mergeQuery: {},
-  };
-});
-
 const form = useForm<FormUpdateNotificationPreferencesData>({
   browser_notifications_enabled:
     props.preferences.browser_notifications_enabled,
@@ -102,7 +86,7 @@ async function requestPermission(): Promise<void> {
 }
 
 function submit(): void {
-  form.put(UpdateNotificationSettingsAction.url(linkOptions.value), {
+  form.put(UpdateNotificationSettingsAction.url(), {
     preserveScroll: true,
   });
 }

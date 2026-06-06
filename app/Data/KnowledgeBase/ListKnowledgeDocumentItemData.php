@@ -34,7 +34,7 @@ class ListKnowledgeDocumentItemData extends Data
 
     /**
      * 从 Eloquent 模型构造列表项。
-     * 调用方通过 fromCollection 批量构造时，knowledgeBase 上的 enabledIndexingStrategies 仅需解析一次。
+     * 调用方在批量 map 前先解析一次 knowledgeBase 的 enabledIndexingStrategies 并传入，避免逐行重复解析。
      *
      * 列表行展示的综合状态以 KnowledgeDocument.status 列为准（由流水线写入），
      * 这样老数据 / 测试夹具直接 set status 也能被正确展示，不依赖派生计算。
@@ -59,21 +59,5 @@ class ListKnowledgeDocumentItemData extends Data
             created_at: $document->created_at?->toIso8601String(),
             updated_at: $document->updated_at?->toIso8601String(),
         );
-    }
-
-    /**
-     * 批量构造列表项，共享同一份已启用策略解析结果。
-     *
-     * @param  iterable<KnowledgeDocument>  $documents
-     * @return list<self>
-     */
-    public static function fromCollection(iterable $documents, KnowledgeBase $knowledgeBase): array
-    {
-        $items = [];
-        foreach ($documents as $document) {
-            $items[] = self::fromModel($document, $knowledgeBase);
-        }
-
-        return $items;
     }
 }

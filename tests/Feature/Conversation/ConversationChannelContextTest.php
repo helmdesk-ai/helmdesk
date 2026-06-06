@@ -88,6 +88,5 @@ test('会话浏览轨迹按访问时间挂在会话上', function () {
 
     expect($views)->toHaveCount(2)
         ->and($views->first()->url)->toBe('https://shop.example.com/pricing')
-        ->and($views->last()->url)->toBe('https://shop.example.com/checkout')
-        ->and($views->first()->workspace_id)->toBe($conversation->workspace_id);
+        ->and($views->last()->url)->toBe('https://shop.example.com/checkout');
 });

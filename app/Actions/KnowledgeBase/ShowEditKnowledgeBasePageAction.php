@@ -4,9 +4,8 @@ namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\KnowledgeBaseData;
 use App\Data\KnowledgeBase\ShowEditKnowledgeBasePagePropsData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -23,11 +22,10 @@ class ShowEditKnowledgeBasePageAction
     /**
      * 组装编辑知识库页面所需的表单数据。
      */
-    public function handle(Workspace $workspace, string $knowledgeBaseId): ShowEditKnowledgeBasePagePropsData
+    public function handle(string $knowledgeBaseId): ShowEditKnowledgeBasePagePropsData
     {
         $knowledgeBase = KnowledgeBase::query()
             ->with(['avatar'])
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBaseId);
 
         return new ShowEditKnowledgeBasePagePropsData(
@@ -38,11 +36,10 @@ class ShowEditKnowledgeBasePageAction
     /**
      * 返回编辑知识库页面。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): Response
+    public function asController(Request $request, string $knowledgeBase): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
-        return Inertia::render('knowledgeBase/Edit', $this->handle($workspace, $knowledgeBase)->toArray());
+        return Inertia::render('knowledgeBase/Edit', $this->handle($knowledgeBase)->toArray());
     }
 }

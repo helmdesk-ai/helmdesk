@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('attribute_definitions', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id');
             $table->string('key', 50);
             $table->string('name', 100);
             $table->string('description', 255)->nullable();
@@ -24,9 +23,8 @@ return new class extends Migration
             $table->boolean('is_ai_writable')->default(false);
             $table->softDeletes();
 
-            $table->unique(['id', 'workspace_id']);
-            $table->unique(['workspace_id', 'key']);
-            $table->index(['workspace_id', 'deleted_at', 'display_order']);
+            $table->unique('key');
+            $table->index(['deleted_at', 'display_order']);
         });
     }
 

@@ -17,12 +17,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->json('input_schema')->nullable();
             $table->json('annotations')->nullable();
-            $table->boolean('is_enabled')->default(true);
             $table->timestamp('last_seen_at')->nullable();
             $table->timestamp('removed_at')->nullable();
 
             $table->unique(['mcp_server_id', 'name']);
-            $table->index(['mcp_server_id', 'is_enabled']);
+            $table->index(['mcp_server_id', 'removed_at']);
         });
     }
 

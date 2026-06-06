@@ -31,7 +31,6 @@ class BuildInboxReplyPolishContextAction
     {
         $quotedMessage = $this->resolveQuotedMessage($conversation, $quotedMessageId);
         $recentMessages = ConversationMessage::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('conversation_id', $conversation->id)
             ->whereIn('role', [
                 MessageRole::Visitor->value,
@@ -69,7 +68,6 @@ class BuildInboxReplyPolishContextAction
         }
 
         return ConversationMessage::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('conversation_id', $conversation->id)
             ->whereKey($quotedMessageId)
             ->where('kind', MessageKind::Text->value)

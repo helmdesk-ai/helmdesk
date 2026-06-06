@@ -12,7 +12,6 @@ export default {
   全部分配: 'All assignees',
   未分配: 'Unassigned',
   接待方案版本: 'Reception plan version',
-  全部接待方案版本: 'All reception plan versions',
   版本: 'Version',
   主题: 'Subject',
   最后消息: 'Last message',
@@ -20,17 +19,13 @@ export default {
   匿名访客: 'Anonymous visitor',
   '匿名访客 #{suffix}': 'Anonymous visitor #{suffix}',
   暂无会话记录: 'No conversations yet',
-  只看没有标签的会话: 'Only show untagged conversations',
-  '第 :current 页，共 :last 页': 'Page :current of :last',
 
   // 详情抽屉
   返回会话: 'Back to conversation',
   最后消息时间: 'Last message',
-  已归档: 'Archived',
   聊天记录: 'Chat history',
   仅对话: 'Messages only',
   仅事件: 'Events only',
-  加载更早记录: 'Load earlier records',
   '加载更早记录...': 'Loading earlier records...',
   向上滚动加载更早记录: 'Scroll up to load earlier records',
   已加载全部历史: 'All history loaded',
@@ -48,7 +43,6 @@ export default {
   未找到匹配的消息: 'No matching messages found',
 
   // 消息气泡 / 事件
-  事件消息: 'Event messages',
   显示事件消息: 'Show event messages',
   隐藏事件消息: 'Hide event messages',
   事件消息已隐藏: 'Event messages are hidden',

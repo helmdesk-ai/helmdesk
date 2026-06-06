@@ -21,7 +21,7 @@ class PlanKnowledgeBaseOptionData extends Data
     ) {}
 
     /**
-     * 从工作区可见的 KnowledgeBase 模型构造选项。
+     * 从系统可见的 KnowledgeBase 模型构造选项。
      */
     public static function fromModel(KnowledgeBase $knowledgeBase): self
     {

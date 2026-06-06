@@ -77,7 +77,6 @@ class ResolveReceptionContextAction
         $contact = $signedIdentity !== null
             ? $this->resolveSignedContact($channel, $signedIdentity)
             : $this->resolveContactIdentityAction->handle(
-                $channel->workspace,
                 ['type' => IdentityType::Session, 'value' => $token],
                 ContactSource::Web,
             );
@@ -155,7 +154,6 @@ class ResolveReceptionContextAction
         $namespace = $this->userTokenVerifier->identityNamespace($channel);
 
         $contact = $this->resolveContactIdentityAction->handle(
-            $channel->workspace,
             [
                 'type' => IdentityType::ExternalId,
                 'value' => $signedIdentity['external_id'],
@@ -171,17 +169,17 @@ class ResolveReceptionContextAction
         }
 
         if ($signedIdentity['email'] !== null) {
-            $this->attachEmailIdentityIfMissing($channel, $contact, $signedIdentity['email']);
+            $this->attachEmailIdentityIfMissing($contact, $signedIdentity['email']);
         }
 
         return $contact;
     }
 
     /**
-     * 把 token 携带的邮箱挂到联系人上：仅在邮箱在本工作区未被占用、且联系人尚无该邮箱时追加。
+     * 把 token 携带的邮箱挂到联系人上：仅在邮箱在本系统未被占用、且联系人尚无该邮箱时追加。
      * 冲突时不写入，保留给客服显式合并。
      */
-    private function attachEmailIdentityIfMissing(Channel $channel, Contact $contact, string $email): void
+    private function attachEmailIdentityIfMissing(Contact $contact, string $email): void
     {
         $value = ContactIdentityNormalizer::normalizeValue(IdentityType::Email, $email);
         if ($value === '') {
@@ -189,7 +187,6 @@ class ResolveReceptionContextAction
         }
 
         $alreadyAttached = ContactIdentity::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('contact_id', $contact->id)
             ->where('type', IdentityType::Email)
             ->where('value', $value)
@@ -200,7 +197,6 @@ class ResolveReceptionContextAction
         }
 
         $taken = ContactIdentity::query()
-            ->where('workspace_id', $channel->workspace_id)
             ->where('type', IdentityType::Email)
             ->where('namespace', '')
             ->where('value', $value)
@@ -212,7 +208,6 @@ class ResolveReceptionContextAction
 
         try {
             ContactIdentity::query()->create([
-                'workspace_id' => $channel->workspace_id,
                 'contact_id' => $contact->id,
                 'type' => IdentityType::Email,
                 'namespace' => '',
@@ -222,7 +217,6 @@ class ResolveReceptionContextAction
             $contact->syncPrimaryFields();
         } catch (UniqueConstraintViolationException) {
             Log::debug('访客邮箱身份写入遇到并发唯一约束。', [
-                'workspace_id' => (string) $channel->workspace_id,
                 'contact_id' => (string) $contact->id,
                 'email' => $value,
             ]);
@@ -243,7 +237,7 @@ class ResolveReceptionContextAction
             ->withTrashed()
             ->where('code', $channelCode)
             ->where('type', ChannelType::Web)
-            ->with(['receptionPlan', 'workspace'])
+            ->with(['receptionPlan'])
             ->first();
 
         if ($channel === null) {

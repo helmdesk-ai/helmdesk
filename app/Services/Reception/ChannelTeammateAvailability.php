@@ -3,18 +3,19 @@
 namespace App\Services\Reception;
 
 use App\Data\Reception\HumanServiceStatusData;
-use App\Data\Reception\ReceptionBusinessHoursData;
-use App\Data\Reception\ReceptionBusinessHoursDayData;
+use App\Data\Reception\Plan\ReceptionBusinessHoursData;
+use App\Data\Reception\Plan\ReceptionBusinessHoursDayData;
 use App\Enums\Reception\HumanServiceUnavailableReason;
 use App\Enums\UserOnlineStatus;
 use App\Models\Channel;
-use App\Support\LocalePreference;
+use App\Models\User;
+use App\Services\Localization\LocalePreference;
 use Carbon\Carbon;
 
 /**
  * 判断渠道当前「人工是否可接待」。
  *
- * 可达条件：工作区内至少有一名客服处于 Online 状态，且当前时刻在接待方案配置的人工服务时间内。
+ * 可达条件：系统内至少有一名客服处于 Online 状态，且当前时刻在接待方案配置的人工服务时间内。
  * 未配置营业时间时，只检查人工接待人员状态。
  *
  * 注意：此服务只判断客服接待能力，不影响 AI 接待，AI 始终可用。
@@ -48,7 +49,7 @@ class ChannelTeammateAvailability
         $timezone = $businessHours?->timezone ?? 'UTC';
         $now = ($at ?? Carbon::now())->copy()->setTimezone($timezone);
         $withinBusinessHours = $businessHours === null || $businessHours->isWithinSchedule($now);
-        $hasOnlineTeammate = $this->hasOnlineTeammate($channel);
+        $hasOnlineTeammate = $this->hasOnlineTeammate();
         $humanAvailable = $withinBusinessHours && $hasOnlineTeammate;
 
         $reason = null;
@@ -133,14 +134,12 @@ class ChannelTeammateAvailability
     }
 
     /**
-     * 判断工作区内是否存在至少一名可接待人员。
+     * 判断系统内是否存在至少一名可接待人员。
      */
-    private function hasOnlineTeammate(Channel $channel): bool
+    private function hasOnlineTeammate(): bool
     {
-        $channel->loadMissing('workspace');
-
-        return $channel->workspace->users()
-            ->wherePivot('online_status', UserOnlineStatus::Online->value)
+        return User::query()
+            ->where('online_status', UserOnlineStatus::Online)
             ->exists();
     }
 

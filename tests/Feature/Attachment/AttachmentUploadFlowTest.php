@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Attachment\ValidateAttachmentUploadAction;
 use App\Enums\AttachmentStatus;
 use App\Enums\AttachmentUploadMode;
 use App\Enums\AttachmentUploadStatus;
@@ -10,21 +9,17 @@ use App\Models\Channel;
 use App\Models\StorageProfile;
 use App\Models\User;
 use App\Services\Storage\AttachmentUrlResolver;
-use App\Services\Storage\S3ClientFactory;
 use App\Settings\StorageSettings;
-use Aws\MockHandler;
-use Aws\Result;
-use Aws\S3\S3Client;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 
     /** @var StorageSettings $settings */
     $settings = app(StorageSettings::class);
@@ -34,12 +29,12 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    if ($this->workspace) {
-        Storage::disk('local')->deleteDirectory('workspaces/'.$this->workspace->id);
+    if ($this->systemContext) {
+        Storage::disk('local')->deleteDirectory('systems/'.$this->systemContext->id);
     }
 });
 
-test('本地代理上传会完成为私有附件且下载需要工作区访问权限', function () {
+test('本地代理上传会完成为私有附件且下载需要系统访问权限', function () {
     $contents = 'hello attachment';
     $file = UploadedFile::fake()->createWithContent('note.txt', $contents);
 
@@ -49,7 +44,7 @@ test('本地代理上传会完成为私有附件且下载需要工作区访问�
             'file_name' => 'note.txt',
             'mime_type' => 'text/plain',
             'byte_size' => $file->getSize(),
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertOk()
         ->assertJsonPath('upload.mode', 'proxy')
@@ -72,8 +67,7 @@ test('本地代理上传会完成为私有附件且下载需要工作区访问�
     $attachment = Attachment::query()->findOrFail($attachmentId);
 
     expect($attachment->status)->toBe(AttachmentStatus::Uploaded)
-        ->and($attachment->visibility->value)->toBe('private')
-        ->and((string) $attachment->workspace_id)->toBe((string) $this->workspace->id);
+        ->and($attachment->visibility->value)->toBe('private');
 
     Storage::disk('local')->assertExists($attachment->object_key);
 
@@ -90,10 +84,9 @@ test('本地代理上传会完成为私有附件且下载需要工作区访问�
 test('自包含下载URL签名随参数变化', function () {
     $profile = StorageProfile::factory()->local()->create();
     $attachment = Attachment::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'storage_profile_id' => $profile->id,
         'disk' => 'local',
-        'object_key' => 'workspaces/'.$this->workspace->id.'/files/private.txt',
+        'object_key' => 'systems/'.$this->systemContext->id.'/files/private.txt',
         'original_name' => 'private.txt',
         'mime_type' => 'text/plain',
         'extension' => 'txt',
@@ -123,7 +116,7 @@ test('上传意图会强制校验用途、大小和MIME策略', function () {
             'file_name' => 'avatar.png',
             'mime_type' => 'image/png',
             'byte_size' => (2 * 1024 * 1024) + 1,
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('byte_size');
@@ -134,7 +127,7 @@ test('上传意图会强制校验用途、大小和MIME策略', function () {
             'file_name' => 'page.html',
             'mime_type' => 'text/html',
             'byte_size' => 1024,
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('mime_type');
@@ -146,14 +139,13 @@ test('已认证上传路由需要已登录在用户', function () {
         'file_name' => 'note.txt',
         'mime_type' => 'text/plain',
         'byte_size' => 5,
-        'context' => ['workspace_id' => $this->workspace->id],
+        'context' => [],
     ])->assertUnauthorized();
 });
 
 test('访客上传路由使用访客会话Cookie', function () {
     $token = str_repeat('a', 32);
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $file = UploadedFile::fake()->image('photo.png', 64, 64);
 
@@ -178,7 +170,6 @@ test('访客上传路由使用访客会话Cookie', function () {
 test('访客上传路由接受显式独立会话词元', function () {
     $token = str_repeat('c', 32);
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $file = UploadedFile::fake()->image('photo.png', 64, 64);
 
@@ -227,7 +218,7 @@ test('已完成上传不能中止在附件可读后', function () {
             'file_name' => 'note.txt',
             'mime_type' => 'text/plain',
             'byte_size' => $file->getSize(),
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertOk();
 
@@ -258,7 +249,7 @@ test('已完成上传不能再次完成在附件已附加后', function () {
             'file_name' => 'note.txt',
             'mime_type' => 'text/plain',
             'byte_size' => $file->getSize(),
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertOk();
 
@@ -276,8 +267,8 @@ test('已完成上传不能再次完成在附件已附加后', function () {
     $attachment = Attachment::query()->findOrFail($attachmentId);
     $attachment->update([
         'status' => AttachmentStatus::Attached,
-        'attachable_type' => $this->workspace->getMorphClass(),
-        'attachable_id' => $this->workspace->id,
+        'attachable_type' => $this->systemContext->getMorphClass(),
+        'attachable_id' => $this->systemContext->id,
         'expires_at' => null,
     ]);
 
@@ -298,7 +289,7 @@ test('管理员和网页guard都已认证时系统级图片上传可以完成', 
     ]);
     $file = UploadedFile::fake()->image('logo.png', 120, 60);
 
-    $this->actingAs($admin, 'admin');
+    $this->actingAs($admin);
     $this->actingAs($webUser, 'web');
 
     $createResponse = $this->postJson('/api/attachments/uploads', [
@@ -322,17 +313,15 @@ test('管理员和网页guard都已认证时系统级图片上传可以完成', 
 
     $attachment = Attachment::query()->findOrFail($createResponse->json('attachment.id'));
 
-    expect($attachment->workspace_id)->toBeNull();
     Storage::disk('local')->assertExists($attachment->object_key);
 });
 
 test('自包含下载URL包含正确的文件名和MIME参数', function () {
     $profile = StorageProfile::factory()->local()->create();
     $attachment = Attachment::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'storage_profile_id' => $profile->id,
         'disk' => 'local',
-        'object_key' => 'workspaces/'.$this->workspace->id.'/avatar/screenshot.png',
+        'object_key' => 'systems/'.$this->systemContext->id.'/avatar/screenshot.png',
         'original_name' => '截图2026-04-29.png',
         'mime_type' => 'image/png',
         'extension' => 'png',
@@ -352,7 +341,7 @@ test('自包含下载URL包含正确的文件名和MIME参数', function () {
         ->and($remaining)->toBeLessThanOrEqual(7200);
 });
 
-test('S3配置档会签发预签名POST、PUT和分片上传', function () {
+test('S3配置档会签发预签名POST表单直传参数', function () {
     $profile = StorageProfile::factory()->create([
         'metadata' => [],
     ]);
@@ -369,69 +358,12 @@ test('S3配置档会签发预签名POST、PUT和分片上传', function () {
             'file_name' => 'avatar.png',
             'mime_type' => 'image/png',
             'byte_size' => 1024,
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertOk()
         ->assertJsonPath('upload.mode', 'presigned_post')
-        ->assertJsonPath('direct.method', 'POST');
-
-    $profile->update(['metadata' => ['direct_upload_mode' => 'presigned_put']]);
-
-    $this->actingAs($this->user)
-        ->postJson('/api/attachments/uploads', [
-            'purpose' => 'import',
-            'file_name' => 'contacts.csv',
-            'mime_type' => 'text/csv',
-            'byte_size' => 2048,
-            'context' => ['workspace_id' => $this->workspace->id],
-        ])
-        ->assertOk()
-        ->assertJsonPath('upload.mode', 'presigned_put')
-        ->assertJsonPath('direct.method', 'PUT')
-        ->assertJsonPath('direct.headers.Content-Type', 'text/csv');
-
-    $profile->update(['metadata' => []]);
-    $client = new S3Client([
-        'version' => 'latest',
-        'region' => 'us-east-1',
-        'endpoint' => 'http://minio.test',
-        'use_path_style_endpoint' => true,
-        'credentials' => ['key' => 'key', 'secret' => 'secret'],
-        'handler' => new MockHandler([
-            new Result(['UploadId' => 'multipart-1']),
-        ]),
-    ]);
-
-    app()->instance(S3ClientFactory::class, new class($client) extends S3ClientFactory
-    {
-        public function __construct(private readonly S3Client $client) {}
-
-        public function make(StorageProfile $profile): S3Client
-        {
-            return $this->client;
-        }
-    });
-
-    $multipartResponse = $this->actingAs($this->user)
-        ->postJson('/api/attachments/uploads', [
-            'purpose' => 'conversation_file',
-            'file_name' => 'manual.pdf',
-            'mime_type' => 'application/pdf',
-            'byte_size' => ValidateAttachmentUploadAction::MULTIPART_THRESHOLD + 1,
-            'context' => ['workspace_id' => $this->workspace->id],
-        ])
-        ->assertOk()
-        ->assertJsonPath('upload.mode', 'multipart')
-        ->assertJsonPath('direct.upload_id', 'multipart-1')
-        ->assertJsonPath('direct.part_size', ValidateAttachmentUploadAction::PART_SIZE);
-
-    $this->actingAs($this->user)
-        ->postJson('/api/attachments/uploads/'.$multipartResponse->json('upload.id').'/parts', [
-            'parts' => [1, 2],
-        ])
-        ->assertOk()
-        ->assertJsonCount(2, 'parts')
-        ->assertJsonPath('parts.0.method', 'PUT');
+        ->assertJsonPath('direct.method', 'POST')
+        ->assertJsonPath('direct.fields.key', fn (?string $key): bool => is_string($key) && str_ends_with($key, '.png'));
 });
 
 test('图片完成时会尽可能创建WebP缩略图快照', function () {
@@ -445,7 +377,7 @@ test('图片完成时会尽可能创建WebP缩略图快照', function () {
             'file_name' => 'photo.png',
             'mime_type' => 'image/png',
             'byte_size' => $file->getSize(),
-            'context' => ['workspace_id' => $this->workspace->id],
+            'context' => [],
         ])
         ->assertOk();
 
@@ -471,13 +403,11 @@ test('图片完成时会尽可能创建WebP缩略图快照', function () {
 test('清理会删除过期代理上传对象并使上传意图过期', function () {
     $profile = StorageProfile::factory()->local()->create();
     $attachment = Attachment::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'storage_profile_id' => $profile->id,
         'status' => AttachmentStatus::Pending,
-        'object_key' => 'workspaces/'.$this->workspace->id.'/conversation_file/stale.txt',
+        'object_key' => 'systems/'.$this->systemContext->id.'/conversation_file/stale.txt',
     ]);
     $upload = AttachmentUpload::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'attachment_id' => $attachment->id,
         'storage_profile_id' => $profile->id,
         'status' => AttachmentUploadStatus::Uploading,
@@ -498,11 +428,10 @@ test('清理会删除过期代理上传对象并使上传意图过期', function
 test('清理删除过期公开孤立附件', function () {
     $profile = StorageProfile::factory()->local()->create();
     $attachment = Attachment::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'storage_profile_id' => $profile->id,
         'status' => AttachmentStatus::Uploaded,
         'visibility' => 'public',
-        'object_key' => 'workspaces/'.$this->workspace->id.'/avatar/orphan.png',
+        'object_key' => 'systems/'.$this->systemContext->id.'/avatar/orphan.png',
         'uploaded_at' => now()->subDays(2),
         'expires_at' => now()->subMinute(),
         'attachable_id' => null,
@@ -517,50 +446,4 @@ test('清理删除过期公开孤立附件', function () {
     expect($deleted->status)->toBe(AttachmentStatus::Deleted)
         ->and($deleted->trashed())->toBeTrue();
     Storage::disk('local')->assertMissing($attachment->object_key);
-});
-
-test('中止过期分片命令会取消远程上传并使记录过期', function () {
-    $profile = StorageProfile::factory()->create();
-    $attachment = Attachment::factory()->create([
-        'workspace_id' => $this->workspace->id,
-        'storage_profile_id' => $profile->id,
-        'disk' => 's3',
-        'bucket' => $profile->bucket,
-        'status' => AttachmentStatus::Pending,
-    ]);
-    $upload = AttachmentUpload::factory()->create([
-        'workspace_id' => $this->workspace->id,
-        'attachment_id' => $attachment->id,
-        'storage_profile_id' => $profile->id,
-        'status' => AttachmentUploadStatus::Uploading,
-        'mode' => AttachmentUploadMode::Multipart,
-        'object_key' => $attachment->object_key,
-        'upload_id' => 'multipart-to-abort',
-        'expires_at' => now()->subMinute(),
-    ]);
-    $client = new S3Client([
-        'version' => 'latest',
-        'region' => 'us-east-1',
-        'endpoint' => 'http://minio.test',
-        'use_path_style_endpoint' => true,
-        'credentials' => ['key' => 'key', 'secret' => 'secret'],
-        'handler' => new MockHandler([
-            new Result([]),
-        ]),
-    ]);
-
-    app()->instance(S3ClientFactory::class, new class($client) extends S3ClientFactory
-    {
-        public function __construct(private readonly S3Client $client) {}
-
-        public function make(StorageProfile $profile): S3Client
-        {
-            return $this->client;
-        }
-    });
-
-    $this->artisan('attachments:abort-expired-multipart')->assertSuccessful();
-
-    expect($upload->fresh()->status)->toBe(AttachmentUploadStatus::Expired)
-        ->and($attachment->fresh()->status)->toBe(AttachmentStatus::Expired);
 });

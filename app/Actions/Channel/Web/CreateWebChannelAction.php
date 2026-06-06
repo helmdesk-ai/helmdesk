@@ -5,10 +5,9 @@ namespace App\Actions\Channel\Web;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormCreateWebChannelData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -23,7 +22,7 @@ class CreateWebChannelAction
     use AsAction;
 
     /**
-     * 注入渠道接待方案解析器，确保绑定到工作区内存在可用最新版本的方案。
+     * 注入渠道接待方案解析器，确保绑定到系统内存在可用最新版本的方案。
      */
     public function __construct(
         private ResolveChannelReceptionPlanAction $resolveChannelReceptionPlan,
@@ -32,16 +31,14 @@ class CreateWebChannelAction
     /**
      * 创建网站渠道并绑定接待方案（运行时自动跟随其最新已发布版本）。
      */
-    public function handle(Workspace $workspace, FormCreateWebChannelData $data): Channel
+    public function handle(FormCreateWebChannelData $data): Channel
     {
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $workspace,
             $data->receptionPlanId(),
             requireUsable: true,
         );
 
         return Channel::query()->create([
-            'workspace_id' => $workspace->id,
             'type' => ChannelType::Web,
             'name' => $data->name,
             'description' => filled($data->description) ? $data->description : null,
@@ -59,13 +56,11 @@ class CreateWebChannelAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsCreate);
 
-        $channel = $this->handle($workspace, FormCreateWebChannelData::from($request));
+        $channel = $this->handle(FormCreateWebChannelData::from($request));
 
-        return redirect()->route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.channels.web.show', [
             'channel' => $channel->id,
         ]);
     }

@@ -2,7 +2,7 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
 use App\Models\Conversation;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除工作区接待方案。
+ * 删除系统接待方案。
  * 任何 PlanVersion 被渠道当前部署或在途会话引用时抛 BusinessException 阻止删除。
  */
 class DeleteReceptionPlanAction
@@ -55,19 +55,16 @@ class DeleteReceptionPlanAction
     /**
      * Controller 入口：鉴权 + 跳回活跃 view 列表。
      */
-    public function asController(Request $request, string $slug, string $plan): RedirectResponse
+    public function asController(Request $request, string $plan): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansDelete);
 
         $planModel = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
         $this->handle($planModel);
 
-        return redirect()->route('workspace.manage.reception.plans.index', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.reception.plans.index', [
         ]);
     }
 }

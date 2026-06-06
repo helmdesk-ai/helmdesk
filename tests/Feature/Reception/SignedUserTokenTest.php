@@ -12,7 +12,7 @@ use App\Models\Contact;
 use App\Models\ContactIdentity;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -32,9 +32,8 @@ beforeEach(function () {
 
 function signedChannelFor(string $secret = 'test-secret-supersecret-xxxxxxxxxx'): Channel
 {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'signed-token-provider-'.Str::lower(Str::random(6)),
         'name' => 'Signed Token Provider',
@@ -53,7 +52,7 @@ function signedChannelFor(string $secret = 'test-secret-supersecret-xxxxxxxxxx')
         'is_builtin' => false,
         'sort_order' => 0,
     ]);
-    $plan = ReceptionPlan::factory()->for($workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => '签名接待方案-'.Str::lower(Str::random(6)),
     ]);
     $version = ReceptionPlanVersion::factory()
@@ -62,7 +61,6 @@ function signedChannelFor(string $secret = 'test-secret-supersecret-xxxxxxxxxx')
         ->create();
 
     return Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
         'settings' => ChannelWebSettingsData::defaults([
@@ -166,9 +164,8 @@ test('签名 token 邮箱被另一联系人占用时不强行抢占', function (
     $channel = signedChannelFor();
     $secret = $channel->settings->user_token_secret;
 
-    $otherContact = Contact::factory()->create(['workspace_id' => $channel->workspace_id]);
+    $otherContact = Contact::factory()->create([]);
     ContactIdentity::query()->create([
-        'workspace_id' => $channel->workspace_id,
         'contact_id' => $otherContact->id,
         'type' => IdentityType::Email,
         'namespace' => '',

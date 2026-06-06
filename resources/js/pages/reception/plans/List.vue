@@ -16,22 +16,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { ShowReceptionPlanListPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowReceptionPlanListPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const deleteForm = useForm({});
 const deletingPlanId = ref<string | null>(null);
 
 const buildPlanListPageUrl = (page: number): string =>
-  Plan.ShowReceptionPlanIndexPageAction.url(currentWorkspace.value.slug, {
+  Plan.ShowReceptionPlanIndexPageAction.url({
     query: { page },
   });
 
@@ -47,7 +45,6 @@ const confirmDelete = () => {
 
   deleteForm.delete(
     Plan.DeleteReceptionPlanAction.url({
-      slug: currentWorkspace.value.slug,
       plan: selectedPlan.value.id,
     }),
     {
@@ -75,27 +72,17 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
         <div class="flex items-start justify-between gap-4">
           <HeadingSmall
             :title="t('接待方案')"
-            :description="t('管理工作区的接待方案配置，保存即生效。')"
+            :description="t('管理系统接待方案配置，保存即生效。')"
           />
 
           <div class="flex items-center gap-2">
             <Button as-child>
-              <Link
-                :href="
-                  Plan.ShowCreateReceptionPlanPageAction.url(
-                    currentWorkspace.slug,
-                  )
-                "
-              >
+              <Link :href="Plan.ShowCreateReceptionPlanPageAction.url()">
                 {{ t('创建接待方案') }}
               </Link>
             </Button>
             <Button variant="outline" as-child>
-              <Link
-                :href="
-                  Plan.ListReceptionPlanTrashAction.url(currentWorkspace.slug)
-                "
-              >
+              <Link :href="Plan.ListReceptionPlanTrashAction.url()">
                 {{ t('回收站') }}
               </Link>
             </Button>
@@ -147,7 +134,6 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
                         <Link
                           :href="
                             Plan.ShowReceptionPlanDetailPageAction.url({
-                              slug: currentWorkspace.slug,
                               plan: plan.id,
                             })
                           "

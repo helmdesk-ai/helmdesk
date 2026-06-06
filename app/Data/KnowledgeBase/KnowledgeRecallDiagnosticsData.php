@@ -6,7 +6,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 召回测试的诊断信息，回显本次检索实际走了哪几路 retriever、是否触发 rerank、嵌入是否失败。
- * 由 SearchKnowledgeBaseAction 产出的 debug 数组归一而来，帮助管理员判断「为什么这条没召回」。
+ * 由 SearchKnowledgeBaseAction 产出的 debug 数组归一而来，帮助有权限的用户判断「为什么这条没召回」。
  * 对应 resources/js/pages/knowledgeBase/KnowledgeRecallTestPanel.vue 顶部的诊断条。
  */
 class KnowledgeRecallDiagnosticsData extends Data

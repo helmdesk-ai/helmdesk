@@ -4,16 +4,16 @@ namespace App\Services\KnowledgeBase\Parsing;
 
 use App\Enums\KnowledgeChunkingStrategy;
 use App\Exceptions\BusinessException;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 
 /**
- * Markdown 分段编排：按工作区配置统一产出"可索引段"。
+ * Markdown 分段编排：按系统配置统一产出"可索引段"。
  *
  * - fixed 策略：纯结构化分段（段落级、累加到 max_tokens、按 overlap 软回滚）。
  * - semantic 策略：先用 sentenceUnits 拆句、调嵌入模型，再按余弦相似度合并相邻句子。
  *
- * 任何上游（Vector / Raptor / FullText）只要拿到 workspace 即可获得"统一形状"的分段列表，
+ * 任何上游（Vector / Raptor / FullText）只要拿到 systemContext 即可获得"统一形状"的分段列表，
  * 避免每个索引器各自硬编码 chunk 尺寸或丢失 heading_path。
  *
  * @phpstan-type PlannedSegment array{
@@ -37,17 +37,17 @@ class MarkdownChunkPlanner
     ) {}
 
     /**
-     * 按工作区配置切分 markdown，统一返回带 heading_path 的段列表。
+     * 按系统配置切分 markdown，统一返回带 heading_path 的段列表。
      *
      * @return list<PlannedSegment>
      */
-    public function plan(Workspace $workspace, string $markdown): array
+    public function plan(SystemContext $systemContext, string $markdown): array
     {
-        $maxTokens = max(1, (int) $workspace->knowledge_chunk_max_tokens);
-        $overlapTokens = max(0, (int) $workspace->knowledge_chunk_overlap_tokens);
+        $maxTokens = max(1, (int) $systemContext->knowledge_chunk_max_tokens);
+        $overlapTokens = max(0, (int) $systemContext->knowledge_chunk_overlap_tokens);
 
-        if ($workspace->knowledge_chunking_strategy === KnowledgeChunkingStrategy::Semantic) {
-            return $this->planSemantic($workspace, $markdown, $maxTokens);
+        if ($systemContext->knowledge_chunking_strategy === KnowledgeChunkingStrategy::Semantic) {
+            return $this->planSemantic($systemContext, $markdown, $maxTokens);
         }
 
         return $this->chunker->chunk($markdown, $maxTokens, $overlapTokens)['segments'];
@@ -58,14 +58,14 @@ class MarkdownChunkPlanner
      *
      * @return list<PlannedSegment>
      */
-    private function planSemantic(Workspace $workspace, string $markdown, int $maxTokens): array
+    private function planSemantic(SystemContext $systemContext, string $markdown, int $maxTokens): array
     {
         $units = $this->chunker->sentenceUnits($markdown);
         if ($units === []) {
             return [];
         }
 
-        $embeddingModel = $workspace->knowledgeEmbeddingModel;
+        $embeddingModel = $systemContext->knowledgeEmbeddingModel;
         if ($embeddingModel === null || $embeddingModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_embedding_model'));
         }

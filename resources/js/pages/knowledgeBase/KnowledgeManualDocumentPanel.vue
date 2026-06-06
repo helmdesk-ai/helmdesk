@@ -19,10 +19,9 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { ListKnowledgeDocumentItemData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 type Mode = 'create' | 'edit';
@@ -41,7 +40,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const form = useForm<{
   title: string;
@@ -107,7 +105,6 @@ async function loadContentForEdit(
   try {
     const url =
       KnowledgeBase.Document.StreamKnowledgeDocumentPreviewFileAction.url({
-        slug: currentWorkspace.value.slug,
         knowledgeBase: props.knowledgeBaseId,
         document: target.id,
       });
@@ -166,7 +163,6 @@ function submit(): void {
       }))
       .post(
         KnowledgeBase.Document.CreateManualKnowledgeDocumentAction.url({
-          slug: currentWorkspace.value.slug,
           knowledgeBase: props.knowledgeBaseId,
         }),
         {
@@ -191,7 +187,6 @@ function submit(): void {
     }))
     .put(
       KnowledgeBase.Document.UpdateManualKnowledgeDocumentAction.url({
-        slug: currentWorkspace.value.slug,
         knowledgeBase: props.knowledgeBaseId,
         document: target.id,
       }),

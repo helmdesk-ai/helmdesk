@@ -4,7 +4,7 @@ namespace App\Actions\KnowledgeBase\Qa;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeQaEntryPipelineAction;
 use App\Data\KnowledgeBase\FormMoveKnowledgeDocumentData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaEntry;
@@ -46,13 +46,11 @@ class MoveKnowledgeQaEntryAction
     /**
      * 处理问答移动分组请求。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $entry): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $entry): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $entryModel = KnowledgeQaEntry::query()

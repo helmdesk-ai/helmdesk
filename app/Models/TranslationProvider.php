@@ -7,14 +7,12 @@ use Database\Factories\TranslationProviderFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $slug
  * @property string $name
  * @property TranslationProviderType $protocol
@@ -25,8 +23,6 @@ use Illuminate\Support\Carbon;
  * @property bool $is_builtin
  * @property int $sort_order
  * @property mixed $use_factory
- * @property int|null $workspaces_count
- * @property-read Workspace $workspace
  *
  * @method static \Database\Factories\TranslationProviderFactory<self> factory($count = null, $state = [])
  */
@@ -59,14 +55,6 @@ class TranslationProvider extends Model
             'options' => 'array',
             'is_builtin' => 'boolean',
         ];
-    }
-
-    /**
-     * 关联翻译供应商所属工作区，用于权限校验和按租户隔离查询。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

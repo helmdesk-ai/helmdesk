@@ -5,12 +5,11 @@ namespace App\Actions\Channel\Telegram;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Telegram\ChannelTelegramSettingsData;
 use App\Data\Channel\Telegram\FormCreateTelegramChannelData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Exceptions\TelegramApiException;
 use App\Models\Channel;
-use App\Models\Workspace;
 use App\Services\Telegram\TelegramBotApi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,10 +39,9 @@ class CreateTelegramChannelAction
      * 流程严格「先校验后落库」：getMe 失败即拒绝（Token 非法），不写入任何数据；
      * webhook 注册失败则回滚已创建的渠道，避免留下半配置状态。
      */
-    public function handle(Workspace $workspace, FormCreateTelegramChannelData $data): Channel
+    public function handle(FormCreateTelegramChannelData $data): Channel
     {
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $workspace,
             $data->receptionPlanId(),
             requireUsable: true,
         );
@@ -51,7 +49,6 @@ class CreateTelegramChannelAction
         $botInfo = $this->fetchBotInfo($data->bot_token);
 
         $channel = Channel::query()->create([
-            'workspace_id' => $workspace->id,
             'type' => ChannelType::Telegram,
             'name' => $data->name,
             'description' => filled($data->description) ? $data->description : null,
@@ -100,13 +97,11 @@ class CreateTelegramChannelAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsCreate);
 
-        $channel = $this->handle($workspace, FormCreateTelegramChannelData::from($request));
+        $channel = $this->handle(FormCreateTelegramChannelData::from($request));
 
-        return redirect()->route('workspace.manage.channels.telegram.show', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.channels.telegram.show', [
             'channel' => $channel->id,
         ]);
     }

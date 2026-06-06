@@ -35,7 +35,6 @@ class UpdateGeneralSettingAction
                 'logo_id' => $data->logo_id,
                 'copyright' => $data->copyright,
                 'icp_record' => $data->icp_record,
-                'allow_registration' => $data->allow_registration,
             ])
             ->save();
     }

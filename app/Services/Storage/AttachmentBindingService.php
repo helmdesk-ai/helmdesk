@@ -32,7 +32,6 @@ class AttachmentBindingService
         Model $attachable,
         ?string $attachmentId,
         ?string $currentAttachmentId,
-        ?string $workspaceId,
         array $allowedPurposes,
         string $messageKey,
     ): void {
@@ -48,7 +47,6 @@ class AttachmentBindingService
             $this->attachUploadedAttachments->assertCanAttach(
                 attachable: $attachable,
                 attachmentId: $attachmentId,
-                workspaceId: $workspaceId,
                 allowedPurposes: $allowedPurposes,
             );
         } catch (ValidationException) {
@@ -57,16 +55,16 @@ class AttachmentBindingService
     }
 
     /**
-     * 按字段值同步附件绑定，并在替换时删除旧附件。
+     * 按字段值同步附件绑定，并在替换时删除原附件。
      */
-    public function syncAttachment(Model $attachable, string $column, ?string $originalId, ?string $workspaceId): void
+    public function syncAttachment(Model $attachable, string $column, ?string $originalId): void
     {
         $attachmentId = $this->filledString($attachable->getAttribute($column));
 
         if ($originalId !== null && $originalId !== $attachmentId) {
-            $oldAttachment = Attachment::query()->find($originalId);
-            if ($oldAttachment instanceof Attachment) {
-                $this->deleteAttachment->handle($oldAttachment);
+            $previousAttachment = Attachment::query()->find($originalId);
+            if ($previousAttachment instanceof Attachment) {
+                $this->deleteAttachment->handle($previousAttachment);
             }
         }
 
@@ -79,7 +77,7 @@ class AttachmentBindingService
             return;
         }
 
-        $this->attachUploadedAttachments->handle($attachable, (string) $attachment->id, $workspaceId);
+        $this->attachUploadedAttachments->handle($attachable, (string) $attachment->id);
     }
 
     /**

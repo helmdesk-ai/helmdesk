@@ -15,9 +15,9 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 /*
  * Live 中文召回基准测试：FTS / Vector / Hybrid / Hybrid+Rerank 四条流水线在
@@ -43,10 +43,9 @@ beforeEach(function (): void {
         }
     }
 
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'kb-bench-openrouter-'.Str::lower((string) Str::ulid()),
         'name' => 'Knowledge Recall OpenRouter',
@@ -84,7 +83,7 @@ beforeEach(function (): void {
         'sort_order' => 0,
     ]);
 
-    $this->workspace->update([
+    $this->systemContext->update([
         'knowledge_embedding_model_id' => $this->embeddingModel->id,
         'knowledge_rerank_model_id' => null,
         'knowledge_vector_index_enabled' => false,
@@ -95,7 +94,6 @@ beforeEach(function (): void {
     ]);
 
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => (string) $this->workspace->id,
         'name' => '中文召回 Live 评测',
         'description' => 'tests/Fixtures/Knowledge/zh_recall_corpus.json',
     ]);
@@ -118,10 +116,10 @@ beforeEach(function (): void {
 });
 
 test('Live 中文召回基准对比 FTS / Hybrid / Hybrid+Rerank 三条流水线', function (): void {
-    // 先把所有文档都打上真实向量；后续四条流水线共享同一份索引，只通过工作区开关切换走法。
+    // 先把所有文档都打上真实向量；后续四条流水线共享同一份索引，只通过系统开关切换走法。
     $vectorReady = true;
     $vectorError = null;
-    $this->workspace->update(['knowledge_vector_index_enabled' => true]);
+    $this->systemContext->update(['knowledge_vector_index_enabled' => true]);
     foreach (KnowledgeDocument::query()->where('knowledge_base_id', $this->kb->id)->get() as $document) {
         try {
             app(IndexKnowledgeDocumentVectorAction::class)->handle($document);
@@ -140,19 +138,19 @@ test('Live 中文召回基准对比 FTS / Hybrid / Hybrid+Rerank 三条流水线
     /** @var SearchKnowledgeBaseAction $action */
     $action = app(SearchKnowledgeBaseAction::class);
 
-    // 三条流水线，依次只切换 workspace 配置；底层索引数据复用，不重复 embedding。
+    // 三条流水线，依次只切换 systemContext 配置；底层索引数据复用，不重复 embedding。
     // 注意：SearchKnowledgeBaseAction.semantic 永远会跑 FullTextRetriever，
     // 所以"Hybrid"实际等于"FTS + Vector"；纯 Vector 流水线无法在不改 Action 的前提下复刻。
     $pipelines = [
-        'FTS only' => fn () => $this->workspace->update([
+        'FTS only' => fn () => $this->systemContext->update([
             'knowledge_vector_index_enabled' => false,
             'knowledge_rerank_model_id' => null,
         ]),
-        'Hybrid (FTS+Vector)' => fn () => $this->workspace->update([
+        'Hybrid (FTS+Vector)' => fn () => $this->systemContext->update([
             'knowledge_vector_index_enabled' => true,
             'knowledge_rerank_model_id' => null,
         ]),
-        'Hybrid + Rerank' => fn () => $this->workspace->update([
+        'Hybrid + Rerank' => fn () => $this->systemContext->update([
             'knowledge_vector_index_enabled' => true,
             'knowledge_rerank_model_id' => $this->rerankModel->id,
         ]),
@@ -161,11 +159,11 @@ test('Live 中文召回基准对比 FTS / Hybrid / Hybrid+Rerank 三条流水线
     $report = [];
     foreach ($pipelines as $label => $configure) {
         $configure();
-        $this->workspace->refresh();
+        $this->systemContext->refresh();
 
         [$metrics, $latencyMs, $rerankApplied, $embeddingErrors] = collectMetricsForCurrentConfig(
             $action,
-            $this->workspace,
+            $this->systemContext,
             (string) $this->kb->id,
             $this->corpus['queries'],
             $this->corpusDocumentIdByExternalId,
@@ -257,7 +255,7 @@ test('Live 中文召回基准对比 FTS / Hybrid / Hybrid+Rerank 三条流水线
 });
 
 /**
- * 在当前 workspace 配置下跑一遍 SearchKnowledgeBaseAction 并采集指标。
+ * 在当前 systemContext 配置下跑一遍 SearchKnowledgeBaseAction 并采集指标。
  *
  * @param  list<array{id: string, text: string, positive_doc_ids: list<string>}>  $queries
  * @param  array<string, string>  $corpusDocumentIdByExternalId
@@ -265,7 +263,7 @@ test('Live 中文召回基准对比 FTS / Hybrid / Hybrid+Rerank 三条流水线
  */
 function collectMetricsForCurrentConfig(
     SearchKnowledgeBaseAction $action,
-    $workspace,
+    $systemContext,
     string $knowledgeBaseId,
     array $queries,
     array $corpusDocumentIdByExternalId,
@@ -283,7 +281,7 @@ function collectMetricsForCurrentConfig(
 
     foreach ($queries as $query) {
         $start = microtime(true);
-        $result = $action->handle($workspace, FormKnowledgeSearchData::from([
+        $result = $action->handle($systemContext, FormKnowledgeSearchData::from([
             'mode' => KnowledgeSearchMode::Semantic->value,
             'knowledge_base_ids' => [$knowledgeBaseId],
             'query' => [$query['text']],

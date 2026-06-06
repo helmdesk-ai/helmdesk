@@ -16,7 +16,6 @@ use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Enums\Reception\ReceptionRoutingMode;
 use App\Enums\UserOnlineStatus;
-use App\Enums\WorkspaceRole;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Channel;
@@ -27,8 +26,8 @@ use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -73,10 +72,9 @@ test('LoadReceptionRuntimeBridgeAction 在 AI 接待时返回 system prompt 与�
 });
 
 test('LoadReceptionRuntimeBridgeAction 返回任务智能体配置的模型', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'provider-'.Str::lower(Str::random(6)),
         'name' => 'Test Provider',
@@ -114,7 +112,7 @@ test('LoadReceptionRuntimeBridgeAction 返回任务智能体配置的模型', fu
         'sort_order' => 2,
     ]);
 
-    $plan = ReceptionPlan::factory()->for($workspace)->create();
+    $plan = ReceptionPlan::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
@@ -152,13 +150,8 @@ test('LoadReceptionRuntimeBridgeAction 返回任务智能体配置的模型', fu
         ]);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
-    ]);
-    $workspace->users()->attach(User::factory()->create()->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'online_status' => UserOnlineStatus::Online->value,
     ]);
 
     $started = app(StartOrResumeReceptionSessionBridgeAction::class)->handle(
@@ -244,13 +237,12 @@ test('重点客户人工在线时优先进入人工待接队列', function () {
         'important_contact_human_first_when_online_enabled' => true,
     ]);
     $token = Str::lower(Str::random(32));
-    $contact = Contact::factory()->for($channel->workspace)->create([
+    $contact = Contact::factory()->create([
         'is_important' => true,
         'important_at' => now(),
         'important_source' => 'manual',
     ]);
     ContactIdentity::factory()->session($token)->create([
-        'workspace_id' => $channel->workspace_id,
         'contact_id' => $contact->id,
     ]);
 
@@ -363,7 +355,7 @@ test('RequestHandoffBridgeAction 在人工可用时把会话翻成 TeammatePendi
 
 test('RequestHandoffBridgeAction 在无人在线时拒绝转人工并保持 AI 接待', function () {
     $channel = makeNativeRuntimeChannel();
-    $channel->workspace->users()->detach();
+    User::query()->update(['online_status' => UserOnlineStatus::Offline->value]);
     $started = app(StartOrResumeReceptionSessionBridgeAction::class)->handle(
         $channel->code,
         null,
@@ -569,7 +561,6 @@ test('LoadConversationHistoryBridgeAction 按 seq_no 升序返回 visitor、ai �
     app(AppendVisitorMessageAction::class)->handle($channel->code, $started->session_token, '查订单 12345');
 
     $recalled = ConversationMessage::query()->create([
-        'workspace_id' => $channel->workspace_id,
         'conversation_id' => $conversationId,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -579,7 +570,6 @@ test('LoadConversationHistoryBridgeAction 按 seq_no 升序返回 visitor、ai �
     expect($recalled->fresh()->recalled_at)->not->toBeNull();
 
     ConversationMessage::query()->create([
-        'workspace_id' => $channel->workspace_id,
         'conversation_id' => $conversationId,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Image,
@@ -587,7 +577,6 @@ test('LoadConversationHistoryBridgeAction 按 seq_no 升序返回 visitor、ai �
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $channel->workspace_id,
         'conversation_id' => $conversationId,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -657,10 +646,9 @@ test('LogReceptionEventBridgeAction 拒绝未知 type', function () {
 });
 
 test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不可用兜底文案', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'provider-'.Str::lower(Str::random(6)),
         'name' => 'Test Provider',
@@ -689,7 +677,7 @@ test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不�
         'sort_order' => 1,
     ]);
 
-    $plan = ReceptionPlan::factory()->for($workspace)->create();
+    $plan = ReceptionPlan::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
@@ -730,13 +718,8 @@ test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不�
         ]);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
-    ]);
-    $workspace->users()->attach(User::factory()->create()->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'online_status' => UserOnlineStatus::Online->value,
     ]);
 
     $started = app(StartOrResumeReceptionSessionBridgeAction::class)->handle(
@@ -756,10 +739,9 @@ test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不�
 });
 
 test('LoadReceptionRuntimeBridgeAction 过滤已停用的备用模型', function () {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'provider-'.Str::lower(Str::random(6)),
         'name' => 'Test Provider',
@@ -788,7 +770,7 @@ test('LoadReceptionRuntimeBridgeAction 过滤已停用的备用模型', function
         'sort_order' => 1,
     ]);
 
-    $plan = ReceptionPlan::factory()->for($workspace)->create();
+    $plan = ReceptionPlan::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
@@ -823,13 +805,8 @@ test('LoadReceptionRuntimeBridgeAction 过滤已停用的备用模型', function
         ]);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
-    ]);
-    $workspace->users()->attach(User::factory()->create()->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'online_status' => UserOnlineStatus::Online->value,
     ]);
 
     $started = app(StartOrResumeReceptionSessionBridgeAction::class)->handle(
@@ -907,10 +884,13 @@ test('HandleAiUnavailableBridgeAction 在非 AI 接待状态时返回 handled=fa
  */
 function makeNativeRuntimeChannel(array $strategyOverrides = []): Channel
 {
-    $workspace = Workspace::factory()->create();
+    $systemContext = SystemContext::factory()->create();
+    User::factory()->create([
+        'is_super_admin' => true,
+        'online_status' => UserOnlineStatus::Online->value,
+    ]);
 
     $provider = AiProvider::query()->create([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'reception-provider-'.Str::lower(Str::random(6)),
         'name' => 'Reception Provider',
@@ -930,7 +910,7 @@ function makeNativeRuntimeChannel(array $strategyOverrides = []): Channel
         'sort_order' => 0,
     ]);
 
-    $plan = ReceptionPlan::factory()->for($workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
@@ -953,14 +933,8 @@ function makeNativeRuntimeChannel(array $strategyOverrides = []): Channel
         ]);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
-    ]);
-
-    $workspace->users()->attach(User::factory()->create()->id, [
-        'role' => WorkspaceRole::Operator->value,
-        'online_status' => UserOnlineStatus::Online->value,
     ]);
 
     return $channel;

@@ -23,9 +23,6 @@ class KnowledgeQaEntryFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => fn (array $attributes) => KnowledgeBase::query()
-                ->whereKey($attributes['knowledge_base_id'])
-                ->value('workspace_id'),
             'knowledge_base_id' => KnowledgeBase::factory()->state([
                 'category' => KnowledgeBaseCategory::Qa->value,
             ]),

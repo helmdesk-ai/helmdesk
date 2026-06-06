@@ -2,7 +2,7 @@
 
 namespace App\Services\KnowledgeBase\Search;
 
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use Illuminate\Support\Facades\Log;
@@ -11,11 +11,11 @@ use Throwable;
 /**
  * 重排序器。
  *
- * 工作区配置了 rerank 模型时，调 GoKnowledgeBridge::rerank 拿到分数，写回
+ * 系统配置了 rerank 模型时，调 GoKnowledgeBridge::rerank 拿到分数，写回
  * hit.metadata['rerank_score'] 并按分数降序排列，返回 applied=true 的结果。
  *
  * 以下场景退回为按 fused 顺序的截断 (applied=false)，errorCode 给出稳定标识：
- *  - 工作区未配置 rerank 模型 → model_missing
+ *  - 系统未配置 rerank 模型 → model_missing
  *  - Go 桥 / 远端任何调用失败 → remote_unavailable（详细异常进服务端日志）
  *  - 远端返回 results 为空 / 无可用 index → empty_response
  *
@@ -33,7 +33,7 @@ class KnowledgeReranker
      *
      * @param  list<KnowledgeSearchHit>  $hits
      */
-    public function rerank(Workspace $workspace, string $query, array $hits, int $topK): KnowledgeRerankResult
+    public function rerank(SystemContext $systemContext, string $query, array $hits, int $topK): KnowledgeRerankResult
     {
         if ($hits === [] || trim($query) === '' || $topK <= 0) {
             return new KnowledgeRerankResult(
@@ -42,8 +42,8 @@ class KnowledgeReranker
             );
         }
 
-        $workspace->loadMissing('knowledgeRerankModel.provider');
-        $model = $workspace->knowledgeRerankModel;
+        $systemContext->loadMissing('knowledgeRerankModel.provider');
+        $model = $systemContext->knowledgeRerankModel;
         if ($model === null || $model->provider === null) {
             return new KnowledgeRerankResult(
                 hits: array_slice($hits, 0, $topK),
@@ -59,7 +59,6 @@ class KnowledgeReranker
             $response = $this->bridge->rerank($model->provider, $model, $credentials, $query, $documents, $topK);
         } catch (Throwable $exception) {
             Log::info('Knowledge rerank unavailable, falling back to fused ordering.', [
-                'workspace_id' => $workspace->id,
                 'message' => $exception->getMessage(),
             ]);
 

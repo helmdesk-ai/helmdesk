@@ -4,7 +4,7 @@ namespace App\Actions\KnowledgeBase\Qa;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeQaEntryPipelineAction;
 use App\Data\KnowledgeBase\FormCreateKnowledgeQaEntryData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeQaEntry;
 use App\Services\KnowledgeBase\KnowledgeQaEntryWriter;
@@ -60,13 +60,11 @@ class UpdateKnowledgeQaEntryAction
     /**
      * 接收编辑问答提交并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $entry): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $entry): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $entryModel = KnowledgeQaEntry::query()
@@ -76,8 +74,7 @@ class UpdateKnowledgeQaEntryAction
 
         $this->handle($entryModel, FormCreateKnowledgeQaEntryData::from($request));
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             'kb' => $kb->id,
             'group' => (string) $entryModel->group_id,
         ]);

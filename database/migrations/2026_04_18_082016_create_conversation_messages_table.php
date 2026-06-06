@@ -12,7 +12,6 @@ return new class extends Migration
         Schema::create('conversation_messages', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id');
             $table->ulid('conversation_id');
             $table->ulid('sender_user_id')->nullable();
             $table->string('sender_name')->default('');
@@ -31,8 +30,6 @@ return new class extends Migration
             $table->timestamp('recalled_at')->nullable();
 
             $table->index(['conversation_id', 'created_at', 'id'], 'conversation_messages_timeline_idx');
-            $table->index(['workspace_id', 'created_at'], 'conversation_messages_workspace_idx');
-            $table->index(['conversation_id', 'workspace_id']);
             $table->unique(['conversation_id', 'seq_no'], 'conversation_messages_seq_unique');
             $table->index('quoted_message_id', 'conversation_messages_quoted_idx');
         });

@@ -2,56 +2,78 @@
 
 namespace App\Actions\Teammate;
 
+use App\Actions\Attachment\AttachUploadedAttachmentsAction;
 use App\Data\Teammate\FormCreateTeammateData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\AttachmentPurpose;
 use App\Enums\UserOnlineStatus;
+use App\Enums\UserPermission;
+use App\Models\Attachment;
 use App\Models\User;
-use App\Models\Workspace;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 在工作区内新增客服成员。
+ * 创建可登录后台的客服账号。
  */
 class CreateTeammateAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, FormCreateTeammateData $data): User
+    /**
+     * 新建客服账号、保存权限并绑定头像。
+     */
+    public function handle(User $actor, FormCreateTeammateData $data): User
     {
-        $user = User::query()
-            ->where('is_super_admin', false)
-            ->findOrFail($data->user_id);
+        Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersCreate);
 
-        if (filled($workspace->owner_id) && (string) $workspace->owner_id === (string) $user->id) {
-            throw ValidationException::withMessages([
-                'user_id' => __('workspace.cannot_select_owner'),
+        return DB::transaction(function () use ($data): User {
+            $user = User::query()->create([
+                'name' => $data->name,
+                'email' => $data->email,
+                'password' => $data->password,
+                'avatar' => null,
+                'nickname' => filled($data->nickname) ? $data->nickname : null,
+                'permissions' => $data->permissions,
+                'online_status' => UserOnlineStatus::Online,
+                'last_active_at' => null,
+                'is_super_admin' => false,
             ]);
-        }
 
-        if ($workspace->users()->whereKey($user->id)->exists()) {
-            throw ValidationException::withMessages([
-                'user_id' => __('workspace.user_already_in_workspace'),
-            ]);
-        }
+            $user->forceFill(['email_verified_at' => now()])->save();
+            $this->bindUploadedAvatar($user, $data->avatar_id);
 
-        $workspace->users()->attach($user->id, [
-            'role' => $data->role,
-            'nickname' => filled($data->nickname) ? $data->nickname : null,
-            'online_status' => UserOnlineStatus::Online,
-        ]);
-
-        return $user;
+            return $user;
+        });
     }
 
-    public function asController(Request $request)
+    /**
+     * 接收客服创建表单并返回客服列表。
+     */
+    public function asController(Request $request): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $currentWorkspace = $ctx->workspace();
-        $data = FormCreateTeammateData::from($request);
-        $this->handle($currentWorkspace, $data);
+        $actor = $request->user();
 
-        return redirect()->route('workspace.manage.teammates.index', ['slug' => $ctx->workspaceSlug()]);
+        $this->handle($actor, FormCreateTeammateData::from($request));
+
+        return redirect()->route('admin.manage.teammates.index');
+    }
+
+    /**
+     * 将上传头像绑定到新客服账号。
+     */
+    private function bindUploadedAvatar(User $user, ?string $attachmentId): void
+    {
+        if (! filled($attachmentId)) {
+            return;
+        }
+
+        $attachment = AttachUploadedAttachmentsAction::run($user, $attachmentId, null, null, null, [AttachmentPurpose::Avatar]);
+
+        if ($attachment instanceof Attachment) {
+            $user->update(['avatar' => $attachment->full_url]);
+        }
     }
 }

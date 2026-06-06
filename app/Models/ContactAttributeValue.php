@@ -11,30 +11,28 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property string $workspace_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property string $contact_id
  * @property string $definition_id
  * @property array $value_json
- * @property \App\Enums\AttributeValueSource $source
+ * @property AttributeValueSource $source
  * @property float|null $confidence
  * @property string|null $updated_by_user_id
  * @property mixed $use_factory
  * @property int|null $contacts_count
  * @property int|null $definitions_count
  * @property int|null $updated_by_users_count
- *
- * @property-read \App\Models\Contact $contact
- * @property-read \App\Models\AttributeDefinition $definition
- * @property-read \App\Models\User|null $updatedByUser
+ * @property-read Contact $contact
+ * @property-read AttributeDefinition $definition
+ * @property-read User|null $updatedByUser
  *
  * @method static \Database\Factories\ContactAttributeValueFactory<self> factory($count = null, $state = [])
  */
 class ContactAttributeValue extends Model
 {
     /**
-     * 联系人自定义属性值模型，保存联系人数据字段在当前工作区内的取值。
+     * 联系人自定义属性值模型，保存联系人数据字段的取值。
      */
     use HasFactory, HasUlids;
 

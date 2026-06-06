@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   TelegramChannelData,
   TelegramChannelFormOptionsData,
@@ -31,7 +30,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const receptionPlanId = ref(props.channel.reception_plan_id ?? '');
 const defaultVisitorLocale = ref<string>(props.channel.default_visitor_locale);
@@ -49,7 +47,6 @@ watch(
   <Form
     :action="
       Telegram.UpdateTelegramChannelBasicAction.url({
-        slug: currentWorkspace.slug,
         channel: props.channel.id,
       })
     "

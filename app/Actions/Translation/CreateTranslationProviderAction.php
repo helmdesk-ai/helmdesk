@@ -3,9 +3,8 @@
 namespace App\Actions\Translation;
 
 use App\Data\Translation\FormCreateTranslationProviderData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use App\Services\Translation\TranslationProviderCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +13,7 @@ use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 在当前工作区下创建一条翻译供应商记录。
+ * 在当前系统下创建一条翻译供应商记录。
  */
 class CreateTranslationProviderAction
 {
@@ -30,9 +29,9 @@ class CreateTranslationProviderAction
     /**
      * 落库一条新的翻译供应商记录。
      */
-    public function handle(Workspace $workspace, FormCreateTranslationProviderData $data): TranslationProvider
+    public function handle(FormCreateTranslationProviderData $data): TranslationProvider
     {
-        $maxSort = $workspace->translationProviders()->max('sort_order') ?? 0;
+        $maxSort = TranslationProvider::query()->max('sort_order') ?? 0;
         $defaultConfiguration = $this->catalog->defaultConfigurationForProtocol($data->protocol);
         $credentialFields = $this->catalog->credentialFieldsForProtocol($data->protocol);
         $credentials = $this->buildCredentials($credentialFields, [
@@ -40,7 +39,7 @@ class CreateTranslationProviderAction
             ...$data->configuration,
         ]);
 
-        return $workspace->translationProviders()->create([
+        return TranslationProvider::query()->create([
             'slug' => Str::slug($data->name).'-'.Str::random(6),
             'name' => $data->name,
             'protocol' => $data->protocol,
@@ -53,17 +52,16 @@ class CreateTranslationProviderAction
     }
 
     /**
-     * 校验表单并落库后回到上一页（设置页）。
+     * 校验表单并落库后回到列表页。
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormCreateTranslationProviderData::from($request);
-        $this->handle($workspace, $data);
+        $this->handle($data);
 
-        return back();
+        return redirect()->route('admin.manage.translation.providers.index');
     }
 
     /**

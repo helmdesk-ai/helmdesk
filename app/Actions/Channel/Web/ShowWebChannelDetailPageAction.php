@@ -9,7 +9,6 @@ use App\Data\Channel\Web\WebChannelData;
 use App\Data\Channel\Web\WebChannelFormOptionsData;
 use App\Data\Channel\Web\WritableAttributeDefinitionOptionData;
 use App\Data\EnumOptionData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttributeType;
 use App\Enums\Channel\Web\WebChannelParamTarget;
 use App\Enums\Channel\Web\WebChannelParamTrust;
@@ -21,11 +20,11 @@ use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
 use App\Enums\Channel\Web\WebChannelWidgetIconSize;
 use App\Enums\ChannelType;
 use App\Enums\ReceptionLanguage;
+use App\Enums\UserPermission;
 use App\Models\AttributeDefinition;
 use App\Models\Channel;
-use App\Models\Workspace;
+use App\Services\Channel\WebChannelThemePalette;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
-use App\Support\Channel\WebChannelThemePalette;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -50,10 +49,9 @@ class ShowWebChannelDetailPageAction
     /**
      * 组装网站渠道详情页和配置表单选项。
      */
-    public function handle(Workspace $workspace, string $channelId): ShowWebChannelDetailPagePropsData
+    public function handle(string $channelId): ShowWebChannelDetailPagePropsData
     {
         $channel = Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->with(['receptionPlan'])
             ->findOrFail($channelId);
@@ -61,10 +59,10 @@ class ShowWebChannelDetailPageAction
         return new ShowWebChannelDetailPagePropsData(
             web_channel: WebChannelData::fromModel(
                 $channel,
-                $this->planVersionResolver->resolveChannelStatus($workspace, $channel),
+                $this->planVersionResolver->resolveChannelStatus($channel),
             ),
             form_options: new WebChannelFormOptionsData(
-                reception_plan_options: $this->listReceptionPlans->handle($workspace),
+                reception_plan_options: $this->listReceptionPlans->handle(),
                 visitor_identity_mode_options: EnumOptionData::fromCases(WebChannelVisitorIdentityMode::cases()),
                 query_param_options: QueryParamOptionData::options(),
                 theme_color_options: WebChannelThemePalette::presets(),
@@ -76,7 +74,6 @@ class ShowWebChannelDetailPageAction
                 query_param_trust_options: EnumOptionData::fromCases(WebChannelParamTrust::cases()),
                 query_param_write_mode_options: EnumOptionData::fromCases(WebChannelParamWriteMode::cases()),
                 writable_attribute_definition_options: AttributeDefinition::query()
-                    ->where('workspace_id', $workspace->id)
                     ->whereNull('deleted_at')
                     ->where('is_api_writable', true)
                     ->whereIn('type', [
@@ -99,11 +96,10 @@ class ShowWebChannelDetailPageAction
     /**
      * 返回网站渠道详情页面。
      */
-    public function asController(Request $request, string $slug, string $channel): Response
+    public function asController(Request $request, string $channel): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsView);
 
-        return Inertia::render('channel/web/Show', $this->handle($workspace, $channel)->toArray());
+        return Inertia::render('channel/web/Show', $this->handle($channel)->toArray());
     }
 }

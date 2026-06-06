@@ -2,10 +2,8 @@
 
 namespace App\Actions\Conversation;
 
-use App\Data\WorkspaceUserContextData;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +20,9 @@ class DetachConversationTagAction
     /**
      * 给会话上的有效标签写入 removed_at 抑制墓碑，等价于人工移除。
      */
-    public function handle(Workspace $workspace, string $conversationId, string $tagId, ?User $actor = null): void
+    public function handle(string $conversationId, string $tagId, ?User $actor = null): void
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($conversationId);
 
         DB::table('conversation_tag_assignments')
@@ -42,10 +39,9 @@ class DetachConversationTagAction
     /**
      * 接收会话标签移除的 XHR 请求并返回 JSON。
      */
-    public function asController(Request $request, string $slug, string $conversation, string $tagId): JsonResponse
+    public function asController(Request $request, string $conversation, string $tagId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $this->handle($ctx->workspace(), $conversation, $tagId, $request->user());
+        $this->handle($conversation, $tagId, $request->user());
 
         return response()->json(['success' => true]);
     }

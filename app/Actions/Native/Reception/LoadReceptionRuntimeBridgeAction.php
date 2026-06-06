@@ -3,16 +3,15 @@
 namespace App\Actions\Native\Reception;
 
 use App\Actions\Reception\Plan\CollectPlanMcpServersAction;
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Enums\AiProviderProtocol;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\ReceptionLanguage;
 use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\ReceptionPlanVersion;
-use App\Models\Workspace;
+use App\Services\Localization\LocalePreference;
 use App\Services\Reception\ChannelTeammateAvailability;
-use App\Support\LocalePreference;
 use LogicException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -21,7 +20,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Native bridge 入口：为 Go 端接待 actor 加载当前会话的运行时配置。
  *
  * 返回结构按 `available` 字段分两种形态：
- * - available=true：附带 conversation_id / workspace_id / system_prompt / primary_model /
+ * - available=true：附带 conversation_id / system_prompt / primary_model /
  *   model_candidates / primary_task_model / task_model_candidates / ai_unavailable_notice / quote_visitor_message_enabled；
  *   actor 用 model_candidates 按优先级构造 ChatModel，全部失败时发送 ai_unavailable_notice。
  * - available=false：附带 reason 让 actor 决定退出循环（taken_over / no_plan / no_model）。
@@ -51,7 +50,6 @@ class LoadReceptionRuntimeBridgeAction
 
         $base = [
             'conversation_id' => (string) $conversation->id,
-            'workspace_id' => (string) $conversation->workspace_id,
             'inbox_status' => $conversation->inbox_status->value,
         ];
 
@@ -80,7 +78,7 @@ class LoadReceptionRuntimeBridgeAction
 
         $compiled = $version->compiled_config;
 
-        $modelCandidates = $this->resolveModelCandidates($compiled, $conversation->workspace_id, 'reception_config');
+        $modelCandidates = $this->resolveModelCandidates($compiled, 'reception_config');
         if ($modelCandidates === []) {
             return $base + [
                 'available' => false,
@@ -88,7 +86,7 @@ class LoadReceptionRuntimeBridgeAction
             ];
         }
 
-        $taskModelCandidates = $this->resolveModelCandidates($compiled, $conversation->workspace_id, 'task_config');
+        $taskModelCandidates = $this->resolveModelCandidates($compiled, 'task_config');
         if ($taskModelCandidates === []) {
             return $base + [
                 'available' => false,
@@ -102,7 +100,7 @@ class LoadReceptionRuntimeBridgeAction
 
         $strategyConfig = $this->resolveStrategyConfig($version);
 
-        $conversation->loadMissing('channel.workspace', 'contact');
+        $conversation->loadMissing('channel', 'contact');
         if ($conversation->channel !== null) {
             $language = $this->conversationLanguage($conversation);
             $locale = LocalePreference::normalizeLaravel($language->value);
@@ -121,7 +119,7 @@ class LoadReceptionRuntimeBridgeAction
 
         $serviceScenarios = $compiled['service_scenarios'];
         $knowledgeBases = $compiled['knowledge_bases'];
-        $mcpServers = $this->collectMcpServers($conversation->workspace_id, $compiled['mcp_tools']);
+        $mcpServers = $this->collectMcpServers($compiled['mcp_tools']);
 
         return $base + [
             'available' => true,
@@ -177,7 +175,7 @@ class LoadReceptionRuntimeBridgeAction
      * @param  list<array<string, mixed>>  $mcpToolSnapshots
      * @return list<array<string, mixed>>
      */
-    private function collectMcpServers(string $workspaceId, array $mcpToolSnapshots): array
+    private function collectMcpServers(array $mcpToolSnapshots): array
     {
         $toolIds = [];
         foreach ($mcpToolSnapshots as $snapshot) {
@@ -191,12 +189,7 @@ class LoadReceptionRuntimeBridgeAction
             return [];
         }
 
-        $workspace = Workspace::query()->find($workspaceId);
-        if ($workspace === null) {
-            return [];
-        }
-
-        return $this->collectPlanMcpServers->handle($workspace, array_values(array_unique($toolIds)));
+        return $this->collectPlanMcpServers->handle(array_values(array_unique($toolIds)));
     }
 
     /**
@@ -219,7 +212,7 @@ class LoadReceptionRuntimeBridgeAction
      * @param  array<string, mixed>  $compiled
      * @return list<array<string, mixed>>
      */
-    private function resolveModelCandidates(array $compiled, string $workspaceId, string $configKey): array
+    private function resolveModelCandidates(array $compiled, string $configKey): array
     {
         $config = isset($compiled[$configKey]) && is_array($compiled[$configKey])
             ? $compiled[$configKey]
@@ -247,7 +240,6 @@ class LoadReceptionRuntimeBridgeAction
 
         $models = AiModel::query()
             ->with('provider')
-            ->whereHas('provider', fn ($q) => $q->where('workspace_id', $workspaceId)->where('is_active', true))
             ->where('is_active', true)
             ->whereIn('id', $modelIds)
             ->get()

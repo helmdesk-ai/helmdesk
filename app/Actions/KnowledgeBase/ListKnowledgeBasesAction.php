@@ -8,9 +8,8 @@ use App\Data\KnowledgeBase\KnowledgeIndexingStrategyOptionData;
 use App\Data\KnowledgeBase\ListKnowledgeDocumentItemData;
 use App\Data\KnowledgeBase\ListKnowledgeQaEntryItemData;
 use App\Data\KnowledgeBase\ShowKnowledgeBaseListPagePropsData;
-use App\Data\KnowledgeBase\WorkspaceKnowledgeSettingsData;
+use App\Data\KnowledgeBase\SystemKnowledgeSettingsData;
 use App\Data\SimplePaginationData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AiModelType;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeChunkingStrategy;
@@ -18,12 +17,14 @@ use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\KnowledgeDocumentStatus;
 use App\Enums\KnowledgeQaEntryStatus;
 use App\Enums\KnowledgeSearchMode;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
+use App\Settings\KnowledgeSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -31,7 +32,7 @@ use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 返回知识库列表页面，包含知识库列表、工作区检索配置、分组树及当前选中状态。
+ * 返回知识库列表页面，包含知识库列表、检索配置、分组树及当前选中状态。
  * 对应 resources/js/pages/knowledgeBase/List.vue。
  */
 class ListKnowledgeBasesAction
@@ -39,10 +40,11 @@ class ListKnowledgeBasesAction
     use AsAction;
 
     /**
-     * 注入用于解析工作区可用知识库模型选项的服务。
+     * 注入用于解析可用知识库模型选项的服务。
      */
     public function __construct(
         private readonly AiModelResolver $resolver,
+        private readonly KnowledgeSettings $settings,
     ) {}
 
     /**
@@ -51,13 +53,13 @@ class ListKnowledgeBasesAction
     private const DOCUMENT_LIST_PER_PAGE = 10;
 
     /**
-     * 查询工作区下所有知识库及其分组树，组装页面 props。
+     * 查询所有知识库及其分组树，组装页面 props。
      *
      * $status 参数同时承载 KnowledgeDocumentStatus 与 KnowledgeQaEntryStatus 两种枚举的筛选值；
      * 枚举解析根据当前选中知识库的类别在 loadDocumentList / loadQaEntryList 中延迟执行，
      * 因此 handle() 入口统一使用 ?string 类型。
      */
-    public function handle(Workspace $workspace, ?string $selectedKnowledgeBaseId = null, ?string $selectedGroupId = null, ?string $search = null, ?string $status = null, int $page = 1, int $perPage = self::DOCUMENT_LIST_PER_PAGE): ShowKnowledgeBaseListPagePropsData
+    public function handle(SystemContext $systemContext, ?string $selectedKnowledgeBaseId = null, ?string $selectedGroupId = null, ?string $search = null, ?string $status = null, int $page = 1, int $perPage = self::DOCUMENT_LIST_PER_PAGE): ShowKnowledgeBaseListPagePropsData
     {
         $search = $this->normalizeSearch($search);
         $perPage = max(1, min($perPage, 100));
@@ -69,16 +71,11 @@ class ListKnowledgeBasesAction
                 'documentGroups.children',
                 'documentGroups.children.children',
             ])
-            ->where('workspace_id', $workspace->id)
             ->oldest('created_at')
             ->oldest('id')
             ->get();
-        $allKnowledgeBases->each->setRelation('workspace', $workspace);
-        $workspace->loadMissing([
-            'knowledgeEmbeddingModel.provider',
-            'knowledgeRerankModel.provider',
-            'knowledgeSummaryModel.provider',
-        ]);
+        $allKnowledgeBases->each->setRelation('systemContext', $systemContext);
+        $this->settings->refresh();
 
         $knowledgeBaseListData = $allKnowledgeBases
             ->map(fn (KnowledgeBase $kb) => KnowledgeBaseData::fromModel($kb))
@@ -115,10 +112,10 @@ class ListKnowledgeBasesAction
             document_list_pagination: $documentPagination,
             qa_entry_list: $qaEntryList,
             qa_entry_list_pagination: $qaEntryPagination,
-            workspace_knowledge_settings: WorkspaceKnowledgeSettingsData::fromWorkspace($workspace),
-            embedding_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Embedding),
-            rerank_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Rerank),
-            summary_model_options: $this->resolver->getKnowledgeBaseModelOptions($workspace, AiModelType::Llm),
+            system_knowledge_settings: SystemKnowledgeSettingsData::fromSettings($this->settings),
+            embedding_model_options: $this->resolver->getKnowledgeBaseModelOptions(AiModelType::Embedding),
+            rerank_model_options: $this->resolver->getKnowledgeBaseModelOptions(AiModelType::Rerank),
+            summary_model_options: $this->resolver->getKnowledgeBaseModelOptions(AiModelType::Llm),
             indexing_strategy_options: KnowledgeIndexingStrategyOptionData::options(),
             document_status_options: EnumOptionData::fromCases(KnowledgeDocumentStatus::cases()),
             qa_status_options: EnumOptionData::fromCases(KnowledgeQaEntryStatus::cases()),
@@ -244,11 +241,11 @@ class ListKnowledgeBasesAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemContext::current();
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         return Inertia::render('knowledgeBase/List', $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             selectedKnowledgeBaseId: $request->query('kb'),
             selectedGroupId: $request->query('group'),
             search: $this->resolveSearch($request->query('search')),

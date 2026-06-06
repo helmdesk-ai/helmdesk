@@ -13,7 +13,6 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlanVersion;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use App\Services\Translation\Exceptions\TranslationException;
 use App\Services\Translation\TranslationResult;
@@ -22,9 +21,9 @@ use App\Services\Translation\TranslatorManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 function createFakeTranslatorManager(
     string $translatedText = 'translated text',
@@ -63,18 +62,18 @@ function createFakeTranslatorManager(
     return $manager;
 }
 
-function buildTranslationChannel(Workspace $workspace): Channel
+function buildTranslationChannel(): Channel
 {
-    return Channel::factory()->for($workspace)->create();
+    return Channel::factory()->create();
 }
 
 /**
- * 在工作区下创建一个可用翻译供应商，并产出一个 snapshot 已写入 provider_id 的接待方案版本。
+ * 在系统下创建一个可用翻译供应商，并产出一个 snapshot 已写入 provider_id 的接待方案版本。
  * 返回版本 ID，供会话挂到该版本上，让运行时从会话锁定的方案版本解析供应商。
  */
-function provisionTranslationPlanVersion(Workspace $workspace): string
+function provisionTranslationPlanVersion(): string
 {
-    $provider = TranslationProvider::factory()->for($workspace)->create();
+    $provider = TranslationProvider::factory()->create();
 
     $version = ReceptionPlanVersion::factory()->create();
     $snapshot = $version->snapshot_config;
@@ -89,7 +88,7 @@ function provisionTranslationPlanVersion(Workspace $workspace): string
 }
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace(['locale' => 'zh-CN']);
+    $this->user = $this->createUserWithSystem(['locale' => 'zh-CN']);
 });
 
 // ---------------------------------------------------------------------------
@@ -97,10 +96,10 @@ beforeEach(function () {
 // ---------------------------------------------------------------------------
 
 it('访客消息翻译成客服语言并写入 payload', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => null]);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -122,10 +121,10 @@ it('访客消息翻译成客服语言并写入 payload', function () {
 });
 
 it('访客消息使用最新客服语言作为翻译目标', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => null]);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -143,10 +142,10 @@ it('访客消息使用最新客服语言作为翻译目标', function () {
 });
 
 it('未分配会话的访客消息不会自动翻译', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => null]);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -163,10 +162,10 @@ it('未分配会话的访客消息不会自动翻译', function () {
 });
 
 it('访客消息可手动翻译到指定客服语言', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => null]);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -186,10 +185,10 @@ it('访客消息可手动翻译到指定客服语言', function () {
 // ---------------------------------------------------------------------------
 
 it('自动翻译只处理访客消息', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -212,10 +211,10 @@ it('自动翻译只处理访客消息', function () {
 });
 
 it('客服消息可手动补翻成当前客服语言', function () {
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = Channel::factory()->create();
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => null]);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -239,10 +238,10 @@ it('客服消息可手动补翻成当前客服语言', function () {
 it('相同供应商目标语言和正文的翻译会命中缓存', function () {
     Cache::flush();
 
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => 'en']);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => 'en']);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -282,10 +281,10 @@ it('相同供应商目标语言和正文的翻译会命中缓存', function () {
 // ---------------------------------------------------------------------------
 
 it('AI 消息可手动补翻成当前客服语言', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -304,10 +303,10 @@ it('AI 消息可手动补翻成当前客服语言', function () {
 });
 
 it('手动补翻源语言已匹配目标语言时返回跳过结果', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -326,10 +325,10 @@ it('手动补翻源语言已匹配目标语言时返回跳过结果', function (
 });
 
 it('补翻任务跳过时不发送失败通知', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -354,10 +353,10 @@ it('补翻任务跳过时不发送失败通知', function () {
 // ---------------------------------------------------------------------------
 
 it('无默认翻译 provider 时不翻译', function () {
-    $channel = buildTranslationChannel($this->workspace);
+    $channel = buildTranslationChannel($this->systemContext);
     $translationPlanVersionId = null; // 不配置翻译供应商
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -373,10 +372,10 @@ it('无默认翻译 provider 时不翻译', function () {
 });
 
 it('翻译 API 异常时记录日志并保留原消息', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -400,10 +399,10 @@ it('翻译 API 异常时记录日志并保留原消息', function () {
 // ---------------------------------------------------------------------------
 
 it('源语言等于目标语言时不存储翻译', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -425,10 +424,10 @@ it('源语言等于目标语言时不存储翻译', function () {
 // ---------------------------------------------------------------------------
 
 it('访客消息翻译不会改写会话访客语言', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => null]);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => null]);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -450,10 +449,10 @@ it('访客消息翻译不会改写会话访客语言', function () {
 // ---------------------------------------------------------------------------
 
 it('已设置的 visitor_locale 不被翻译结果覆盖', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create(['locale' => 'hi']);
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create(['locale' => 'hi']);
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,
@@ -474,10 +473,10 @@ it('已设置的 visitor_locale 不被翻译结果覆盖', function () {
 // ---------------------------------------------------------------------------
 
 it('空内容消息不翻译', function () {
-    $channel = buildTranslationChannel($this->workspace);
-    $translationPlanVersionId = provisionTranslationPlanVersion($this->workspace);
-    $contact = Contact::factory()->for($this->workspace)->create();
-    $conversation = Conversation::factory()->for($this->workspace)->create([
+    $channel = buildTranslationChannel($this->systemContext);
+    $translationPlanVersionId = provisionTranslationPlanVersion($this->systemContext);
+    $contact = Contact::factory()->create();
+    $conversation = Conversation::factory()->create([
         'channel_id' => $channel->id,
         'reception_plan_version_id' => $translationPlanVersionId,
         'contact_id' => $contact->id,

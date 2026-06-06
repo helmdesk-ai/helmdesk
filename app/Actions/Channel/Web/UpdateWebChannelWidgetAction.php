@@ -4,10 +4,10 @@ namespace App\Actions\Channel\Web;
 
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelWidgetData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttachmentPurpose;
 use App\Enums\Channel\Web\WebChannelWidgetEntryMode;
 use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelResolutionService;
 use Illuminate\Http\RedirectResponse;
@@ -79,17 +79,15 @@ class UpdateWebChannelWidgetAction
     /**
      * 接收小部件配置表单并返回详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($channel);
 
         $this->handle($channelModel, FormUpdateWebChannelWidgetData::from($request));
 
-        return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
+        return redirect()->back(302, [], route('admin.manage.channels.web.show', [
             'channel' => $channelModel->id,
         ]));
     }

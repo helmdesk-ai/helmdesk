@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import { defaultKnowledgeBaseAvatar } from '@/lib/knowledgeBaseAvatar';
 import type {
   KnowledgeBaseCategory,
@@ -34,7 +33,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const isEditMode = computed(() => props.mode === 'edit');
 
@@ -47,14 +45,11 @@ const submitLabel = computed(() => (isEditMode.value ? t('保存') : t('创建')
 const formDef = computed<RouteFormDefinition<'post'>>(() => {
   if (isEditMode.value && props.knowledgeBase) {
     return KnowledgeBase.UpdateKnowledgeBaseAction.form({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: props.knowledgeBase.id,
     });
   }
 
-  return KnowledgeBase.CreateKnowledgeBaseAction.form({
-    slug: currentWorkspace.value.slug,
-  });
+  return KnowledgeBase.CreateKnowledgeBaseAction.form({});
 });
 
 function onFormSuccess() {
@@ -118,7 +113,6 @@ function onFormSuccess() {
         :label="t('知识库头像')"
         name="avatar_id"
         purpose="avatar"
-        :upload-context="{ workspace_id: currentWorkspace.id }"
         :initial-preview="
           isEditMode
             ? (props.knowledgeBase?.avatar_url ?? defaultKnowledgeBaseAvatar)

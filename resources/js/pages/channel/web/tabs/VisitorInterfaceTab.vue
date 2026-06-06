@@ -21,13 +21,12 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useChannelPreviewDraft } from '@/composables/useChannelPreviewDraft';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type {
   WebChannelData,
   WebChannelFormOptionsData,
 } from '@/types/generated';
 import { Form } from '@inertiajs/vue3';
-import { Check, Plus, Trash2 } from 'lucide-vue-next';
+import { Check, Plus, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -36,7 +35,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 const draft = useChannelPreviewDraft();
 
 // 后端 list<string> 序列化为以数字为键的对象，统一取 values 渲染色板。
@@ -84,7 +82,6 @@ const removeSuggestion = (index: number) => {
   <Form
     :action="
       Web.UpdateWebChannelVisitorInterfaceAction.url({
-        slug: currentWorkspace.slug,
         channel: props.channel.id,
       })
     "
@@ -185,7 +182,6 @@ const removeSuggestion = (index: number) => {
               :label="t('页面图标')"
               name="icon_id"
               purpose="channel_icon"
-              :upload-context="{ workspace_id: currentWorkspace.id }"
               :initial-preview="props.channel.visitor_interface.icon_url ?? ''"
               :initial-value="props.channel.visitor_interface.icon_id ?? ''"
               variant="logo"
@@ -221,7 +217,6 @@ const removeSuggestion = (index: number) => {
               :label="t('客服头像')"
               name="service_avatar_id"
               purpose="avatar"
-              :upload-context="{ workspace_id: currentWorkspace.id }"
               :initial-preview="
                 props.channel.visitor_interface.service_avatar_url ?? ''
               "

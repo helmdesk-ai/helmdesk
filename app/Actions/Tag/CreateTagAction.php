@@ -3,18 +3,16 @@
 namespace App\Actions\Tag;
 
 use App\Data\Tag\FormCreateTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\TagSource;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 在指定标签组下创建工作区标签；标签维度经由所属组继承。
+ * 在指定标签组下创建系统标签；标签维度经由所属组继承。
  */
 class CreateTagAction
 {
@@ -23,10 +21,9 @@ class CreateTagAction
     /**
      * 校验标签组归属与名称唯一后，在该组下创建标签。
      */
-    public function handle(Workspace $workspace, FormCreateTagData $data, ?User $actor = null): Tag
+    public function handle(FormCreateTagData $data, ?User $actor = null): Tag
     {
         $group = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->find($data->tag_group_id);
 
         if ($group === null) {
@@ -39,7 +36,6 @@ class CreateTagAction
         $normalizedName = mb_strtolower($name);
 
         $exists = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->where('tag_group_id', $group->id)
             ->where('normalized_name', $normalizedName)
             ->whereNull('deleted_at')
@@ -52,7 +48,6 @@ class CreateTagAction
         }
 
         return Tag::query()->create([
-            'workspace_id' => $workspace->id,
             'tag_group_id' => $group->id,
             'name' => $name,
             'color' => $data->color,
@@ -64,10 +59,8 @@ class CreateTagAction
 
     public function asController(Request $request)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $currentWorkspace = $ctx->workspace();
         $data = FormCreateTagData::from($request);
-        $this->handle($currentWorkspace, $data, $request->user());
+        $this->handle($data, $request->user());
 
         return back();
     }

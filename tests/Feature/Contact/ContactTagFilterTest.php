@@ -11,23 +11,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 
     $this->tagA = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'A',
     ]);
     $this->tagB = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'B',
     ]);
     $this->tagC = Tag::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'C',
     ]);
 
@@ -39,7 +36,6 @@ beforeEach(function () {
 
     $makeContact = function (array $letters) use ($tagIdByLetter): Contact {
         $contact = Contact::factory()->create([
-            'workspace_id' => $this->workspace->id,
             'name' => implode('', $letters),
         ]);
 
@@ -59,7 +55,7 @@ beforeEach(function () {
      * 构造 8 种联系人，覆盖 {A,B,C} × 有/无 的全排列，便于对每种模式下
      * 预期结果做精确断言。
      */
-    $this->cNone = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'none']);
+    $this->cNone = Contact::factory()->create(['name' => 'none']);
     $this->cA = $makeContact(['A']);
     $this->cB = $makeContact(['B']);
     $this->cC = $makeContact(['C']);
@@ -71,7 +67,7 @@ beforeEach(function () {
 
 /*
  * 以下 helper 之所以挂在 $this 上用闭包定义，是因为它们依赖 beforeEach 里
- * 构造的 workspace / tagA/B/C，放成全局函数反而要再传一堆参数。
+ * 构造的 systemContext / tagA/B/C，放成全局函数反而要再传一堆参数。
  */
 
 /**
@@ -91,10 +87,9 @@ function makeFilter(array $include = [], string $includeMode = 'any', array $exc
 /**
  * @param  array<int, string>  $tagLetters
  */
-function runFilter(ContactTagFilterData $filter, $workspace): array
+function runFilter(ContactTagFilterData $filter, $systemContext): array
 {
     $props = ShowContactListAction::run(
-        workspace: $workspace,
         type: ContactListType::All,
         perPage: 50,
         tagFilter: $filter,
@@ -105,7 +100,6 @@ function runFilter(ContactTagFilterData $filter, $workspace): array
 
 test('联系人列表暴露列表类型选项来自枚举', function () {
     $props = ShowContactListAction::run(
-        workspace: $this->workspace,
         type: ContactListType::All,
         perPage: 50,
     );
@@ -121,7 +115,7 @@ test('联系人列表暴露列表类型选项来自枚举', function () {
 test('include任意返回联系人拥有至少一个的标签', function () {
     $filter = makeFilter(include: [$this->tagA->id, $this->tagB->id], includeMode: 'any');
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cA->id, $this->cB->id, $this->cAB->id, $this->cAC->id, $this->cBC->id, $this->cABC->id)
@@ -131,7 +125,7 @@ test('include任意返回联系人拥有至少一个的标签', function () {
 test('include全部返回联系人拥有每个标签', function () {
     $filter = makeFilter(include: [$this->tagA->id, $this->tagB->id], includeMode: 'all');
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cAB->id, $this->cABC->id)
@@ -146,7 +140,7 @@ test('包含任意+排除任意', function () {
         excludeMode: 'any',
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cA->id, $this->cB->id, $this->cAB->id)
@@ -165,7 +159,7 @@ test('包含任意+排除全部：只排除拥有所有被排除标签的联系�
         excludeMode: 'all',
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cA->id, $this->cB->id, $this->cC->id, $this->cAB->id, $this->cAC->id)
@@ -180,7 +174,7 @@ test('包含全部+排除任意', function () {
         excludeMode: 'any',
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     /*
      * include all [A,B] → {cAB, cABC}
@@ -199,7 +193,7 @@ test('包含全部+排除全部', function () {
         excludeMode: 'all',
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     /*
      * include A → {cA, cAB, cAC, cABC}
@@ -219,24 +213,24 @@ test('untagged_only只返回无标签联系人并忽略其他条件', function (
         untaggedOnly: true,
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)->toBe([$this->cNone->id]);
 });
 
 test('空筛选返回全部联系人', function () {
-    $ids = runFilter(ContactTagFilterData::unfiltered(), $this->workspace);
+    $ids = runFilter(ContactTagFilterData::unfiltered(), $this->systemContext);
 
     expect(count($ids))->toBe(8);
 });
 
-test('筛选限制到可用标签的工作区', function () {
-    $otherWorkspaceTag = Tag::factory()->create([
+test('筛选限制到可用标签的系统', function () {
+    $otherSystemTag = Tag::factory()->create([
     ]);
 
-    $filter = makeFilter(include: [$otherWorkspaceTag->id, $this->tagA->id], includeMode: 'any');
+    $filter = makeFilter(include: [$otherSystemTag->id, $this->tagA->id], includeMode: 'any');
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cA->id, $this->cAB->id, $this->cAC->id, $this->cABC->id)
@@ -265,7 +259,7 @@ test('include条件遵守tagged_after中间表时间戳', function () {
         untagged_only: false,
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cAB->id)
@@ -310,7 +304,7 @@ test('include和exclude的交集会被保留并由策略评估', function () {
         excludeMode: 'any',
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)
         ->toContain($this->cA->id, $this->cAC->id)
@@ -342,7 +336,7 @@ test('矛盾筛选（include A且exclude A）返回空结果', function () {
         excludeMode: 'any',
     );
 
-    $ids = runFilter($filter, $this->workspace);
+    $ids = runFilter($filter, $this->systemContext);
 
     expect($ids)->toBe([]);
 });
@@ -378,38 +372,26 @@ test('HTTP解析空白和重复', function () {
 
 test('HTTP解析拒绝无效标签模式', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->from(route('admin.contacts.index', ['type' => 'all',
         ]))
-        ->get(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->get(route('admin.contacts.index', ['type' => 'all',
             'include_tag_ids' => [$this->tagA->id],
             'include_tag_mode' => 'bogus',
         ]))
-        ->assertRedirect(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->assertRedirect(route('admin.contacts.index', ['type' => 'all',
         ]))
         ->assertSessionHasErrors('include_tag_mode');
 });
 
 test('HTTP解析拒绝无效标签日期边界', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->from(route('admin.contacts.index', ['type' => 'all',
         ]))
-        ->get(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->get(route('admin.contacts.index', ['type' => 'all',
             'include_tag_ids' => [$this->tagA->id],
             'tag_tagged_after' => '2026/01/01',
         ]))
-        ->assertRedirect(route('workspace.contacts.index', [
-            'slug' => $this->workspaceSlug(),
-            'type' => 'all',
+        ->assertRedirect(route('admin.contacts.index', ['type' => 'all',
         ]))
         ->assertSessionHasErrors('tag_tagged_after');
 });

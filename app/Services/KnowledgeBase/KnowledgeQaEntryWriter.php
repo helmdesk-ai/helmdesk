@@ -28,7 +28,7 @@ class KnowledgeQaEntryWriter
     }
 
     /**
-     * 同步相似问法：同文本保留旧记录、只更新 sort_order，未出现的旧记录删除，新的插入。
+     * 同步相似问法：同文本保留既有记录、只更新 sort_order，未出现的记录删除，新的插入。
      *
      * @param  list<string>  $questions
      */
@@ -64,7 +64,7 @@ class KnowledgeQaEntryWriter
     }
 
     /**
-     * 同步答案：增量 upsert + 删除未出现的旧记录，并维护 sort_order / is_default。
+     * 同步答案：增量 upsert + 删除未出现的记录，并维护 sort_order / is_default。
      *
      * @param  list<string>  $answers
      */

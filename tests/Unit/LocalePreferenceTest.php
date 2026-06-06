@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 
 test('locale 匹配支持大小写下划线和同语言区域变体', function (): void {
     expect(LocalePreference::matches('zh_CN', 'zh-CN'))->toBeTrue()

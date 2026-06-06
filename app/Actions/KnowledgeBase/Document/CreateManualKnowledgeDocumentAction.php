@@ -4,11 +4,11 @@ namespace App\Actions\KnowledgeBase\Document;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeDocumentPipelineAction;
 use App\Data\KnowledgeBase\FormCreateManualKnowledgeDocumentData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\KnowledgeDocumentStatus;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
@@ -47,7 +47,6 @@ class CreateManualKnowledgeDocumentAction
 
         /** @var KnowledgeDocument $document */
         $document = KnowledgeDocument::query()->create([
-            'workspace_id' => $knowledgeBase->workspace_id,
             'knowledge_base_id' => $knowledgeBase->id,
             'group_id' => $group->id,
             'uploaded_by_user_id' => $uploaderUserId,
@@ -71,13 +70,11 @@ class CreateManualKnowledgeDocumentAction
     /**
      * 处理「手动添加」按钮提交并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $data = FormCreateManualKnowledgeDocumentData::from($request);
@@ -89,8 +86,7 @@ class CreateManualKnowledgeDocumentAction
             $query['group'] = $groupId;
         }
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             ...$query,
         ]);
     }

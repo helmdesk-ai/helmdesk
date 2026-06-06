@@ -14,12 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAiAssistantModels } from '@/composables/useAiAssistantModels';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
+import { useRequiredSystem } from '@/composables/useSystemContext';
 import { renderMarkdownToSafeHtml } from '@/lib/markdown';
-import type { AppPageProps } from '@/types';
-import type { AiModelOptionData } from '@/types/generated';
-import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import {
   CheckCircle2,
@@ -29,7 +27,7 @@ import {
   Square,
   Wrench,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import {
   computed,
   nextTick,
@@ -85,8 +83,7 @@ interface StoredPosition {
 }
 
 const { t } = useI18n();
-const workspace = useRequiredWorkspace();
-const page = usePage<AppPageProps>();
+const system = useRequiredSystem();
 
 const isOpen = ref(false);
 const inputValue = ref('');
@@ -120,7 +117,7 @@ const DRAG_THRESHOLD = 5;
 const EDGE_MARGIN = 8;
 
 const positionStorageKey = computed(
-  () => `ai-assistant:position:${workspace.value.id}`,
+  () => `ai-assistant:position:${system.value.id}`,
 );
 
 // 当前正在接收 delta 的 assistant 气泡。
@@ -130,32 +127,13 @@ let currentAssistantId: string | null = null;
 let currentEventSource: EventSource | null = null;
 
 const hasMessages = computed(() => messages.value.length > 0);
-const modelOptions = computed<AiModelOptionData[]>(() => {
-  if (!Array.isArray(page.props.aiAssistantLlmModelOptions)) {
-    throw new Error('aiAssistantLlmModelOptions is required.');
-  }
-
-  return page.props.aiAssistantLlmModelOptions;
-});
+const {
+  modelOptions,
+  groupedModelOptions,
+  selectedModelStorageKey: modelStorageKey,
+} = useAiAssistantModels();
 const hasAvailableModels = computed(() => modelOptions.value.length > 0);
 const hasSelectedModel = computed(() => selectedModelId.value.trim() !== '');
-const modelStorageKey = computed(
-  () => `ai-assistant:selected-model:${workspace.value.id}`,
-);
-
-const groupedModelOptions = computed(() => {
-  const groups = new Map<string, AiModelOptionData[]>();
-  for (const option of modelOptions.value) {
-    const list = groups.get(option.provider_name) ?? [];
-    list.push(option);
-    groups.set(option.provider_name, list);
-  }
-
-  return Array.from(groups, ([providerName, options]) => ({
-    providerName,
-    options,
-  }));
-});
 
 // --- Container positioning ---
 // Anchor the container by its bottom edge so the button stays in place
@@ -907,7 +885,7 @@ const handleSend = async () => {
 
   try {
     const response = await axios.post<{ topic: string }>(
-      SendAiAssistantMessageAction.url(workspace.value.slug),
+      SendAiAssistantMessageAction.url(),
       {
         prompt: value,
         model_id: selectedModelId.value,
@@ -956,7 +934,7 @@ const handleStop = async () => {
 
   try {
     await axios.post(
-      StopAiAssistantMessageAction.url(workspace.value.slug),
+      StopAiAssistantMessageAction.url(),
       {
         topic: currentTopic.value,
       },
@@ -1052,7 +1030,7 @@ const fireAndForgetStop = (topic: string) => {
     headers['X-XSRF-TOKEN'] = xsrf;
   }
 
-  void fetch(StopAiAssistantMessageAction.url(workspace.value.slug), {
+  void fetch(StopAiAssistantMessageAction.url(), {
     method: 'POST',
     credentials: 'same-origin',
     keepalive: true,

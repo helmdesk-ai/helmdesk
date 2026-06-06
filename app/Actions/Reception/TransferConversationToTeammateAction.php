@@ -38,7 +38,7 @@ class TransferConversationToTeammateAction
             throw new BusinessException(__('conversation.errors.transfer_target_must_be_teammate'));
         }
 
-        if (! $this->targetBelongsToWorkspace($conversation, $target)) {
+        if (! $this->targetCanReceiveConversation($target)) {
             throw new BusinessException(__('conversation.errors.transfer_target_not_found'));
         }
 
@@ -70,7 +70,6 @@ class TransferConversationToTeammateAction
             ]);
 
             $assignmentEvent = ConversationEvent::query()->create([
-                'workspace_id' => $lockedConversation->workspace_id,
                 'conversation_id' => $lockedConversation->id,
                 'actor_user_id' => $actor->id,
                 'type' => ConversationEventType::AssignmentChanged,
@@ -103,12 +102,10 @@ class TransferConversationToTeammateAction
     }
 
     /**
-     * 确保转接目标仍是当前会话工作区的有效成员。
+     * 确保转接目标仍是系统内有效用户。
      */
-    private function targetBelongsToWorkspace(Conversation $conversation, User $target): bool
+    private function targetCanReceiveConversation(User $target): bool
     {
-        return $target->workspaces()
-            ->whereKey($conversation->workspace_id)
-            ->exists();
+        return $target->exists && $target->deleted_at === null;
     }
 }

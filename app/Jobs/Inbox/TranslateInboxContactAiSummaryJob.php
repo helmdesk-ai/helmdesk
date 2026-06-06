@@ -45,7 +45,6 @@ class TranslateInboxContactAiSummaryJob implements ShouldBeUnique, ShouldQueue
         ReceptionRealtimeNotifier $realtimeNotifier,
     ): void {
         $contact = Contact::query()
-            ->with('workspace')
             ->findOrFail($this->contactId);
 
         $outcome = $translateAction->handle($contact, $this->targetLocale);
@@ -54,7 +53,6 @@ class TranslateInboxContactAiSummaryJob implements ShouldBeUnique, ShouldQueue
         }
 
         $conversation = Conversation::query()
-            ->where('workspace_id', $contact->workspace_id)
             ->where('contact_id', $contact->id)
             ->orderByDesc('created_at')
             ->first();

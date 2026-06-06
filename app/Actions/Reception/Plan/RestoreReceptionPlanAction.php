@@ -2,7 +2,7 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,14 +27,12 @@ class RestoreReceptionPlanAction
     /**
      * 接收恢复请求并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $plan): RedirectResponse
+    public function asController(Request $request, string $plan): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansEdit);
 
         $planModel = ReceptionPlan::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
         $this->handle($planModel);

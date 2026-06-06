@@ -63,7 +63,7 @@ function fakeStorageProfileDisk(): FilesystemAdapter
 }
 
 test('已认证用户可以查看创建存储配置档页面', function () {
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->get(route('admin.storage.profiles.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -88,7 +88,7 @@ test('已认证用户可以查看编辑存储配置档页面', function () {
         'secret_key' => 'secret',
     ]);
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->get(route('admin.storage.profiles.edit', ['profile' => $profile->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -155,7 +155,7 @@ test('未认证用户不能视图编辑存储配置档页面', function () {
 test('已认证用户可以创建存储配置档且不运行连接检查', function () {
     Storage::shouldReceive('build')->never();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->post(route('admin.storage.profiles.store'), [
             'name' => 'tencent-prod',
             'provider' => 'tencent',
@@ -183,7 +183,7 @@ test('已认证用户可以创建存储配置档且不运行连接检查', funct
 test('创建存储配置档失败当提供商是无效枚举值时', function () {
     Storage::shouldReceive('build')->never();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->post(route('admin.storage.profiles.store'), [
             'name' => 'bad-provider',
             'provider' => 'not-a-provider',
@@ -200,7 +200,7 @@ test('创建存储配置档失败当提供商是无效枚举值时', function ()
 test('创建存储配置档成功即使当存储凭证无法连接时', function () {
     Storage::shouldReceive('build')->never();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->post(route('admin.storage.profiles.store'), [
             'name' => 'tencent-prod',
             'provider' => 'tencent',
@@ -231,7 +231,7 @@ test('已认证用户只能更新可编辑配置档字段且不改变凭证', fu
 
     Storage::shouldReceive('build')->never();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->put(route('admin.storage.profiles.update', ['profile' => $profile->id]), [
             'name' => 'p1-new',
             'region' => 'ap-shanghai',
@@ -267,7 +267,7 @@ test('更新凭证需要键和密钥', function () {
 
     Storage::shouldReceive('build')->never();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->put(route('admin.storage.profiles.update', ['profile' => $profile->id]), [
             'name' => 'p1',
             'url' => '',
@@ -290,7 +290,7 @@ test('已认证用户可以更新凭证且不运行连接检查', function () {
 
     Storage::shouldReceive('build')->never();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->put(route('admin.storage.profiles.update', ['profile' => $profile->id]), [
             'name' => 'p1',
             'url' => '',
@@ -321,7 +321,7 @@ test('已认证用户可以检查存储配置档连接', function () {
         ->andReturn(fakeStorageProfileDisk());
     bindStorageProfileCorsRules(validStorageProfileCorsRules());
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->put(route('admin.storage.profiles.check', ['profile' => $profile->id]))
         ->assertRedirect();
 });
@@ -347,7 +347,7 @@ test('存储配置档连接检查失败当CORS不支持浏览器直传时', func
         'ExposeHeaders' => [],
     ]]);
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->put(route('admin.storage.profiles.check', ['profile' => $profile->id]), [], [
             'Origin' => 'https://app.example.com',
         ])
@@ -372,7 +372,7 @@ test('不能删除当前已选择配置档', function () {
     $settings->current_profile_id = (string) $profile->id;
     $settings->save();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->delete(route('admin.storage.profiles.destroy', ['profile' => $profile->id]))
         ->assertSessionHasErrors('profile');
 });
@@ -394,7 +394,7 @@ test('可以删除之前已选择配置档当存储禁用时', function () {
     $settings->current_profile_id = (string) $profile->id;
     $settings->save();
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->delete(route('admin.storage.profiles.destroy', ['profile' => $profile->id]))
         ->assertRedirect()
         ->assertSessionHasNoErrors();
@@ -426,7 +426,7 @@ test('不能删除配置档是被引用按附件', function () {
         'attachable_type' => null,
     ]);
 
-    $this->actingAs($this->user, 'admin')
+    $this->actingAs($this->user)
         ->delete(route('admin.storage.profiles.destroy', ['profile' => $profile->id]))
         ->assertSessionHasErrors('profile');
 });

@@ -2,9 +2,8 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\AiProvider;
-use App\Models\Workspace;
 use App\Services\AiRuntime\GoAiRuntimeBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +11,7 @@ use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 校验工作区下指定 AI 供应商凭据和连接是否可用。
+ * 校验系统下指定 AI 供应商凭据和连接是否可用。
  */
 class CheckAiProviderAction
 {
@@ -26,9 +25,9 @@ class CheckAiProviderAction
      * @param  array<string, mixed>|null  $configuration
      * @return array{success: bool, message: string}
      */
-    public function handle(Workspace $workspace, string $providerSlug, ?array $configuration = null): array
+    public function handle(string $providerSlug, ?array $configuration = null): array
     {
-        $provider = $this->findProvider($workspace, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
 
         if (! $this->hasActiveLlmModel($provider)) {
             return ['success' => false, 'message' => __('ai.check_no_model')];
@@ -47,9 +46,9 @@ class CheckAiProviderAction
         ];
     }
 
-    private function findProvider(Workspace $workspace, string $slug): AiProvider
+    private function findProvider(string $slug): AiProvider
     {
-        return $workspace->aiProviders()->where('slug', $slug)->firstOrFail();
+        return AiProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     private function hasActiveLlmModel(AiProvider $provider): bool
@@ -60,15 +59,13 @@ class CheckAiProviderAction
             ->exists();
     }
 
-    public function asController(Request $request, string $slug, string $provider): JsonResponse
+    public function asController(Request $request, string $provider): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $configuration = $request->input('configuration');
 
         return response()->json($this->handle(
-            $workspace,
             $provider,
             is_array($configuration) ? $configuration : null,
         ));

@@ -86,7 +86,7 @@ return [
         ],
     ],
     'messages' => [
-        'plan_name_exists' => 'A reception plan with the same name already exists in this workspace',
+        'plan_name_exists' => 'A reception plan with the same name already exists in this system',
         'invalid_reception_model' => 'The selected reception agent model is unavailable; please choose another one',
         'invalid_task_model' => 'The selected task agent default model is unavailable; please choose another one',
         'plan_in_use_channel' => ':count version(s) of this plan are still bound to channels; update those channels before deleting',

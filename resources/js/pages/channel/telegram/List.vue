@@ -16,23 +16,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ChannelsLayout from '@/layouts/ChannelsLayout.vue';
 import type { ShowTelegramChannelListPagePropsData } from '@/types/generated';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<ShowTelegramChannelListPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const deleteForm = useForm({});
 const deletingChannelId = ref<string | null>(null);
 
 const buildChannelListPageUrl = (page: number): string => {
-  return Telegram.ListTelegramChannelsAction.url(currentWorkspace.value.slug, {
+  return Telegram.ListTelegramChannelsAction.url({
     query: { page },
   });
 };
@@ -51,7 +49,6 @@ const confirmDelete = () => {
 
   deleteForm.delete(
     Telegram.DeleteTelegramChannelAction.url({
-      slug: currentWorkspace.value.slug,
       channel: selectedChannel.value.id,
     }),
     {
@@ -86,24 +83,12 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
 
           <div class="flex items-center gap-2">
             <Button as-child>
-              <Link
-                :href="
-                  Telegram.ShowCreateTelegramChannelPageAction.url(
-                    currentWorkspace.slug,
-                  )
-                "
-              >
+              <Link :href="Telegram.ShowCreateTelegramChannelPageAction.url()">
                 {{ t('创建渠道') }}
               </Link>
             </Button>
             <Button variant="outline" as-child>
-              <Link
-                :href="
-                  Telegram.ListTelegramChannelTrashAction.url(
-                    currentWorkspace.slug,
-                  )
-                "
-              >
+              <Link :href="Telegram.ListTelegramChannelTrashAction.url()">
                 {{ t('回收站') }}
               </Link>
             </Button>
@@ -162,7 +147,6 @@ const handleDeleteDialogOpenChange = (open: boolean) => {
                         <Link
                           :href="
                             Telegram.ShowTelegramChannelDetailPageAction.url({
-                              slug: currentWorkspace.slug,
                               channel: channel.id,
                             })
                           "

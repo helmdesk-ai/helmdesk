@@ -1,5 +1,5 @@
 <!--
-  文件说明：后台应用布局片段，承接侧边栏、顶部状态和工作区上下文。
+  文件说明：后台应用布局片段，承接侧边栏、顶部状态和系统上下文。
 -->
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import SidebarUserMenu from '@/layouts/app/SidebarUserMenu.vue';
 import { cn, toUrl, urlIsActive } from '@/lib/utils';
 import type { NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Pin } from 'lucide-vue-next';
+import { Pin } from '@lucide/vue';
 import { computed } from 'vue';
 
 export type SidebarShellNavItem = NavItem & {
@@ -32,9 +32,8 @@ export type SidebarShellNavItem = NavItem & {
 interface Props {
   hideHeader?: boolean;
   headerHref: string;
-  headerSubtitle: string;
   mainNavItems: SidebarShellNavItem[];
-  footerNavItems: NavItem[];
+  footerNavItems: SidebarShellNavItem[];
   profileHref: string;
   profileLabel: string;
   logoutHref: string;
@@ -56,11 +55,15 @@ const isExternalLink = (href: NavItem['href']) => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-const isMainNavItemActive = (item: SidebarShellNavItem) => {
+const isSidebarNavItemActive = (item: SidebarShellNavItem) => {
   if (item.activeUrls && item.activeUrls.length > 0) {
     return item.activeUrls.some((u) =>
       urlIsActive(u, page.url, { mode: 'prefix' }),
     );
+  }
+
+  if (isExternalLink(item.href)) {
+    return false;
   }
 
   return urlIsActive(item.href, page.url);
@@ -96,17 +99,11 @@ const isMainNavItemActive = (item: SidebarShellNavItem) => {
                   </Link>
 
                   <div
-                    class="flex min-w-0 flex-1 flex-col gap-1 pr-2 group-data-[collapsible=icon]:hidden"
+                    class="flex min-w-0 flex-1 items-center pr-2 group-data-[collapsible=icon]:hidden"
                   >
-                    <span class="text-sm leading-tight font-semibold">
+                    <span class="truncate text-sm leading-tight font-semibold">
                       {{ systemName }}
                     </span>
-
-                    <slot name="headerSubtitle">
-                      <span class="text-xs text-muted-foreground">
-                        {{ props.headerSubtitle }}
-                      </span>
-                    </slot>
                   </div>
 
                   <slot name="collapsedHeaderAddon" />
@@ -149,7 +146,7 @@ const isMainNavItemActive = (item: SidebarShellNavItem) => {
               >
                 <SidebarMenuButton
                   as-child
-                  :is-active="isMainNavItemActive(item)"
+                  :is-active="isSidebarNavItemActive(item)"
                   :tooltip="item.title"
                 >
                   <Link :href="toUrl(item.href)">
@@ -173,6 +170,7 @@ const isMainNavItemActive = (item: SidebarShellNavItem) => {
                   <SidebarMenuButton
                     class="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100"
                     as-child
+                    :is-active="isSidebarNavItemActive(item)"
                   >
                     <a
                       v-if="isExternalLink(item.href)"

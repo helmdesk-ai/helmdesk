@@ -16,8 +16,8 @@ use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlanVersion;
+use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * 组装访客接待窗口的当前状态。
@@ -44,7 +44,6 @@ class ReceptionStateBuilder
         $conversationIds = self::historyConversationIds($channel, $conversation);
 
         $messages = ConversationMessage::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->whereIn('conversation_id', $conversationIds)
             ->with(['senderUser', 'attachments', 'quotedMessage.attachments'])
             ->whereIn('kind', [MessageKind::Text, MessageKind::Image, MessageKind::File])
@@ -58,17 +57,17 @@ class ReceptionStateBuilder
                 ['id', 'asc'],
             ])
             ->values();
-        $workspaceNicknames = self::workspaceNicknames($conversation, $messages);
+        $systemNicknames = self::systemNicknames($messages);
 
         $entries = $messages
-            ->map(function (ConversationMessage $message) use ($visitorIdentityMode, $assistantName, $assistantAvatarUrl, $workspaceNicknames): ReceptionMessageData {
+            ->map(function (ConversationMessage $message) use ($visitorIdentityMode, $assistantName, $assistantAvatarUrl, $systemNicknames): ReceptionMessageData {
                 $quotedMessage = self::quotedMessageData($message);
                 [$senderName, $senderAvatarUrl] = self::senderMessageIdentity(
                     $visitorIdentityMode,
                     $message,
                     $assistantName,
                     $assistantAvatarUrl,
-                    $workspaceNicknames,
+                    $systemNicknames,
                 );
 
                 return match ($message->role) {
@@ -188,7 +187,7 @@ class ReceptionStateBuilder
     /**
      * 解析单条消息在访客侧展示的发送者身份。
      *
-     * @param  array<string, string>  $workspaceNicknames
+     * @param  array<string, string>  $systemNicknames
      * @return array{0: ?string, 1: ?string}
      */
     private static function senderMessageIdentity(
@@ -196,7 +195,7 @@ class ReceptionStateBuilder
         ConversationMessage $message,
         string $assistantName,
         ?string $assistantAvatarUrl,
-        array $workspaceNicknames,
+        array $systemNicknames,
     ): array {
         if ($mode === WebChannelVisitorIdentityMode::UnifiedService) {
             return [$assistantName, $assistantAvatarUrl];
@@ -208,7 +207,7 @@ class ReceptionStateBuilder
 
         if ($message->role === MessageRole::Teammate) {
             $senderUserId = filled($message->sender_user_id) ? (string) $message->sender_user_id : null;
-            $nickname = $senderUserId ? ($workspaceNicknames[$senderUserId] ?? null) : null;
+            $nickname = $senderUserId ? ($systemNicknames[$senderUserId] ?? null) : null;
 
             return [
                 filled($nickname) ? $nickname : $message->senderUser?->name,
@@ -245,12 +244,12 @@ class ReceptionStateBuilder
     }
 
     /**
-     * 查询消息发送者在当前工作区内的昵称。
+     * 查询消息发送者在系统内的昵称。
      *
      * @param  Collection<int, ConversationMessage>  $messages
      * @return array<string, string>
      */
-    private static function workspaceNicknames(Conversation $conversation, Collection $messages): array
+    private static function systemNicknames(Collection $messages): array
     {
         $userIds = $messages
             ->flatMap(fn (ConversationMessage $message): array => [
@@ -265,11 +264,10 @@ class ReceptionStateBuilder
             return [];
         }
 
-        return DB::table('user_workspace')
-            ->where('workspace_id', $conversation->workspace_id)
-            ->whereIn('user_id', $userIds)
+        return User::query()
+            ->whereIn('id', $userIds)
             ->whereNotNull('nickname')
-            ->pluck('nickname', 'user_id')
+            ->pluck('nickname', 'id')
             ->mapWithKeys(fn ($nickname, $userId): array => [(string) $userId => (string) $nickname])
             ->all();
     }
@@ -286,7 +284,6 @@ class ReceptionStateBuilder
         }
 
         return Conversation::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('contact_id', $conversation->contact_id)
             ->where('channel_id', $channel->id)
             ->orderBy('created_at')

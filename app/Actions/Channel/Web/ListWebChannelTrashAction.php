@@ -5,10 +5,9 @@ namespace App\Actions\Channel\Web;
 use App\Data\Channel\Web\ShowWebChannelTrashPagePropsData;
 use App\Data\Channel\Web\WebChannelData;
 use App\Data\SimplePaginationData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
-use App\Models\Workspace;
 use App\Services\Channel\WebChannelWidgetEntryIconResolver;
 use App\Services\Reception\ChannelReceptionPlanVersionResolver;
 use Illuminate\Http\Request;
@@ -33,16 +32,15 @@ class ListWebChannelTrashAction
     ) {}
 
     /**
-     * 查询当前工作区已删除的网站渠道列表。
+     * 查询当前系统已删除的网站渠道列表。
      */
-    public function handle(Workspace $workspace, int $page = 1, int $perPage = 12): ShowWebChannelTrashPagePropsData
+    public function handle(int $page = 1, int $perPage = 12): ShowWebChannelTrashPagePropsData
     {
         $page = max(1, $page);
         $perPage = max(1, min($perPage, 24));
 
         $paginator = Channel::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->with(['receptionPlan'])
             ->latest('deleted_at')
@@ -55,7 +53,7 @@ class ListWebChannelTrashAction
             trashed_channel_list: $channels
                 ->map(fn (Channel $channel) => WebChannelData::fromModel(
                     $channel,
-                    $this->planVersionResolver->resolveChannelStatus($workspace, $channel),
+                    $this->planVersionResolver->resolveChannelStatus($channel),
                     $entryIconUrls,
                 ))
                 ->all(),
@@ -68,11 +66,9 @@ class ListWebChannelTrashAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsView);
 
         return Inertia::render('channel/web/Trash', $this->handle(
-            workspace: $workspace,
             page: (int) $request->query('page', 1),
         )->toArray());
     }

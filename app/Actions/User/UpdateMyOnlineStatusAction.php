@@ -2,9 +2,9 @@
 
 namespace App\Actions\User;
 
-use App\Data\Teammate\FormUpdateTeammateOnlineStatusData;
-use App\Data\WorkspaceUserContextData;
-use App\Models\Workspace;
+use App\Data\User\FormUpdateMyOnlineStatusData;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -16,25 +16,24 @@ class UpdateMyOnlineStatusAction
     use AsAction;
 
     /**
-     * 保存当前用户在工作区内的在线状态。
+     * 保存当前用户在线状态。
      */
-    public function handle(Workspace $workspace, string $userId, FormUpdateTeammateOnlineStatusData $data): void
+    public function handle(string $userId, FormUpdateMyOnlineStatusData $data): void
     {
-        $user = $workspace->users()->whereKey($userId)->firstOrFail();
+        $user = User::query()->findOrFail($userId);
 
-        $user->pivot->update([
+        $user->forceFill([
             'online_status' => $data->online_status,
-        ]);
+        ])->save();
     }
 
     /**
      * 接收当前用户在线状态更新请求。
      */
-    public function asController(Request $request, string $slug)
+    public function asController(Request $request): RedirectResponse
     {
-        $currentWorkspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        $data = FormUpdateTeammateOnlineStatusData::from($request);
-        $this->handle($currentWorkspace, $request->user()->id, $data);
+        $data = FormUpdateMyOnlineStatusData::from($request);
+        $this->handle((string) $request->user()->id, $data);
 
         return back();
     }

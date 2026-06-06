@@ -14,7 +14,7 @@ class FormCreateTelegramChannelData extends Data
     /**
      * 创建 Telegram 渠道表单字段。
      *
-     * reception_plan_id 必须指向工作区内已发布且可部署的接待方案。
+     * reception_plan_id 必须指向系统内已发布且可部署的接待方案。
      */
     public function __construct(
         public string $name,

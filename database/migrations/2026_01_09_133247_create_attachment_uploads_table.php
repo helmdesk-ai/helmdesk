@@ -11,15 +11,11 @@ return new class extends Migration
         Schema::create('attachment_uploads', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->timestamps();
-            $table->ulid('workspace_id')->nullable();
             $table->ulid('attachment_id');
             $table->ulid('storage_profile_id');
             $table->string('mode', 30);
             $table->string('status', 20)->default('pending');
             $table->string('object_key');
-            $table->string('upload_id')->nullable();
-            $table->unsignedBigInteger('part_size')->nullable();
-            $table->json('parts')->nullable();
             $table->string('expected_name');
             $table->string('expected_mime_type');
             $table->unsignedBigInteger('expected_byte_size');
@@ -32,7 +28,6 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
 
             $table->index('attachment_id');
-            $table->index(['workspace_id', 'status']);
             $table->index(['status', 'expires_at']);
         });
     }

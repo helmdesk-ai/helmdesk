@@ -3,11 +3,10 @@
 namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormCreateKnowledgeBaseData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttachmentPurpose;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
-use App\Models\Workspace;
 use App\Services\Storage\AttachmentBindingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 创建工作区知识库基础信息。
+ * 创建系统知识库基础信息。
  */
 class CreateKnowledgeBaseAction
 {
@@ -31,30 +30,28 @@ class CreateKnowledgeBaseAction
     ) {}
 
     /**
-     * 创建知识库并限定同一工作区内知识库名称唯一。
+     * 创建知识库并限定同一系统内知识库名称唯一。
      */
-    public function handle(Workspace $workspace, FormCreateKnowledgeBaseData $data): KnowledgeBase
+    public function handle(FormCreateKnowledgeBaseData $data): KnowledgeBase
     {
         $name = trim($data->name);
-        $this->ensureNameIsAvailable($workspace, $name);
+        $this->ensureNameIsAvailable($name);
         $this->attachments->assertAssignable(
             attachable: new KnowledgeBase,
             attachmentId: $data->avatar_id,
             currentAttachmentId: null,
-            workspaceId: (string) $workspace->id,
             allowedPurposes: [AttachmentPurpose::Avatar],
             messageKey: 'knowledge_base.messages.invalid_attachment',
         );
 
-        return DB::transaction(function () use ($workspace, $data, $name): KnowledgeBase {
+        return DB::transaction(function () use ($data, $name): KnowledgeBase {
             $knowledgeBase = KnowledgeBase::query()->create([
-                'workspace_id' => $workspace->id,
                 'name' => $name,
                 'avatar_id' => filled($data->avatar_id) ? $data->avatar_id : null,
                 'description' => filled($data->description) ? $data->description : null,
                 'category' => $data->category,
             ]);
-            $this->attachments->syncAttachment($knowledgeBase, 'avatar_id', null, (string) $workspace->id);
+            $this->attachments->syncAttachment($knowledgeBase, 'avatar_id', null);
 
             KnowledgeGroup::query()->create([
                 'knowledge_base_id' => $knowledgeBase->id,
@@ -73,24 +70,21 @@ class CreateKnowledgeBaseAction
      */
     public function asController(Request $request): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesCreate);
 
-        $knowledgeBase = $this->handle($workspace, FormCreateKnowledgeBaseData::from($request));
+        $knowledgeBase = $this->handle(FormCreateKnowledgeBaseData::from($request));
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             'kb' => $knowledgeBase->id,
         ]);
     }
 
     /**
-     * 校验当前工作区内知识库名称是否可用。
+     * 校验当前系统内知识库名称是否可用。
      */
-    private function ensureNameIsAvailable(Workspace $workspace, string $name): void
+    private function ensureNameIsAvailable(string $name): void
     {
         $exists = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->where('name', $name)
             ->exists();
 

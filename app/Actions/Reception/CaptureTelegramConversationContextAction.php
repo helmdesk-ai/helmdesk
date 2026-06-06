@@ -56,7 +56,7 @@ class CaptureTelegramConversationContextAction
     }
 
     /**
-     * 仅在显式提供布尔值时采纳，否则返回 null 交给上层保留旧值。
+     * 仅在显式提供布尔值时采纳，否则返回 null 交给上层保留原值。
      */
     private function bool(mixed $value): ?bool
     {

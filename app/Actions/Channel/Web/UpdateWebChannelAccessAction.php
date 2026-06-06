@@ -4,7 +4,7 @@ namespace App\Actions\Channel\Web;
 
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\FormUpdateWebChannelAccessData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use App\Services\Channel\WebChannelEmbedHostGate;
 use App\Services\Channel\WebChannelResolutionService;
@@ -51,17 +51,15 @@ class UpdateWebChannelAccessAction
     /**
      * 接收接入方式表单并返回渠道详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($channel);
 
         $this->handle($channelModel, FormUpdateWebChannelAccessData::from($request));
 
-        return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
+        return redirect()->back(302, [], route('admin.manage.channels.web.show', [
             'channel' => $channelModel->id,
         ]));
     }

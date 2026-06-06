@@ -3,12 +3,10 @@
 namespace App\Actions\Inbox;
 
 use App\Data\Inbox\InboxMessageSearchResultData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\MessageRole;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Search\ConversationMessageSearch;
 use App\Services\Search\ConversationMessageVisibleTextResolver;
 use Illuminate\Http\JsonResponse;
@@ -37,10 +35,9 @@ class SearchInboxMessagesAction
      *
      * @return InboxMessageSearchResultData[]
      */
-    public function handle(Workspace $workspace, User $viewer, string $contactId, string $search): array
+    public function handle(User $viewer, string $contactId, string $search): array
     {
         $conversationIds = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contactId)
             ->pluck('id')
             ->all();
@@ -49,29 +46,18 @@ class SearchInboxMessagesAction
             return [];
         }
 
-        $matchedIds = $this->messageSearch->query($search)
-            ->where('workspace_id', $workspace->id)
-            ->keys()
-            ->all();
-
-        if ($matchedIds === []) {
-            return [];
-        }
-
         $messages = ConversationMessage::query()
             ->with(['senderUser', 'conversation.channel', 'conversation.contact'])
-            ->whereIn('id', $matchedIds)
             ->whereIn('conversation_id', $conversationIds)
+            ->whereIn('role', [MessageRole::Visitor, MessageRole::Ai, MessageRole::Teammate])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
 
         $results = [];
         foreach ($messages as $message) {
-            $matchedContent = $this->messageSearch->matchingText(
-                $search,
-                $this->visibleTextResolver->texts($message, $viewer),
-            );
+            $visibleTexts = $this->visibleTextResolver->texts($message, $viewer);
+            $matchedContent = $this->messageSearch->matchingText($search, $visibleTexts);
 
             if ($matchedContent === null) {
                 continue;
@@ -107,17 +93,15 @@ class SearchInboxMessagesAction
     /**
      * 处理收件箱聊天记录搜索请求。
      */
-    public function asController(Request $request, string $slug, string $contactId): JsonResponse
+    public function asController(Request $request, string $contactId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
-        $viewer = User::query()->findOrFail($ctx->user_id);
+        $viewer = $request->user();
 
         $validated = $request->validate([
             'search' => ['required', 'string', 'min:1', 'max:200'],
         ]);
 
-        $results = $this->handle($workspace, $viewer, $contactId, $validated['search']);
+        $results = $this->handle($viewer, $contactId, $validated['search']);
 
         return response()->json(['results' => $results]);
     }

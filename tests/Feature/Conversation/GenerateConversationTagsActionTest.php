@@ -12,9 +12,9 @@ use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Services\Conversation\GoConversationSummaryBridge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 /**
  * 构造记录入参并返回固定建议的假桥接，用于在不调真实 LLM 的前提下测试编排逻辑。
@@ -53,10 +53,9 @@ function fakeConversationTagsBridge(): object
 }
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
-    $this->contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $this->user = $this->createUserWithSystem();
+    $this->contact = Contact::factory()->create([]);
     $this->conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $this->contact->id,
         'summary' => '客户咨询退款流程',
         'summary_last_message_seq_no' => 12,
@@ -64,7 +63,6 @@ beforeEach(function () {
 
     // 提供一个可用的接待 LLM 模型，让候选解析的兜底分支命中。
     $provider = AiProvider::query()->create([
-        'workspace_id' => $this->workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'fake-openai',
         'name' => 'Fake',
@@ -82,8 +80,8 @@ beforeEach(function () {
         'is_active' => true,
     ]);
 
-    $this->conversationGroup = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
-    $this->contactGroup = TagGroup::factory()->contact()->create(['workspace_id' => $this->workspace->id]);
+    $this->conversationGroup = TagGroup::factory()->conversation()->create([]);
+    $this->contactGroup = TagGroup::factory()->contact()->create([]);
 });
 
 test('词表只下发会话维度标签，且按阈值映射回标签落库', function () {
@@ -123,8 +121,8 @@ test('低置信度建议不落库', function () {
 });
 
 test('同名标签按 tag_id 映射，允许不同分组使用相同名称', function () {
-    $moodGroup = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id, 'name' => '脾气']);
-    $styleGroup = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id, 'name' => '语气']);
+    $moodGroup = TagGroup::factory()->conversation()->create(['name' => '脾气']);
+    $styleGroup = TagGroup::factory()->conversation()->create(['name' => '语气']);
     $moodTag = Tag::factory()->forGroup($moodGroup)->create(['name' => '温和']);
     $styleTag = Tag::factory()->forGroup($styleGroup)->create(['name' => '温和']);
 

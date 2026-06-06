@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Contact\ShowContactConversationTimelineAction;
 use App\Data\Contact\ContactStitchedTimelineData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ConversationTimelineEntryType;
 use App\Models\Contact;
 use App\Models\User;
@@ -53,12 +52,9 @@ class LoadInboxContactTimelineAction
     /**
      * 处理收件箱联系人时间线窗口请求。
      */
-    public function asController(Request $request, string $slug, string $contactId): JsonResponse
+    public function asController(Request $request, string $contactId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $validated = $request->validate([

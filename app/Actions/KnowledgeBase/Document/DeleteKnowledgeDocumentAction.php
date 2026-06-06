@@ -3,7 +3,7 @@
 namespace App\Actions\KnowledgeBase\Document;
 
 use App\Actions\Attachment\DeleteAttachmentAction;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Services\KnowledgeBase\KnowledgeFullTextRepository;
@@ -50,13 +50,11 @@ class DeleteKnowledgeDocumentAction
     /**
      * 处理「删除文档」按钮的提交，并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase, string $document): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase, string $document): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesDelete);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $documentModel = KnowledgeDocument::query()
@@ -72,8 +70,7 @@ class DeleteKnowledgeDocumentAction
             $query['group'] = $groupId;
         }
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             ...$query,
         ]);
     }

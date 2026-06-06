@@ -18,7 +18,6 @@ class GeneralSettingsData extends Data
         public ?string $copyright = null,
         public ?string $icp_record = null,
         public ?string $version = null,
-        public bool $allow_registration = true,
         public string $logo_url = '',
     ) {}
 

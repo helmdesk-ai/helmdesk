@@ -5,10 +5,10 @@ namespace App\Actions\KnowledgeBase\Indexing;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Exceptions\BusinessException;
-use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaEntry;
+use App\Models\SystemContext;
 use App\Services\KnowledgeBase\KnowledgeFullTextRepository;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
 use App\Services\KnowledgeBase\Parsing\MarkdownChunkPlanner;
@@ -51,17 +51,13 @@ class WriteCanonicalChunksAction
         if ($knowledgeBase === null) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
-        $knowledgeBase->loadMissing('workspace.knowledgeEmbeddingModel.provider');
-        $workspace = $knowledgeBase->workspace;
-        if ($workspace === null) {
-            throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
-        }
+        $systemContext = SystemContext::current();
 
         if ($document->parse_status !== KnowledgeDocumentParseStatus::Succeeded || ! filled($document->parsed_content)) {
             throw new BusinessException(__('knowledge_base.documents.errors.parsed_content_missing'));
         }
 
-        $segments = $this->planner->plan($workspace, (string) $document->parsed_content);
+        $segments = $this->planner->plan($systemContext, (string) $document->parsed_content);
         if ($segments === []) {
             throw new BusinessException(__('knowledge_base.documents.errors.no_segments'));
         }
@@ -79,7 +75,7 @@ class WriteCanonicalChunksAction
             ];
         }
 
-        $this->purgeForDocument($knowledgeBase, $document);
+        $this->purgeForDocument($document);
         $ids = $this->nodes->writeCanonicalSegments($knowledgeBase, $document, $payload);
         $nodes = $this->reloadNodes($ids);
 
@@ -122,7 +118,7 @@ class WriteCanonicalChunksAction
             ];
         }
 
-        $this->purgeForQaEntry($knowledgeBase, $entry);
+        $this->purgeForQaEntry($entry);
         $ids = $this->nodes->writeQaCanonicalNodes($knowledgeBase, $entry, $payload);
         $nodes = $this->reloadNodes($ids);
 
@@ -154,7 +150,7 @@ class WriteCanonicalChunksAction
      * 清空文档 canonical 节点 + 全文索引 + 大纲。向量 / RAPTOR 节点保留，
      * 由各自的索引器在重建时单独清理（避免一次写 canonical 把模型成本拉高的副作用）。
      */
-    private function purgeForDocument(KnowledgeBase $knowledgeBase, KnowledgeDocument $document): void
+    private function purgeForDocument(KnowledgeDocument $document): void
     {
         $this->nodes->purgeStrategyForDocument($document, KnowledgeIndexingStrategy::Text);
         $this->fts->purgeForDocument($document);
@@ -163,7 +159,7 @@ class WriteCanonicalChunksAction
     /**
      * 清空问答 canonical 节点 + FTS 行。
      */
-    private function purgeForQaEntry(KnowledgeBase $knowledgeBase, KnowledgeQaEntry $entry): void
+    private function purgeForQaEntry(KnowledgeQaEntry $entry): void
     {
         $this->nodes->purgeStrategyForQaEntry($entry, KnowledgeIndexingStrategy::Text);
         $this->fts->purgeForQaEntry($entry);

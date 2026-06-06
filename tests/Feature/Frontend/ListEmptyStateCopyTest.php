@@ -33,18 +33,18 @@ test('列表空状态使用暂无对象名短文案', function (): void {
                 "t('暂无匹配的快捷回复')",
             ],
         ],
-        'pages/workspaceSettings/aiProviders/Index.vue' => [
+        'pages/systemSettings/aiProviders/Index.vue' => [
             'expected' => [
                 "t('暂无模型')",
                 "t('暂无供应商')",
             ],
         ],
-        'pages/workspaceSettings/mcpServers/Index.vue' => [
+        'pages/systemSettings/mcpServers/Index.vue' => [
             'expected' => [
                 "t('暂无 MCP 服务')",
             ],
         ],
-        'pages/workspaceSettings/translationProviders/Index.vue' => [
+        'pages/systemSettings/translationProviders/Index.vue' => [
             'expected' => [
                 "t('暂无供应商')",
             ],
@@ -59,7 +59,7 @@ test('列表空状态使用暂无对象名短文案', function (): void {
                 "t('暂无已删除的渠道')",
             ],
         ],
-        'locales/zh-CN/workspace-settings.ts' => [
+        'locales/zh-CN/system-admin.ts' => [
             'expected' => [
                 '暂无接待方案',
                 '暂无已删除的接待方案',
@@ -69,7 +69,7 @@ test('列表空状态使用暂无对象名短文案', function (): void {
                 '暂无供应商',
             ],
         ],
-        'locales/en/workspace-settings.ts' => [
+        'locales/en/system-admin.ts' => [
             'expected' => [
                 '暂无接待方案',
                 '暂无已删除的接待方案',

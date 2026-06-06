@@ -5,9 +5,7 @@ namespace App\Actions\Tag;
 use App\Data\SimplePaginationData;
 use App\Data\Tag\ListTagItemData;
 use App\Data\Tag\ShowTagTrashPagePropsData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Tag;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,10 +19,9 @@ class ShowTagTrashAction
     use AsAction;
 
     /**
-     * 查询当前工作区已删除标签列表。
+     * 查询当前系统已删除标签列表。
      */
     public function handle(
-        Workspace $workspace,
         int $page = 1,
         int $perPage = 15,
     ): ShowTagTrashPagePropsData {
@@ -32,7 +29,6 @@ class ShowTagTrashAction
         $perPage = max(1, min($perPage, 50));
 
         $paginator = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->onlyTrashed()
             ->withCount(['contacts', 'conversations'])
             // 标签组可能已被软删，回收站仍要展示其维度，故连带 trashed 一起加载。
@@ -57,10 +53,8 @@ class ShowTagTrashAction
      */
     public function asController(Request $request): Response
     {
-        $currentWorkspace = WorkspaceUserContextData::fromRequest($request)->workspace();
 
         return Inertia::render('tags/Trash', $this->handle(
-            workspace: $currentWorkspace,
             page: (int) $request->query('page', 1),
             perPage: (int) $request->query('per_page', 15),
         )->toArray());

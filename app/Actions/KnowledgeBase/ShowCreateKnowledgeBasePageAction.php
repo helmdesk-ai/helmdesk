@@ -2,7 +2,7 @@
 
 namespace App\Actions\KnowledgeBase;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -11,7 +11,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * 打开创建知识库页面。
- * 当前创建表单不依赖任何后端首屏数据，因此不再下发 PageProps。
+ * 当前创建表单不依赖任何后端首屏数据，直接渲染创建页。
  */
 class ShowCreateKnowledgeBasePageAction
 {
@@ -22,8 +22,7 @@ class ShowCreateKnowledgeBasePageAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesCreate);
 
         return Inertia::render('knowledgeBase/Create');
     }

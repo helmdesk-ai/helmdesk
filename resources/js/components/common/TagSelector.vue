@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useI18n } from '@/composables/useI18n';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface TagOption {

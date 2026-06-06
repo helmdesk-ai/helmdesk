@@ -8,7 +8,6 @@ use App\Enums\AttachmentVisibility;
 use App\Enums\StorageDriver;
 use App\Models\Attachment;
 use App\Models\StorageProfile;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,10 +23,9 @@ class AttachmentFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'storage_profile_id' => StorageProfile::factory()->local(),
             'disk' => StorageDriver::Local,
-            'object_key' => 'workspaces/'.fake()->uuid().'/conversation_file/'.fake()->uuid().'.txt',
+            'object_key' => 'attachments/'.fake()->uuid().'/conversation_file/'.fake()->uuid().'.txt',
             'original_name' => 'note.txt',
             'mime_type' => 'text/plain',
             'extension' => 'txt',

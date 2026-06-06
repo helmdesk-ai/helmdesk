@@ -8,7 +8,6 @@ use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +25,6 @@ class ResolveContactIdentityAction
      * @param  array{type: IdentityType, value: string, namespace?: string}  $identityData
      */
     public function handle(
-        Workspace $workspace,
         array $identityData,
         ContactSource $source = ContactSource::Web,
         ?string $name = null,
@@ -56,9 +54,8 @@ class ResolveContactIdentityAction
 
         $shouldPromote = ContactIdentityNormalizer::promotesContactType($type);
 
-        return DB::transaction(function () use ($workspace, $type, $value, $namespace, $source, $name, $shouldPromote) {
+        return DB::transaction(function () use ($type, $value, $namespace, $source, $name, $shouldPromote) {
             $existing = ContactIdentity::query()
-                ->where('workspace_id', $workspace->id)
                 ->where('type', $type)
                 ->where('namespace', $namespace)
                 ->where('value', $value)
@@ -91,7 +88,6 @@ class ResolveContactIdentityAction
             }
 
             $contact = Contact::query()->create([
-                'workspace_id' => $workspace->id,
                 'type' => $shouldPromote ? ContactType::Contact : ContactType::Visitor,
                 'source' => $source,
                 'name' => $name,
@@ -99,7 +95,6 @@ class ResolveContactIdentityAction
             ]);
 
             ContactIdentity::query()->create([
-                'workspace_id' => $workspace->id,
                 'contact_id' => $contact->id,
                 'type' => $type,
                 'namespace' => $namespace,

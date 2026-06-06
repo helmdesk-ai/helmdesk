@@ -7,8 +7,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * 单个 MCP 工具的展示数据。
- * 由 McpServerData::fromModel 装配后随 ShowWorkspaceMcpServersPagePropsData 下发，
- * 用于 resources/js/pages/workspaceSettings/mcpServers 详情面板的工具列表行渲染。
+ * 由 McpServerData::fromModel 装配后随 ShowSystemMcpServersPagePropsData 下发，
+ * 用于 resources/js/pages/systemSettings/mcpServers 详情面板的工具列表行渲染。
  */
 class McpToolData extends Data
 {
@@ -20,7 +20,6 @@ class McpToolData extends Data
         public ?array $input_schema,
         /** @var array<string, mixed>|null */
         public ?array $annotations,
-        public bool $is_enabled,
         public ?string $last_seen_at,
         public ?string $removed_at,
     ) {}
@@ -36,7 +35,6 @@ class McpToolData extends Data
             description: $tool->description,
             input_schema: $tool->input_schema,
             annotations: $tool->annotations,
-            is_enabled: (bool) $tool->is_enabled,
             last_seen_at: $tool->last_seen_at?->toIso8601String(),
             removed_at: $tool->removed_at?->toIso8601String(),
         );

@@ -2,29 +2,27 @@
 
 namespace App\Actions\AiProvider;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
-use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除工作区供应商下的模型配置。
+ * 删除系统供应商下的模型配置。
  */
 class DeleteAiModelAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $providerSlug, string $modelId): void
+    public function handle(string $providerSlug, string $modelId): void
     {
         $model = AiModel::query()
             ->whereHas(
                 'provider',
                 fn ($q) => $q
-                    ->where('workspace_id', $workspace->id)
                     ->where('slug', $providerSlug),
             )
             ->where('id', $modelId)
@@ -53,12 +51,11 @@ class DeleteAiModelAction
         $model->delete();
     }
 
-    public function asController(Request $request, string $slug, string $provider, string $model)
+    public function asController(Request $request, string $provider, string $model)
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($workspace, $provider, $model);
+        $this->handle($provider, $model);
 
         return back();
     }

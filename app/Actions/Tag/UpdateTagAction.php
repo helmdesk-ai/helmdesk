@@ -3,12 +3,10 @@
 namespace App\Actions\Tag;
 
 use App\Data\Tag\FormUpdateTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,15 +22,13 @@ class UpdateTagAction
     /**
      * 更新标签字段并在同维度组之间移动；改名后刷新关联联系人搜索索引。
      */
-    public function handle(Workspace $workspace, string $id, FormUpdateTagData $data, ?User $actor = null): Tag
+    public function handle(string $id, FormUpdateTagData $data, ?User $actor = null): Tag
     {
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->with('tagGroup')
             ->findOrFail($id);
 
         $targetGroup = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->find($data->tag_group_id);
 
         if ($targetGroup === null) {
@@ -52,7 +48,6 @@ class UpdateTagAction
         $normalizedName = mb_strtolower($name);
 
         $exists = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->where('tag_group_id', $targetGroup->id)
             ->where('normalized_name', $normalizedName)
             ->where('id', '!=', $tag->id)
@@ -92,12 +87,10 @@ class UpdateTagAction
         return $tag;
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $currentWorkspace = $ctx->workspace();
         $data = FormUpdateTagData::from($request);
-        $this->handle($currentWorkspace, $id, $data, $request->user());
+        $this->handle($id, $data, $request->user());
 
         return back();
     }

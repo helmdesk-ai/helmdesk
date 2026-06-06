@@ -13,7 +13,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
             $table->softDeletes();
-            $table->ulid('workspace_id')->comment('工作区 ID');
             $table->string('name')->comment('标签组名');
             $table->string('normalized_name')->comment('标准化组名');
             $table->string('scope')->comment('适用维度：conversation / contact');
@@ -21,12 +20,11 @@ return new class extends Migration
             $table->ulid('created_by_user_id')->nullable();
             $table->ulid('updated_by_user_id')->nullable();
 
-            $table->index('workspace_id');
-            $table->index(['workspace_id', 'scope'], 'tag_groups_workspace_scope_idx');
+            $table->index(['scope', 'sort_order', 'name'], 'tag_groups_scope_sort_idx');
         });
 
         DB::statement(
-            'CREATE UNIQUE INDEX tag_groups_workspace_normalized_name_active_unique ON tag_groups (workspace_id, normalized_name) WHERE deleted_at IS NULL',
+            'CREATE UNIQUE INDEX tag_groups_normalized_name_active_unique ON tag_groups (normalized_name) WHERE deleted_at IS NULL',
         );
     }
 

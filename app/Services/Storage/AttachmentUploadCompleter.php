@@ -5,7 +5,6 @@ namespace App\Services\Storage;
 use App\Actions\Attachment\ValidateAttachmentUploadAction;
 use App\Actions\Attachment\ValidateCompletedAttachmentUploadAction;
 use App\Enums\AttachmentStatus;
-use App\Enums\AttachmentUploadMode;
 use App\Enums\AttachmentUploadStatus;
 use App\Enums\StorageDriver;
 use App\Models\Attachment;
@@ -32,10 +31,8 @@ class AttachmentUploadCompleter
 
     /**
      * 校验并完成上传意图，更新附件状态和对象元数据。
-     *
-     * @param  list<array{part_number: int, etag: string}>  $parts
      */
-    public function complete(AttachmentUpload $upload, array $parts = [], ?string $checksumSha256 = null): Attachment
+    public function complete(AttachmentUpload $upload, ?string $checksumSha256 = null): Attachment
     {
         $upload->loadMissing(['attachment', 'storageProfile']);
         $this->completedUploadValidator->assertCompletable($upload);
@@ -43,12 +40,6 @@ class AttachmentUploadCompleter
         if ($upload->expires_at->isPast()) {
             $this->markExpired($upload);
             throw ValidationException::withMessages(['upload' => __('attachments.errors.upload_expired')]);
-        }
-
-        $mode = $upload->mode;
-
-        if ($mode === AttachmentUploadMode::Multipart) {
-            $this->completeMultipart($upload, $parts);
         }
 
         $object = $this->inspectObject($upload);
@@ -73,7 +64,6 @@ class AttachmentUploadCompleter
             $upload->update([
                 'status' => AttachmentUploadStatus::Completed,
                 'completed_at' => now(),
-                'parts' => $upload->parts,
             ]);
 
             return $attachment->fresh();
@@ -90,35 +80,6 @@ class AttachmentUploadCompleter
         }
 
         return $attachment->fresh() ?? $attachment;
-    }
-
-    /**
-     * 向对象存储提交分片上传完成请求。
-     *
-     * @param  list<array{part_number: int, etag: string}>  $parts
-     */
-    private function completeMultipart(AttachmentUpload $upload, array $parts): void
-    {
-        if ($parts === []) {
-            throw ValidationException::withMessages(['parts' => __('validation.required', ['attribute' => 'parts'])]);
-        }
-
-        usort($parts, fn (array $a, array $b): int => $a['part_number'] <=> $b['part_number']);
-        $client = $this->s3ClientFactory->make($upload->storageProfile);
-        $client->completeMultipartUpload([
-            'Bucket' => $upload->storageProfile->bucket,
-            'Key' => $upload->object_key,
-            'UploadId' => $upload->upload_id,
-            'MultipartUpload' => [
-                'Parts' => array_map(fn (array $part): array => [
-                    'PartNumber' => (int) $part['part_number'],
-                    'ETag' => (string) $part['etag'],
-                ], $parts),
-            ],
-        ]);
-
-        $upload->parts = $parts;
-        $upload->save();
     }
 
     /**

@@ -11,20 +11,18 @@ use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeSearchMode;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function (): void {
-    $this->user = $this->createUserWithWorkspace();
-    $this->workspace->update([
+    $this->user = $this->createUserWithSystem();
+    $this->systemContext->update([
         'knowledge_vector_index_enabled' => false,
         'knowledge_raptor_index_enabled' => false,
     ]);
     $this->kb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '产品知识库',
     ]);
 });
@@ -55,7 +53,7 @@ test('RunKnowledgeRecallTestAction semantic 模式富集文档标题并回填诊
 
     /** @var RunKnowledgeRecallTestAction $action */
     $action = app(RunKnowledgeRecallTestAction::class);
-    $result = $action->handle($this->workspace, $this->kb, FormKnowledgeSearchData::from([
+    $result = $action->handle($this->systemContext, $this->kb, FormKnowledgeSearchData::from([
         'mode' => KnowledgeSearchMode::Semantic->value,
         'knowledge_base_ids' => [(string) $this->kb->id],
         'query' => '工单',
@@ -83,7 +81,7 @@ test('RunKnowledgeRecallTestAction grep 模式回填字段标签与来源标题'
 
     /** @var RunKnowledgeRecallTestAction $action */
     $action = app(RunKnowledgeRecallTestAction::class);
-    $result = $action->handle($this->workspace, $this->kb, FormKnowledgeSearchData::from([
+    $result = $action->handle($this->systemContext, $this->kb, FormKnowledgeSearchData::from([
         'mode' => KnowledgeSearchMode::Grep->value,
         'knowledge_base_ids' => [(string) $this->kb->id],
         'query' => 'Helmdesk',
@@ -103,7 +101,6 @@ test('RunKnowledgeRecallTestAction grep 模式回填字段标签与来源标题'
 
 test('RunKnowledgeRecallTestAction 在 QA 知识库上以主问题作为来源标题', function (): void {
     $qaKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'category' => KnowledgeBaseCategory::Qa->value,
         'name' => '产品问答库',
     ]);
@@ -115,7 +112,7 @@ test('RunKnowledgeRecallTestAction 在 QA 知识库上以主问题作为来源�
 
     /** @var RunKnowledgeRecallTestAction $action */
     $action = app(RunKnowledgeRecallTestAction::class);
-    $result = $action->handle($this->workspace, $qaKb, FormKnowledgeSearchData::from([
+    $result = $action->handle($this->systemContext, $qaKb, FormKnowledgeSearchData::from([
         'mode' => KnowledgeSearchMode::Semantic->value,
         'knowledge_base_ids' => [(string) $qaKb->id],
         'query' => '申请退款',
@@ -134,9 +131,7 @@ test('召回测试接口返回结构化 JSON 命中', function (): void {
     );
 
     $response = $this->actingAs($this->user)->postJson(
-        route('workspace.manage.knowledge-bases.recall-test', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $this->kb->id,
+        route('admin.manage.knowledge-bases.recall-test', ['knowledgeBase' => $this->kb->id,
         ]),
         ['mode' => 'grep', 'query' => 'Helmdesk'],
     );
@@ -147,26 +142,21 @@ test('召回测试接口返回结构化 JSON 命中', function (): void {
         ->assertJsonPath('grep_matches.0.origin_title', '工单流程说明.md');
 });
 
-test('召回测试接口拒绝当前工作区之外的知识库', function (): void {
-    $otherWorkspace = Workspace::factory()->create();
+test('召回测试接口单租户下允许指定任意知识库', function (): void {
     $otherKb = KnowledgeBase::factory()->create([
-        'workspace_id' => $otherWorkspace->id,
     ]);
 
     $this->actingAs($this->user)->postJson(
-        route('workspace.manage.knowledge-bases.recall-test', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $otherKb->id,
+        route('admin.manage.knowledge-bases.recall-test', ['knowledgeBase' => $otherKb->id,
         ]),
         ['mode' => 'grep', 'query' => 'Helmdesk'],
-    )->assertNotFound();
+    )->assertOk()
+        ->assertJsonPath('mode', 'grep');
 });
 
 test('召回测试接口对空 query 返回校验错误', function (): void {
     $this->actingAs($this->user)->postJson(
-        route('workspace.manage.knowledge-bases.recall-test', [
-            'slug' => $this->workspaceSlug(),
-            'knowledgeBase' => $this->kb->id,
+        route('admin.manage.knowledge-bases.recall-test', ['knowledgeBase' => $this->kb->id,
         ]),
         ['mode' => 'semantic', 'query' => ''],
     )->assertStatus(422)->assertJsonValidationErrorFor('query');

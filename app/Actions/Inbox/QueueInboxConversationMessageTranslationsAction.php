@@ -4,15 +4,13 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxMessageTranslationsData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Jobs\Inbox\TranslateInboxConversationMessageJob;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\User;
-use App\Models\Workspace;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -38,11 +36,10 @@ class QueueInboxConversationMessageTranslationsAction
      *
      * @param  list<string>  $messageIds
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, array $messageIds): int
+    public function handle(User $user, string $conversationId, array $messageIds): int
     {
         $conversation = Conversation::query()
-            ->with(['channel', 'workspace'])
-            ->where('workspace_id', $workspace->id)
+            ->with(['channel'])
             ->find($conversationId);
 
         if ($conversation === null || $conversation->channel === null) {
@@ -68,15 +65,13 @@ class QueueInboxConversationMessageTranslationsAction
     /**
      * 接收当前可见消息补翻请求并返回排队数量。
      */
-    public function asController(Request $request, string $slug, string $conversationId): JsonResponse
+    public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
         $data = FormQueueInboxMessageTranslationsData::from($request);
 
         return response()->json([
             'queued_count' => $this->handle(
-                workspace: $ctx->workspace(),
                 user: $user,
                 conversationId: $conversationId,
                 messageIds: $data->message_ids,

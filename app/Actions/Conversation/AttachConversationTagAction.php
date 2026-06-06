@@ -3,13 +3,11 @@
 namespace App\Actions\Conversation;
 
 use App\Data\Conversation\FormAttachConversationTagData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\TagScope;
 use App\Enums\TagSource;
 use App\Models\Conversation;
 use App\Models\Tag;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,14 +24,12 @@ class AttachConversationTagAction
     /**
      * 校验标签为会话维度后，以人工来源附加到会话（复用同一行，清除抑制墓碑）。
      */
-    public function handle(Workspace $workspace, string $conversationId, FormAttachConversationTagData $data, ?User $actor = null): void
+    public function handle(string $conversationId, FormAttachConversationTagData $data, ?User $actor = null): void
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($conversationId);
 
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->with('tagGroup')
             ->findOrFail($data->tag_id);
 
@@ -66,11 +62,10 @@ class AttachConversationTagAction
     /**
      * 接收会话标签附加的 XHR 请求并返回 JSON。
      */
-    public function asController(Request $request, string $slug, string $conversation): JsonResponse
+    public function asController(Request $request, string $conversation): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
         $data = FormAttachConversationTagData::from($request);
-        $this->handle($ctx->workspace(), $conversation, $data, $request->user());
+        $this->handle($conversation, $data, $request->user());
 
         return response()->json(['success' => true]);
     }

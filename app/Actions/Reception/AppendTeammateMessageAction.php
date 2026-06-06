@@ -15,8 +15,8 @@ use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
 use App\Models\User;
 use App\Services\Conversation\ConversationReplyPermission;
+use App\Services\Localization\LocalePreference;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
-use App\Support\LocalePreference;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -120,7 +120,6 @@ class AppendTeammateMessageAction
 
                 if ($content !== '') {
                     $messages->push(ConversationMessage::query()->create([
-                        'workspace_id' => $conversation->workspace_id,
                         'conversation_id' => $conversation->id,
                         'sender_user_id' => $actor->id,
                         'sender_name' => $actor->name,
@@ -141,7 +140,6 @@ class AppendTeammateMessageAction
                         : MessageKind::File;
 
                     $attachmentMessage = ConversationMessage::query()->create([
-                        'workspace_id' => $conversation->workspace_id,
                         'conversation_id' => $conversation->id,
                         'sender_user_id' => $actor->id,
                         'sender_name' => $actor->name,
@@ -157,7 +155,6 @@ class AppendTeammateMessageAction
                     $attached = $this->attachUploadedAttachmentsAction->handle(
                         attachable: $attachmentMessage,
                         attachmentId: (string) $attachment->id,
-                        workspaceId: (string) $conversation->workspace_id,
                         actor: $actor,
                         allowedPurposes: [AttachmentPurpose::ConversationImage, AttachmentPurpose::ConversationFile],
                     );
@@ -200,7 +197,6 @@ class AppendTeammateMessageAction
 
                     if ($affected > 0) {
                         ConversationEvent::query()->create([
-                            'workspace_id' => $conversation->workspace_id,
                             'conversation_id' => $conversation->id,
                             'actor_user_id' => $actor->id,
                             'type' => ConversationEventType::AssignmentChanged,

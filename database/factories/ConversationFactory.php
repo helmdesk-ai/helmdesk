@@ -12,7 +12,6 @@ use App\Models\Conversation;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,7 +24,6 @@ class ConversationFactory extends Factory
         $createdAt = fake()->dateTimeBetween('-14 days', 'now');
 
         return [
-            'workspace_id' => Workspace::factory(),
             'contact_id' => null,
             'assigned_user_id' => null,
             'channel_id' => null,
@@ -66,7 +64,6 @@ class ConversationFactory extends Factory
     public function forContact(Contact $contact): static
     {
         return $this->state([
-            'workspace_id' => $contact->workspace_id,
             'contact_id' => $contact->id,
         ]);
     }
@@ -101,21 +98,18 @@ class ConversationFactory extends Factory
     }
 
     /**
-     * 显式传入 $workspace 以避开 factory 状态闭包内 attribute 尚未解析的问题；未传时新建一个。
-     * 串起 workspace → plan → version → channel(reception_plan_id) → conversation(reception_plan_version_id) 链路：
+     * 串起 plan → version → channel(reception_plan_id) → conversation(reception_plan_version_id) 链路：
      * 渠道绑定方案自动跟随最新版，会话仍锁定到对应版本，便于测试新会话已锁定接待方案版本的语义。
      */
-    public function withReceptionPlanVersion(?Workspace $workspace = null): static
+    public function withReceptionPlanVersion(): static
     {
-        $workspace ??= Workspace::factory()->create();
-        $plan = ReceptionPlan::factory()->for($workspace)->create();
+        $plan = ReceptionPlan::factory()->create();
         $planVersion = ReceptionPlanVersion::factory()->for($plan, 'plan')->create();
-        $channel = Channel::factory()->for($workspace)->create([
+        $channel = Channel::factory()->create([
             'reception_plan_id' => $plan->id,
         ]);
 
         return $this->state([
-            'workspace_id' => $workspace->id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $planVersion->id,
         ]);

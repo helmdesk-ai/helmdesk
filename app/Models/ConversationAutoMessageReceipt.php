@@ -12,7 +12,6 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $conversation_id
  * @property ConversationAutoMessageTrigger $trigger
  * @property string $idempotency_key

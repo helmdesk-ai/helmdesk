@@ -29,15 +29,12 @@ return [
     'upload_modes' => [
         'proxy' => '代理上传',
         'presigned_post' => '预签名 POST',
-        'presigned_put' => '预签名 PUT',
-        'multipart' => '分片上传',
     ],
     'visibility' => [
         'public' => '公开',
         'private' => '私有',
     ],
     'errors' => [
-        'invalid_upload_mode' => '当前上传方式不支持此操作。',
         'upload_expired' => '上传已过期，请重新选择文件上传。',
         'object_mismatch' => '上传文件与上传意图不一致。',
         'object_missing' => '未找到已上传的文件对象。',

@@ -1,12 +1,12 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 it('renders the preview iframe shell for authenticated users', function () {

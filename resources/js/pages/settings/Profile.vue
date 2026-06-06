@@ -8,7 +8,6 @@ import InputError from '@/components/common/InputError.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/composables/useI18n';
-import { useCurrentWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/SettingsLayout.vue';
 import SystemAppLayout from '@/layouts/SystemAppLayout.vue';
@@ -26,15 +25,9 @@ defineProps<Props>();
 
 const { t } = useI18n();
 const page = usePage();
-const currentWorkspace = useCurrentWorkspace();
 const RootLayout = computed(() =>
   page.props.auth.user.is_super_admin ? SystemAppLayout : AppLayout,
 );
-const linkOptions = computed(() => ({
-  mergeQuery: {
-    from_workspace: currentWorkspace.value?.slug ?? '',
-  },
-}));
 const user = page.props.auth.user;
 </script>
 
@@ -50,7 +43,7 @@ const user = page.props.auth.user;
         />
 
         <Form
-          :action="update.url(linkOptions)"
+          :action="update.url()"
           method="patch"
           class="space-y-6"
           v-slot="{ errors, processing }"
@@ -86,7 +79,7 @@ const user = page.props.auth.user;
             <p class="-mt-4 text-sm text-muted-foreground">
               {{ t('你的电子邮件地址未验证。') }}
               <Link
-                :href="send.url(linkOptions)"
+                :href="send.url()"
                 method="post"
                 as="button"
                 class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"

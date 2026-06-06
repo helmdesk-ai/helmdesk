@@ -8,7 +8,7 @@ use App\Enums\CannedReplyTokenKind;
 /**
  * 快捷回复模版变量解析器。
  * 解析 {{namespace.field}} 严格无空格点号格式；
- * v1 实装 contact / conversation / teammate / workspace；
+ * v1 实装 contact / conversation / teammate / system；
  * AI token 原样保留并通过 warnings 上抛，由 v2 的 AI 能力接管。
  */
 class CannedReplyVariableResolver
@@ -123,7 +123,7 @@ class CannedReplyVariableResolver
             ['conversation', 'id'] => $context->conversation_id,
             ['conversation', 'subject'] => $context->conversation_subject,
             ['teammate', 'name'] => $context->teammate_name,
-            ['workspace', 'name'] => $context->workspace_name,
+            ['system', 'name'] => $context->system_name,
             default => null,
         };
 
@@ -147,7 +147,7 @@ class CannedReplyVariableResolver
             CannedReplyTokenKind::Contact->value => ['name', 'email', 'primary_phone'],
             CannedReplyTokenKind::Conversation->value => ['subject', 'id'],
             CannedReplyTokenKind::Teammate->value => ['name'],
-            CannedReplyTokenKind::Workspace->value => ['name'],
+            CannedReplyTokenKind::System->value => ['name'],
         ];
     }
 }

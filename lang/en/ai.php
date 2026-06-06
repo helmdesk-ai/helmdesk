@@ -25,7 +25,7 @@ return [
     'chat' => [
         'prompt_required' => 'Please enter a message to send.',
         'model_required' => 'Please choose a model before sending.',
-        'model_unavailable' => 'This workspace does not have an available AI model. Please contact an administrator.',
+        'model_unavailable' => 'This system does not have an available AI model. Please contact an administrator.',
         'selected_model_unavailable' => 'The selected model is unavailable. Please choose another one.',
         'runtime_unavailable' => 'The AI service is currently unavailable. Please try again later.',
         'invalid_topic' => 'Unable to stop this AI conversation. Please refresh and try again.',

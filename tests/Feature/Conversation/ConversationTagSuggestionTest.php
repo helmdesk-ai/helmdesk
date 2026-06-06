@@ -8,18 +8,17 @@ use App\Models\Tag;
 use App\Models\TagGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
-    $this->contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $this->user = $this->createUserWithSystem();
+    $this->contact = Contact::factory()->create([]);
     $this->conversation = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $this->contact->id,
     ]);
-    $this->group = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
+    $this->group = TagGroup::factory()->conversation()->create([]);
 });
 
 function makeConversationTag(string $name): Tag

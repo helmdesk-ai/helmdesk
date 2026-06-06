@@ -10,7 +10,7 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
-use App\Models\Workspace;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -120,17 +120,17 @@ class ConversationDemoGenerator
      *
      * @return array{conversations:int,messages:int,events:int}
      */
-    public function generate(Workspace $workspace, int $count): array
+    public function generate(int $count): array
     {
-        return DB::transaction(fn () => $this->run($workspace, $count));
+        return DB::transaction(fn () => $this->run($count));
     }
 
     /**
      * @return array{conversations:int,messages:int,events:int}
      */
-    private function run(Workspace $workspace, int $count): array
+    private function run(int $count): array
     {
-        $contacts = $workspace->contacts()->limit(max(10, min($count, 40)))->get();
+        $contacts = Contact::query()->limit(max(10, min($count, 40)))->get();
         if ($contacts->isEmpty()) {
             $contacts = Contact::factory()
                 ->count(max(10, min($count, 20)))
@@ -140,11 +140,10 @@ class ConversationDemoGenerator
                     'country' => fake('zh_CN')->optional()->country(),
                 ])
                 ->create([
-                    'workspace_id' => $workspace->id,
                 ]);
         }
 
-        $users = $workspace->users()->get();
+        $users = User::query()->get();
 
         $messageCount = 0;
         $eventCount = 0;
@@ -164,7 +163,6 @@ class ConversationDemoGenerator
                 : random_int(6, 12);
 
             $conversation = Conversation::query()->create([
-                'workspace_id' => $workspace->id,
                 'contact_id' => $contact?->id,
                 'assigned_user_id' => $assignedUser?->id,
                 'source' => ConversationSource::Channel,

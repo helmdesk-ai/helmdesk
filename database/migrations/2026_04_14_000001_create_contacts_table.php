@@ -12,7 +12,6 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->timestamps();
             $table->softDeletes();
-            $table->ulid('workspace_id');
             $table->string('type')->default('visitor');
             $table->string('source')->default('web');
             $table->string('name')->nullable();
@@ -32,9 +31,9 @@ return new class extends Migration
             $table->string('important_source', 20)->nullable();
             $table->timestamp('last_seen_at')->nullable();
 
-            $table->index(['workspace_id', 'type']);
-            $table->index(['workspace_id', 'is_important', 'last_seen_at'], 'contacts_workspace_important_seen_idx');
-            $table->unique(['id', 'workspace_id']);
+            $table->index(['deleted_at', 'type', 'is_important', 'last_seen_at', 'created_at'], 'contacts_type_list_idx');
+            $table->index(['deleted_at', 'is_important', 'last_seen_at', 'created_at'], 'contacts_list_idx');
+            $table->index(['deleted_at', 'created_at'], 'contacts_trash_idx');
         });
     }
 

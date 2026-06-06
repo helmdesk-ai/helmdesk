@@ -5,11 +5,10 @@ namespace App\Actions\Contact;
 use App\Data\Contact\ContactActivityLogData;
 use App\Data\Contact\ContactDetailData;
 use App\Data\CustomAttribute\ContactAttributeFieldData;
-use App\Data\WorkspaceUserContextData;
+use App\Models\AttributeDefinition;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactAttributeValue;
-use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,11 +20,10 @@ class ShowContactDetailAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, bool $includeTrashed = false): ContactDetailData
+    public function handle(string $contactId, bool $includeTrashed = false): ContactDetailData
     {
         $contactQuery = Contact::query()
             ->when($includeTrashed, fn ($query) => $query->withTrashed())
-            ->where('workspace_id', $workspace->id)
             ->with([
                 'identities' => fn ($query) => $includeTrashed ? $query->withTrashed() : $query,
             ]);
@@ -33,7 +31,6 @@ class ShowContactDetailAction
         $contact = $contactQuery->findOrFail($contactId);
 
         $activityLogs = ContactActivityLog::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contactId)
             ->with([
                 'actor',
@@ -43,7 +40,7 @@ class ShowContactDetailAction
             ->get()
             ->map(fn (ContactActivityLog $activityLog) => ContactActivityLogData::fromModel($activityLog));
 
-        $customAttributes = $this->buildCustomAttributeFields($workspace, $contact);
+        $customAttributes = $this->buildCustomAttributeFields($contact);
 
         return ContactDetailData::fromModel($contact, $activityLogs, $customAttributes);
     }
@@ -51,15 +48,14 @@ class ShowContactDetailAction
     /**
      * @return ContactAttributeFieldData[]
      */
-    private function buildCustomAttributeFields(Workspace $workspace, Contact $contact): array
+    private function buildCustomAttributeFields(Contact $contact): array
     {
-        $activeDefinitions = $workspace->attributeDefinitions()
+        $activeDefinitions = AttributeDefinition::query()
             ->active()
             ->ordered()
             ->get();
 
         $contactValues = ContactAttributeValue::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->with('definition')
             ->get()
@@ -96,12 +92,10 @@ class ShowContactDetailAction
         return $fields;
     }
 
-    public function asController(Request $request, string $slug, string $id): JsonResponse
+    public function asController(Request $request, string $id): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
         $includeTrashed = $request->boolean('include_trashed');
 
-        return response()->json($this->handle($workspace, $id, $includeTrashed)->toArray());
+        return response()->json($this->handle($id, $includeTrashed)->toArray());
     }
 }

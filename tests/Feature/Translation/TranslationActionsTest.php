@@ -4,7 +4,7 @@ use App\Actions\Translation\CheckTranslationProviderAction;
 use App\Actions\Translation\ClearTranslationProviderCredentialsAction;
 use App\Actions\Translation\CreateTranslationProviderAction;
 use App\Actions\Translation\DeleteTranslationProviderAction;
-use App\Actions\Translation\ShowWorkspaceTranslationProvidersAction;
+use App\Actions\Translation\ShowSystemTranslationProvidersAction;
 use App\Actions\Translation\UpdateTranslationProviderCredentialsAction;
 use App\Data\Translation\FormCheckTranslationProviderData;
 use App\Data\Translation\FormCreateTranslationProviderData;
@@ -16,31 +16,29 @@ use App\Models\TranslationProvider;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->createUserWithWorkspace();
+    $this->createUserWithSystem();
 });
 
 // ---------------------------------------------------------------------------
 // Show 直接调用：组装 props 形状正确
 // ---------------------------------------------------------------------------
 
-it('ShowWorkspaceTranslationProvidersAction 返回工作区下的 providers + 协议下拉', function () {
+it('ShowSystemTranslationProvidersAction 返回系统下的 providers + 协议下拉', function () {
     TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'p-a',
         'sort_order' => 2,
     ]);
     TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'slug' => 'p-b',
         'sort_order' => 1,
     ]);
 
-    $props = ShowWorkspaceTranslationProvidersAction::run($this->workspace);
+    $props = ShowSystemTranslationProvidersAction::run();
 
     expect($props->providers)->toHaveCount(2)
         // 按 sort_order 升序：p-b（1）在前
@@ -58,7 +56,6 @@ it('ShowWorkspaceTranslationProvidersAction 返回工作区下的 providers + �
 
 it('CreateTranslationProviderAction 创建待配置的自定义 provider', function () {
     $provider = CreateTranslationProviderAction::run(
-        $this->workspace,
         FormCreateTranslationProviderData::from([
             'name' => '我的 Google',
             'protocol' => TranslationProviderType::GoogleTranslate->value,
@@ -78,12 +75,10 @@ it('CreateTranslationProviderAction 创建待配置的自定义 provider', funct
 
 it('UpdateTranslationProviderCredentialsAction 合并新值', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'old'],
     ]);
 
     UpdateTranslationProviderCredentialsAction::run(
-        $this->workspace,
         $provider->slug,
         FormUpdateTranslationProviderData::from([
             'name' => 'Renamed Google',
@@ -95,14 +90,12 @@ it('UpdateTranslationProviderCredentialsAction 合并新值', function () {
         ->and($provider->fresh()->name)->toBe('Renamed Google');
 });
 
-it('UpdateTranslationProviderCredentialsAction 提交空 secret 字段保留旧值', function () {
+it('UpdateTranslationProviderCredentialsAction 提交空 secret 字段保留原值', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'keep'],
     ]);
 
     UpdateTranslationProviderCredentialsAction::run(
-        $this->workspace,
         $provider->slug,
         FormUpdateTranslationProviderData::from([
             'name' => $provider->name,
@@ -119,11 +112,10 @@ it('UpdateTranslationProviderCredentialsAction 提交空 secret 字段保留旧�
 
 it('ClearTranslationProviderCredentialsAction 清空凭据', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'x'],
     ]);
 
-    ClearTranslationProviderCredentialsAction::run($this->workspace, $provider->slug);
+    ClearTranslationProviderCredentialsAction::run($provider->slug);
 
     expect($provider->fresh())->credentials->toBeNull()
         ->and($provider->fresh()->hasCompleteCredentials())->toBeFalse();
@@ -135,7 +127,6 @@ it('ClearTranslationProviderCredentialsAction 清空凭据', function () {
 
 it('hasCompleteCredentials 必填凭据缺失时为 false', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => null,
     ]);
 
@@ -152,11 +143,10 @@ it('hasCompleteCredentials 必填凭据缺失时为 false', function () {
 
 it('DeleteTranslationProviderAction 内置 provider 拒绝删除', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'is_builtin' => true,
     ]);
 
-    expect(fn () => DeleteTranslationProviderAction::run($this->workspace, $provider->slug))
+    expect(fn () => DeleteTranslationProviderAction::run($provider->slug))
         ->toThrow(BusinessException::class);
 
     expect(TranslationProvider::find($provider->id))->not->toBeNull();
@@ -164,13 +154,11 @@ it('DeleteTranslationProviderAction 内置 provider 拒绝删除', function () {
 
 it('DeleteTranslationProviderAction 被接待方案引用时拒绝删除', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'is_builtin' => false,
         'credentials' => ['api_key' => 'k'],
     ]);
 
     ReceptionPlan::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'translation_config' => [
             'enabled' => true,
             'failure_mode' => 'skip',
@@ -178,7 +166,7 @@ it('DeleteTranslationProviderAction 被接待方案引用时拒绝删除', funct
         ],
     ]);
 
-    expect(fn () => DeleteTranslationProviderAction::run($this->workspace, $provider->slug))
+    expect(fn () => DeleteTranslationProviderAction::run($provider->slug))
         ->toThrow(BusinessException::class);
 
     expect(TranslationProvider::find($provider->id))->not->toBeNull();
@@ -186,11 +174,10 @@ it('DeleteTranslationProviderAction 被接待方案引用时拒绝删除', funct
 
 it('DeleteTranslationProviderAction 未被引用时正常删除', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'is_builtin' => false,
     ]);
 
-    DeleteTranslationProviderAction::run($this->workspace, $provider->slug);
+    DeleteTranslationProviderAction::run($provider->slug);
 
     expect(TranslationProvider::find($provider->id))->toBeNull();
 });
@@ -201,7 +188,6 @@ it('DeleteTranslationProviderAction 未被引用时正常删除', function () {
 
 it('CheckTranslationProviderAction 成功路径返回 success=true + result', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'k'],
     ]);
 
@@ -216,7 +202,6 @@ it('CheckTranslationProviderAction 成功路径返回 success=true + result', fu
     ]);
 
     $result = CheckTranslationProviderAction::run(
-        $this->workspace,
         $provider->slug,
         FormCheckTranslationProviderData::from([
             'text' => 'Hello',
@@ -232,7 +217,6 @@ it('CheckTranslationProviderAction 成功路径返回 success=true + result', fu
 
 it('CheckTranslationProviderAction 抓住 driver 异常并降级为 success=false', function () {
     $provider = TranslationProvider::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'credentials' => ['api_key' => 'k'],
     ]);
 
@@ -243,7 +227,6 @@ it('CheckTranslationProviderAction 抓住 driver 异常并降级为 success=fals
     ]);
 
     $result = CheckTranslationProviderAction::run(
-        $this->workspace,
         $provider->slug,
         FormCheckTranslationProviderData::from([
             'text' => 'Hello',
@@ -257,12 +240,11 @@ it('CheckTranslationProviderAction 抓住 driver 异常并降级为 success=fals
 });
 
 // ---------------------------------------------------------------------------
-// 404 / 跨工作区隔离
+// 404 / 跨系统隔离
 // ---------------------------------------------------------------------------
 
 it('Action 在 provider slug 不存在时抛 ModelNotFoundException', function () {
     expect(fn () => UpdateTranslationProviderCredentialsAction::run(
-        $this->workspace,
         'does-not-exist',
         FormUpdateTranslationProviderData::from([
             'name' => 'Missing',

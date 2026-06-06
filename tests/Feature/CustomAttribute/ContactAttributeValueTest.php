@@ -7,7 +7,6 @@ use App\Enums\ContactListType;
 use App\Models\AttributeDefinition;
 use App\Models\Contact;
 use App\Models\ContactAttributeValue;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 
@@ -16,11 +15,11 @@ uses(RefreshDatabase::class);
 // === Update Values ===
 
 test('可以更新文本属性值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['company' => 'Acme'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['company' => 'Acme'], $user->id);
 
     $value = ContactAttributeValue::query()
         ->where('contact_id', $contact->id)
@@ -33,11 +32,11 @@ test('可以更新文本属性值', function () {
 });
 
 test('可以更新数字属性值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->number()->create(['key' => 'age']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->number()->create(['key' => 'age']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['age' => 25], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['age' => 25], $user->id);
 
     $value = ContactAttributeValue::query()
         ->where('contact_id', $contact->id)
@@ -47,11 +46,11 @@ test('可以更新数字属性值', function () {
 });
 
 test('可以更新布尔属性值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->boolean()->create(['key' => 'is_vip']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->boolean()->create(['key' => 'is_vip']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['is_vip' => false], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['is_vip' => false], $user->id);
 
     $value = ContactAttributeValue::query()
         ->where('contact_id', $contact->id)
@@ -62,28 +61,27 @@ test('可以更新布尔属性值', function () {
 });
 
 test('清除值删除行', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->create(['key' => 'company']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $contact->id,
         'definition_id' => $def->id,
         'value_json' => ['value' => 'Old'],
     ]);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['company' => null], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['company' => null], $user->id);
 
     expect(ContactAttributeValue::query()->where('contact_id', $contact->id)->count())->toBe(0);
 });
 
 test('布尔false会被保留不已删除', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->boolean()->create(['key' => 'active']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->boolean()->create(['key' => 'active']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['active' => false], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['active' => false], $user->id);
 
     $value = ContactAttributeValue::query()->where('contact_id', $contact->id)->first();
     expect($value)->not->toBeNull()
@@ -91,53 +89,53 @@ test('布尔false会被保留不已删除', function () {
 });
 
 test('不能写入到已删除定义', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->text()->deleted()->create(['key' => 'old_field']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->text()->deleted()->create(['key' => 'old_field']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['old_field' => 'test'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['old_field' => 'test'], $user->id);
 })->throws(ValidationException::class);
 
 test('拒绝无效选项代码用于单选选择', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->singleSelect([
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->singleSelect([
         ['code' => 'vip', 'label' => 'VIP'],
     ])->create(['key' => 'level']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['level' => 'invalid'], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['level' => 'invalid'], $user->id);
 })->throws(ValidationException::class);
 
 test('多选选择去重值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->multiSelect([
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->multiSelect([
         ['code' => 'a', 'label' => 'A'],
         ['code' => 'b', 'label' => 'B'],
     ])->create(['key' => 'tags']);
 
-    UpdateContactAttributeValuesAction::run($workspace, $contact->id, ['tags' => ['a', 'b', 'a']], $user->id);
+    UpdateContactAttributeValuesAction::run($contact->id, ['tags' => ['a', 'b', 'a']], $user->id);
 
     $value = ContactAttributeValue::query()->where('contact_id', $contact->id)->first();
     expect($value->value())->toBe(['a', 'b']);
 });
 
-test('联系人属性值工厂默认保持关联模型在同一工作区', function () {
+test('联系人属性值工厂默认关联联系人和属性定义', function () {
     $value = ContactAttributeValue::factory()->create();
 
-    expect($value->workspace_id)->toBe($value->contact->workspace_id)
-        ->and($value->workspace_id)->toBe($value->definition->workspace_id);
+    expect($value->contact)->not->toBeNull()
+        ->and($value->definition)->not->toBeNull();
 });
 
 // === Contact Detail ===
 
 test('联系人详情包含活跃定义即使且没有值', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    AttributeDefinition::factory()->for($workspace)->text()->create(['key' => 'company']);
-    AttributeDefinition::factory()->for($workspace)->number()->create(['key' => 'revenue']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->text()->create(['key' => 'company']);
+    AttributeDefinition::factory()->number()->create(['key' => 'revenue']);
 
-    $detail = ShowContactDetailAction::run($workspace, $contact->id);
+    $detail = ShowContactDetailAction::run($contact->id);
 
     expect($detail->custom_attributes)->toHaveCount(2);
     expect($detail->custom_attributes[0]->key)->toBeIn(['company', 'revenue']);
@@ -145,22 +143,21 @@ test('联系人详情包含活跃定义即使且没有值', function () {
 });
 
 test('已删除定义并带值显示作为只读在详情', function () {
-    [$workspace, $user] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace)->create();
-    $def = AttributeDefinition::factory()->for($workspace)->text()->deleted()->create(['key' => 'old']);
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    $def = AttributeDefinition::factory()->text()->deleted()->create(['key' => 'old']);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $contact->id,
         'definition_id' => $def->id,
-        'value_json' => ['value' => 'legacy'],
+        'value_json' => ['value' => 'archived value'],
     ]);
 
-    $detail = ShowContactDetailAction::run($workspace, $contact->id);
+    $detail = ShowContactDetailAction::run($contact->id);
 
     $deletedField = collect($detail->custom_attributes)->firstWhere('key', 'old');
     expect($deletedField)->not->toBeNull()
-        ->and($deletedField->value)->toBe('legacy')
+        ->and($deletedField->value)->toBe('archived value')
         ->and($deletedField->deleted_at)->not->toBeNull()
         ->and($deletedField->is_editable)->toBeFalse();
 });
@@ -168,11 +165,11 @@ test('已删除定义并带值显示作为只读在详情', function () {
 // === Contact List Filters ===
 
 test('联系人列表可以筛选按单选选择自定义属性', function () {
-    [$workspace] = createWorkspaceWithOwner();
+    [$systemContext] = createSystemWithOwner();
 
-    $vipContact = Contact::factory()->for($workspace)->create(['name' => 'VIP']);
-    $normalContact = Contact::factory()->for($workspace)->create(['name' => 'Normal']);
-    $definition = AttributeDefinition::factory()->for($workspace)->singleSelect([
+    $vipContact = Contact::factory()->create(['name' => 'VIP']);
+    $normalContact = Contact::factory()->create(['name' => 'Normal']);
+    $definition = AttributeDefinition::factory()->singleSelect([
         ['code' => 'vip', 'label' => 'VIP'],
         ['code' => 'normal', 'label' => 'Normal'],
     ])->create([
@@ -181,20 +178,18 @@ test('联系人列表可以筛选按单选选择自定义属性', function () {
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $vipContact->id,
         'definition_id' => $definition->id,
         'value_json' => ['value' => 'vip'],
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $normalContact->id,
         'definition_id' => $definition->id,
         'value_json' => ['value' => 'normal'],
     ]);
 
-    $result = ShowContactListAction::run($workspace, ContactListType::All, null, 1, 15, [
+    $result = ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'level' => 'vip',
     ]);
 
@@ -204,47 +199,43 @@ test('联系人列表可以筛选按单选选择自定义属性', function () {
 });
 
 test('联系人列表可以筛选按数字和日期自定义属性', function () {
-    [$workspace] = createWorkspaceWithOwner();
+    [$systemContext] = createSystemWithOwner();
 
-    $matchedContact = Contact::factory()->for($workspace)->create(['name' => 'Matched']);
-    $oldContact = Contact::factory()->for($workspace)->create(['name' => 'Old']);
+    $matchedContact = Contact::factory()->create(['name' => 'Matched']);
+    $oldContact = Contact::factory()->create(['name' => 'Old']);
 
-    $scoreDefinition = AttributeDefinition::factory()->for($workspace)->number()->create([
+    $scoreDefinition = AttributeDefinition::factory()->number()->create([
         'key' => 'score',
         'is_filterable' => true,
     ]);
-    $signupDateDefinition = AttributeDefinition::factory()->for($workspace)->date()->create([
+    $signupDateDefinition = AttributeDefinition::factory()->date()->create([
         'key' => 'signup_date',
         'is_filterable' => true,
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $matchedContact->id,
         'definition_id' => $scoreDefinition->id,
         'value_json' => ['value' => 80],
     ]);
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $matchedContact->id,
         'definition_id' => $signupDateDefinition->id,
         'value_json' => ['value' => '2026-04-10'],
     ]);
 
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $oldContact->id,
         'definition_id' => $scoreDefinition->id,
         'value_json' => ['value' => 40],
     ]);
     ContactAttributeValue::factory()->create([
-        'workspace_id' => $workspace->id,
         'contact_id' => $oldContact->id,
         'definition_id' => $signupDateDefinition->id,
         'value_json' => ['value' => '2026-03-01'],
     ]);
 
-    $result = ShowContactListAction::run($workspace, ContactListType::All, null, 1, 15, [
+    $result = ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'score' => ['min' => 60],
         'signup_date' => ['from' => '2026-04-01'],
     ]);
@@ -258,35 +249,34 @@ test('联系人列表可以筛选按数字和日期自定义属性', function ()
 });
 
 test('联系人列表拒绝未知自定义属性筛选', function () {
-    [$workspace] = createWorkspaceWithOwner();
+    [$systemContext] = createSystemWithOwner();
 
-    ShowContactListAction::run($workspace, ContactListType::All, null, 1, 15, [
+    ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'unknown_attribute' => 'value',
     ]);
 })->throws(ValidationException::class);
 
 test('联系人列表拒绝无效自定义属性筛选值', function () {
-    [$workspace] = createWorkspaceWithOwner();
+    [$systemContext] = createSystemWithOwner();
 
-    AttributeDefinition::factory()->for($workspace)->singleSelect([
+    AttributeDefinition::factory()->singleSelect([
         ['code' => 'vip', 'label' => 'VIP'],
     ])->create([
         'key' => 'level',
         'is_filterable' => true,
     ]);
 
-    ShowContactListAction::run($workspace, ContactListType::All, null, 1, 15, [
+    ShowContactListAction::run(ContactListType::All, null, 1, 15, [
         'level' => 'unknown',
     ]);
 })->throws(ValidationException::class);
 
-// === Cross-workspace isolation ===
+test('单租户下可以按联系人 ID 更新自定义属性', function () {
+    [$systemContext, $user] = createSystemWithOwner();
+    $contact = Contact::factory()->create();
+    AttributeDefinition::factory()->text()->create(['key' => 'test']);
 
-test('不能更新属性用于联系人在另一个工作区', function () {
-    [$workspace1, $user1] = createWorkspaceWithOwner();
-    [$workspace2] = createWorkspaceWithOwner();
-    $contact = Contact::factory()->for($workspace1)->create();
-    AttributeDefinition::factory()->for($workspace2)->text()->create(['key' => 'test']);
+    UpdateContactAttributeValuesAction::run($contact->id, ['test' => 'value'], $user->id);
 
-    UpdateContactAttributeValuesAction::run($workspace2, $contact->id, ['test' => 'value'], $user1->id);
-})->throws(ModelNotFoundException::class);
+    expect(ContactAttributeValue::query()->where('contact_id', $contact->id)->first()?->value())->toBe('value');
+});

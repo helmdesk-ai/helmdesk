@@ -4,19 +4,18 @@
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n';
 import { localeMatches } from '@/lib/locale';
-import inboxActions from '@/routes/workspace/inbox';
+import inboxActions from '@/routes/admin/inbox';
 import type {
   ContactAiSummaryData,
   InboxContactProfileData,
   MessageTranslationData,
 } from '@/types/generated';
 import axios from 'axios';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   contactProfile: InboxContactProfileData | null;
-  workspaceSlug: string;
   currentUserLocale: string;
   canTranslate: boolean;
   autoTranslateEnabled: boolean;
@@ -129,7 +128,6 @@ async function queueTranslation(): Promise<void> {
   try {
     await axios.post(
       inboxActions.contacts.aiSummary.queueTranslation.url({
-        slug: props.workspaceSlug,
         contactId: props.contactProfile.id,
       }),
       { target_locale: props.currentUserLocale },

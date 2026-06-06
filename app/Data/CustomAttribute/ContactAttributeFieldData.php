@@ -6,7 +6,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 联系人属性字段数据。
- * 由后端组装后传给 resources/js/pages/workspaceSettings/datas/Attribute.vue，用于页面展示、抽屉详情或局部交互状态。
+ * 由后端组装后传给 resources/js/pages/systemSettings/datas/Attribute.vue，用于页面展示、抽屉详情或局部交互状态。
  */
 class ContactAttributeFieldData extends Data
 {

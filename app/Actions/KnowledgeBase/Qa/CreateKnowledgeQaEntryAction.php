@@ -4,8 +4,8 @@ namespace App\Actions\KnowledgeBase\Qa;
 
 use App\Actions\KnowledgeBase\Indexing\DispatchKnowledgeQaEntryPipelineAction;
 use App\Data\KnowledgeBase\FormCreateKnowledgeQaEntryData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\KnowledgeQaEntryStatus;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaEntry;
@@ -50,7 +50,6 @@ class CreateKnowledgeQaEntryAction
         $entry = DB::transaction(function () use ($knowledgeBase, $group, $creatorUserId, $question, $similarQuestions, $answers): KnowledgeQaEntry {
             /** @var KnowledgeQaEntry $entry */
             $entry = KnowledgeQaEntry::query()->create([
-                'workspace_id' => $knowledgeBase->workspace_id,
                 'knowledge_base_id' => $knowledgeBase->id,
                 'group_id' => $group->id,
                 'created_by_user_id' => $creatorUserId,
@@ -74,13 +73,11 @@ class CreateKnowledgeQaEntryAction
     /**
      * 接收添加问答提交并跳回当前知识库 / 分组视图。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): RedirectResponse
+    public function asController(Request $request, string $knowledgeBase): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $entry = $this->handle(
@@ -89,8 +86,7 @@ class CreateKnowledgeQaEntryAction
             (string) $request->user()?->id,
         );
 
-        return redirect()->route('workspace.manage.knowledge-bases.index', [
-            'slug' => $workspace->slug,
+        return redirect()->route('admin.manage.knowledge-bases.index', [
             'kb' => $kb->id,
             'group' => (string) $entry->group_id,
         ]);

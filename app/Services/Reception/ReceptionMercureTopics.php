@@ -8,11 +8,11 @@ namespace App\Services\Reception;
 class ReceptionMercureTopics
 {
     /**
-     * 生成工作区接待 topic。
+     * 生成后台收件箱接待 topic。
      */
-    public static function workspace(string $workspaceId): string
+    public static function inbox(): string
     {
-        return 'urn:helmdesk:reception:workspace:'.$workspaceId;
+        return 'urn:helmdesk:reception:inbox';
     }
 
     /**

@@ -2,11 +2,9 @@
 
 namespace App\Actions\Contact;
 
-use App\Data\WorkspaceUserContextData;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +18,9 @@ class DeleteContactAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $contactId, ?User $actor = null): void
+    public function handle(string $contactId, ?User $actor = null): void
     {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         DB::transaction(function () use ($contact, $actor) {
@@ -33,12 +30,10 @@ class DeleteContactAction
         });
     }
 
-    public function asController(Request $request, string $slug, string $id): Response
+    public function asController(Request $request, string $id): Response
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
 
-        $this->handle($workspace, $id, $request->user());
+        $this->handle($id, $request->user());
 
         return back();
     }

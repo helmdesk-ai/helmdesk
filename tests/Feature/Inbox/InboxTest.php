@@ -24,25 +24,24 @@ use App\Models\ConversationEvent;
 use App\Models\ConversationMessage;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
+use App\Models\SystemContext;
 use App\Models\Tag;
 use App\Models\TagGroup;
 use App\Models\TranslationProvider;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->withoutVite();
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 
     config([
         'services.go_runtime.base_url' => 'http://go-runtime.test',
@@ -54,10 +53,9 @@ beforeEach(function () {
     ]);
 });
 
-function createInboxLlmModel(Workspace $workspace, array $providerAttributes = [], array $modelAttributes = []): AiModel
+function createInboxLlmModel(array $providerAttributes = [], array $modelAttributes = []): AiModel
 {
     $provider = AiProvider::query()->create(array_merge([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'inbox-provider-'.Str::lower(Str::random(6)),
         'name' => 'Inbox Provider',
@@ -82,10 +80,10 @@ function createInboxLlmModel(Workspace $workspace, array $providerAttributes = [
 /**
  * 构造一个绑定指定（或自动生成）AI 模型的接待方案版本，供需要 AI 可用性的会话用例使用。
  */
-function createInboxReceptionPlanVersion(Workspace $workspace, ?AiModel $model = null, ?TranslationProvider $translationProvider = null): ReceptionPlanVersion
+function createInboxReceptionPlanVersion(?AiModel $model = null, ?TranslationProvider $translationProvider = null): ReceptionPlanVersion
 {
-    $model ??= createInboxLlmModel($workspace);
-    $plan = ReceptionPlan::factory()->for($workspace)->create([
+    $model ??= createInboxLlmModel();
+    $plan = ReceptionPlan::factory()->create([
         'name' => '收件箱测试方案-'.Str::lower(Str::random(6)),
     ]);
 
@@ -112,16 +110,15 @@ function createInboxReceptionPlanVersion(Workspace $workspace, ?AiModel $model =
 /**
  * 构造一个接待方案版本，并在快照里写入可用翻译供应商。
  */
-function createInboxTranslationPlanVersion(Workspace $workspace, ?AiModel $model = null): ReceptionPlanVersion
+function createInboxTranslationPlanVersion(?AiModel $model = null): ReceptionPlanVersion
 {
-    $translationProvider = TranslationProvider::factory()->for($workspace)->create();
+    $translationProvider = TranslationProvider::factory()->create();
 
-    return createInboxReceptionPlanVersion($workspace, $model, $translationProvider);
+    return createInboxReceptionPlanVersion($model, $translationProvider);
 }
 
 test('收件箱默认进入待处理视图，让同事进入需要处理的队列', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Mia',
     ]);
 
@@ -129,7 +126,6 @@ test('收件箱默认进入待处理视图，让同事进入需要处理的队�
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 2,
@@ -138,14 +134,13 @@ test('收件箱默认进入待处理视图，让同事进入需要处理的队�
     $needsHuman = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'assigned_user_id' => null,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox')
+        ->get('/admin/inbox')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Inbox')
@@ -161,21 +156,18 @@ test('收件箱默认进入待处理视图，让同事进入需要处理的队�
 
 test('收件箱支持重点客户筛选并在开放视图优先显示重点客户', function () {
     $importantContact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Important Mia',
         'is_important' => true,
         'important_at' => now()->subDay(),
         'important_source' => 'manual',
     ]);
     $normalContact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Normal Nora',
     ]);
 
     $importantConversation = Conversation::factory()
         ->forContact($importantContact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'last_message_at' => now()->subDays(2),
@@ -183,14 +175,13 @@ test('收件箱支持重点客户筛选并在开放视图优先显示重点客�
     $normalConversation = Conversation::factory()
         ->forContact($normalContact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'last_message_at' => now(),
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=pending')
+        ->get('/admin/inbox?view=pending')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_important_only', false)
@@ -200,7 +191,7 @@ test('收件箱支持重点客户筛选并在开放视图优先显示重点客�
         );
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=pending&important=1')
+        ->get('/admin/inbox?view=pending&important=1')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_important_only', true)
@@ -212,27 +203,23 @@ test('收件箱支持重点客户筛选并在开放视图优先显示重点客�
 
 test('收件箱拒绝无效视图查询', function () {
     $this->actingAs($this->user)
-        ->from('/w/'.$this->workspaceSlug().'/inbox')
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=unknown')
-        ->assertRedirect('/w/'.$this->workspaceSlug().'/inbox')
+        ->from('/admin/inbox')
+        ->get('/admin/inbox?view=unknown')
+        ->assertRedirect('/admin/inbox')
         ->assertSessionHasErrors('view');
 });
 
-test('收件箱拒绝范围外筛选工作区', function () {
+test('单租户收件箱允许筛选任意后台用户和渠道', function () {
     $otherUser = User::factory()->create();
     $otherChannel = Channel::factory()->create();
 
     $this->actingAs($this->user)
-        ->from('/w/'.$this->workspaceSlug().'/inbox')
-        ->get('/w/'.$this->workspaceSlug().'/inbox?channel='.$otherChannel->id)
-        ->assertRedirect('/w/'.$this->workspaceSlug().'/inbox')
-        ->assertSessionHasErrors('channel');
+        ->get('/admin/inbox?channel='.$otherChannel->id)
+        ->assertOk();
 
     $this->actingAs($this->user)
-        ->from('/w/'.$this->workspaceSlug().'/inbox')
-        ->get('/w/'.$this->workspaceSlug().'/inbox?assignee='.$otherUser->id)
-        ->assertRedirect('/w/'.$this->workspaceSlug().'/inbox')
-        ->assertSessionHasErrors('assignee');
+        ->get('/admin/inbox?assignee='.$otherUser->id)
+        ->assertOk();
 });
 
 test('收件箱选中项会把同一联系人的所有会话合并为单一时间线', function () {
@@ -241,7 +228,6 @@ test('收件箱选中项会把同一联系人的所有会话合并为单一时�
     ])->save();
 
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Nova',
     ]);
 
@@ -249,10 +235,9 @@ test('收件箱选中项会把同一联系人的所有会话合并为单一时�
         ->forContact($contact)
         ->assignedTo($this->user)
         ->closed()
-        ->create(['workspace_id' => $this->workspace->id]);
+        ->create([]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $oldClosed->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -263,13 +248,11 @@ test('收件箱选中项会把同一联系人的所有会话合并为单一时�
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $openNow->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -277,7 +260,6 @@ test('收件箱选中项会把同一联系人的所有会话合并为单一时�
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $openNow->id,
         'sender_user_id' => $this->user->id,
         'role' => MessageRole::Teammate,
@@ -286,7 +268,7 @@ test('收件箱选中项会把同一联系人的所有会话合并为单一时�
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$openNow->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$openNow->id)
         ->assertOk()
         ->assertInertia(function (Assert $page) use ($contact, $openNow) {
             $entries = collect($page->toArray()['props']['selection']['stitched_timeline']['entries']);
@@ -309,19 +291,16 @@ test('收件箱选中项会把同一联系人的所有会话合并为单一时�
 
 test('会话摘要数据带出渠道身份用于多渠道上下文头', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Mia',
     ]);
 
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Nova Support Bot',
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -337,12 +316,11 @@ test('会话摘要数据带出渠道身份用于多渠道上下文头', function
 
 test('会话摘要数据在未加载渠道关系时不暴露渠道身份', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
-        ->create(['workspace_id' => $this->workspace->id]);
+        ->create([]);
 
     $data = ConversationSummaryData::fromModel($conversation);
 
@@ -353,7 +331,6 @@ test('会话摘要数据在未加载渠道关系时不暴露渠道身份', funct
 
 test('收件箱选择暴露联系人标签和自定义属性用于配置档面板', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Profile Contact',
         'note' => 'VIP customer',
         'is_important' => true,
@@ -364,21 +341,18 @@ test('收件箱选择暴露联系人标签和自定义属性用于配置档面�
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
-    $contactGroup = TagGroup::factory()->contact()->create(['workspace_id' => $this->workspace->id]);
-    $conversationGroup = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
+    $contactGroup = TagGroup::factory()->contact()->create([]);
+    $conversationGroup = TagGroup::factory()->conversation()->create([]);
     $contactTag = Tag::factory()->forGroup($contactGroup)->create(['name' => 'Important']);
     $conversationTag = Tag::factory()->forGroup($conversationGroup)->create(['name' => 'Conversation Only']);
     $emailIdentity = ContactIdentity::factory()->email('profile@example.com')->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $contact->id,
     ]);
     $phoneIdentity = ContactIdentity::factory()->phone('+8613800000000')->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $contact->id,
     ]);
     $contact->syncPrimaryFields();
@@ -392,18 +366,16 @@ test('收件箱选择暴露联系人标签和自定义属性用于配置档面�
     ]);
 
     $definition = AttributeDefinition::factory()->text()->create([
-        'workspace_id' => $this->workspace->id,
         'key' => 'plan',
         'name' => 'Plan',
     ]);
     ContactAttributeValue::factory()->forText('Enterprise')->create([
-        'workspace_id' => $this->workspace->id,
         'contact_id' => $contact->id,
         'definition_id' => $definition->id,
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(function (Assert $page) use ($contactTag, $conversationTag, $emailIdentity, $phoneIdentity) {
             $props = $page->toArray()['props'];
@@ -433,17 +405,16 @@ test('收件箱选择暴露联系人标签和自定义属性用于配置档面�
 });
 
 test('收件箱选中会话下发会话标签，且联系人资料带咨询概况聚合', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
-    $group = TagGroup::factory()->conversation()->create(['workspace_id' => $this->workspace->id]);
+    $group = TagGroup::factory()->conversation()->create([]);
     $refund = Tag::factory()->forGroup($group)->create(['name' => '退款']);
 
     DB::table('conversation_tag_assignments')->insert([
@@ -457,7 +428,7 @@ test('收件箱选中会话下发会话标签，且联系人资料带咨询概�
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(function (Assert $page) use ($refund) {
             // 当前会话块走 selection.conversation（不是时间线），其 tags 同样要带上。
@@ -481,18 +452,17 @@ test('收件箱选中会话下发会话标签，且联系人资料带咨询概�
 });
 
 test('同事可以回复收件箱会话并连接到AppendTeammateMessageAction', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply', [
+        ->post('/admin/inbox/'.$conversation->id.'/reply', [
             'content' => 'Got it, looking into this now.',
             'kind' => 'text',
         ])
@@ -515,21 +485,20 @@ test('同事可以回复收件箱会话并连接到AppendTeammateMessageAction',
 test('同事回复可保存发送前确认的访客可见内容', function () {
     Bus::fake();
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'locale' => 'en']);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create(['locale' => 'en']);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'visitor_locale' => 'en',
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply', [
+        ->post('/admin/inbox/'.$conversation->id.'/reply', [
             'content' => '我马上帮您查一下。',
             'visitor_content' => 'I will check that for you right away.',
             'visitor_locale' => 'en',
@@ -551,21 +520,20 @@ test('同事回复可保存发送前确认的访客可见内容', function () {
 test('同事和访客语言一致时回复不需要翻译确认内容', function () {
     $this->user->update(['locale' => 'en']);
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'locale' => 'en']);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create(['locale' => 'en']);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'visitor_locale' => 'en',
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply', [
+        ->post('/admin/inbox/'.$conversation->id.'/reply', [
             'content' => 'Hello team',
         ])
         ->assertRedirect();
@@ -583,16 +551,15 @@ test('同事和访客语言一致时回复不需要翻译确认内容', function
 test('同事可为当前可见消息排队补翻到自己的语言', function () {
     Bus::fake();
     $this->user->update(['locale' => 'ja']);
-    $planVersion = createInboxTranslationPlanVersion($this->workspace);
+    $planVersion = createInboxTranslationPlanVersion();
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $planVersion->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -600,7 +567,7 @@ test('同事可为当前可见消息排队补翻到自己的语言', function ()
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
     $aiMessage = ConversationMessage::factory()->forConversation($conversation)->aiText()->create(['content' => 'AI answer']);
     $otherTeammate = User::factory()->create();
-    $this->attachWorkspace($otherTeammate, $this->workspace);
+    $this->attachSystem($otherTeammate, $this->systemContext);
     $teammateMessage = ConversationMessage::factory()->forConversation($conversation)->create([
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -615,7 +582,7 @@ test('同事可为当前可见消息排队补翻到自己的语言', function ()
     ]);
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/messages/queue-translations', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/messages/queue-translations', [
             'message_ids' => [
                 (string) $message->id,
                 (string) $aiMessage->id,
@@ -648,16 +615,15 @@ test('同事可为当前可见消息排队补翻到自己的语言', function ()
 });
 
 test('收件箱打开会话保留可见消息翻译能力', function () {
-    $planVersion = createInboxTranslationPlanVersion($this->workspace);
+    $planVersion = createInboxTranslationPlanVersion();
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $planVersion->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -673,22 +639,21 @@ test('收件箱打开会话保留可见消息翻译能力', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?conversation_id='.$conversation->id)
+        ->get('/admin/inbox?conversation_id='.$conversation->id)
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.can_translate_messages', true));
 });
 
 test('打开会话时保留访客消息补翻能力', function () {
-    $planVersion = createInboxTranslationPlanVersion($this->workspace);
+    $planVersion = createInboxTranslationPlanVersion();
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $planVersion->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -697,7 +662,7 @@ test('打开会话时保留访客消息补翻能力', function () {
     ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?conversation_id='.$conversation->id)
+        ->get('/admin/inbox?conversation_id='.$conversation->id)
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.can_translate_messages', true)
             ->where('selection.reply_visitor_locale', 'zh-CN')
@@ -707,14 +672,13 @@ test('打开会话时保留访客消息补翻能力', function () {
 test('未配置默认翻译供应商时收件箱不提供消息补翻能力', function () {
     Bus::fake();
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -724,13 +688,13 @@ test('未配置默认翻译供应商时收件箱不提供消息补翻能力', fu
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?conversation_id='.$conversation->id)
+        ->get('/admin/inbox?conversation_id='.$conversation->id)
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.can_translate_messages', false)
         );
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/messages/queue-translations', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/messages/queue-translations', [
             'message_ids' => [(string) $message->id],
         ])
         ->assertOk()
@@ -741,17 +705,16 @@ test('未配置默认翻译供应商时收件箱不提供消息补翻能力', fu
 
 test('关闭会话保留可见消息补翻能力', function () {
     Bus::fake();
-    $planVersion = createInboxTranslationPlanVersion($this->workspace);
+    $planVersion = createInboxTranslationPlanVersion();
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $planVersion->id,
             'visitor_locale' => 'en',
         ]);
@@ -762,7 +725,7 @@ test('关闭会话保留可见消息补翻能力', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=closed&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=closed&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.conversation.id', $conversation->id)
@@ -771,7 +734,7 @@ test('关闭会话保留可见消息补翻能力', function () {
         );
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/messages/queue-translations', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/messages/queue-translations', [
             'message_ids' => [(string) $visitorMessage->id],
         ])
         ->assertOk()
@@ -786,17 +749,16 @@ test('关闭会话保留可见消息补翻能力', function () {
 
 test('AI接待中同事可以补翻消息到自己的语言', function () {
     Bus::fake();
-    $planVersion = createInboxTranslationPlanVersion($this->workspace);
-    $channel = Channel::factory()->for($this->workspace)->create([
+    $planVersion = createInboxTranslationPlanVersion();
+    $channel = Channel::factory()->create([
         'reception_plan_id' => $planVersion->reception_plan_id,
         'reception_plan_version_id' => $planVersion->id,
     ]);
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'reception_plan_version_id' => $planVersion->id,
             'visitor_locale' => 'en',
@@ -813,14 +775,14 @@ test('AI接待中同事可以补翻消息到自己的语言', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=ai&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=ai&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.can_reply', false)
             ->where('selection.can_translate_messages', true));
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/messages/queue-translations', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/messages/queue-translations', [
             'message_ids' => [(string) $aiMessage->id],
         ])
         ->assertOk()
@@ -834,7 +796,7 @@ test('AI接待中同事可以补翻消息到自己的语言', function () {
 });
 
 test('同事回复预览返回访客可见内容', function () {
-    $planVersion = createInboxTranslationPlanVersion($this->workspace);
+    $planVersion = createInboxTranslationPlanVersion();
     Http::fake([
         'translation.googleapis.com/*' => Http::response([
             'data' => [
@@ -845,14 +807,13 @@ test('同事回复预览返回访客可见内容', function () {
         ]),
     ]);
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'locale' => 'en']);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create(['locale' => 'en']);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'reception_plan_version_id' => $planVersion->id,
             'visitor_locale' => 'en',
             'status' => ConversationStatus::Open,
@@ -860,7 +821,7 @@ test('同事回复预览返回访客可见内容', function () {
         ]);
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply/translation-preview', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/reply/translation-preview', [
             'content' => '我马上帮您查一下。',
         ])
         ->assertOk()
@@ -874,21 +835,20 @@ test('同事回复预览返回访客可见内容', function () {
 test('同事回复预览同语言时不请求翻译供应商', function () {
     $this->user->update(['locale' => 'en']);
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'locale' => 'en']);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create(['locale' => 'en']);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'visitor_locale' => 'en',
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply/translation-preview', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/reply/translation-preview', [
             'content' => 'Hello team',
         ])
         ->assertOk()
@@ -903,23 +863,22 @@ test('同事回复预览同语言时不请求翻译供应商', function () {
 
 test('同事回复预览不可回复时返回空预览', function () {
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'locale' => 'en']);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create(['locale' => 'en']);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'visitor_locale' => 'en',
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->postJson('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply/translation-preview', [
+        ->postJson('/admin/inbox/'.$conversation->id.'/reply/translation-preview', [
             'content' => '我马上帮您查一下。',
         ])
         ->assertOk()
@@ -931,21 +890,19 @@ test('同事回复预览不可回复时返回空预览', function () {
 });
 
 test('同事回复提交时访客语言变化会拒绝过期翻译', function () {
-    $channel = Channel::factory()->for($this->workspace)->create();
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id, 'locale' => 'en']);
+    $channel = Channel::factory()->create();
+    $contact = Contact::factory()->create(['locale' => 'en']);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->for($channel)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'visitor_locale' => 'ja',
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     expect(fn () => app(ReplyInboxConversationAction::class)->handle(
-        workspace: $this->workspace,
         user: $this->user,
         conversationId: (string) $conversation->id,
         data: new FormReplyInboxConversationData(
@@ -958,17 +915,15 @@ test('同事回复提交时访客语言变化会拒绝过期翻译', function ()
 });
 
 test('同事可以回复并发送仅附件文件消息', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
     $attachment = Attachment::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'uploaded_by_user_id' => $this->user->id,
         'purpose' => 'conversation_file',
         'original_name' => 'manual.pdf',
@@ -979,7 +934,7 @@ test('同事可以回复并发送仅附件文件消息', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply', [
+        ->post('/admin/inbox/'.$conversation->id.'/reply', [
             'content' => '',
             'attachment_ids' => [$attachment->id],
         ])
@@ -997,25 +952,22 @@ test('同事可以回复并发送仅附件文件消息', function () {
 });
 
 test('回复需要人工处理的会话会将操作员移到我的视图并选中该会话', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
         ]);
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'mine',
+    $redirectTo = route('admin.inbox.show', ['view' => 'mine',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply', [
+        ->post('/admin/inbox/'.$conversation->id.'/reply', [
             'content' => '我来处理，稍等一下。',
         ])
         ->assertRedirect($redirectTo);
@@ -1039,57 +991,48 @@ test('回复需要人工处理的会话会将操作员移到我的视图并选�
 });
 
 test('回复来自收件箱刷新同事最后活跃时间戳', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
         ]);
 
     $previousLastActiveAt = now()->subDay();
-    $this->user->workspaces()->updateExistingPivot($this->workspace->id, [
-        'last_active_at' => $previousLastActiveAt,
-    ]);
+    $this->user->forceFill(['last_active_at' => $previousLastActiveAt])->save();
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reply', [
+        ->post('/admin/inbox/'.$conversation->id.'/reply', [
             'content' => '马上帮你处理。',
         ])
         ->assertRedirect();
 
-    $updatedLastActiveAt = DB::table('user_workspace')
-        ->where('workspace_id', $this->workspace->id)
-        ->where('user_id', $this->user->id)
-        ->value('last_active_at');
+    $updatedLastActiveAt = $this->user->fresh()->last_active_at;
 
     expect($updatedLastActiveAt)->not->toBeNull()
-        ->and(Carbon::parse((string) $updatedLastActiveAt)->isAfter($previousLastActiveAt))->toBeTrue();
+        ->and($updatedLastActiveAt->isAfter($previousLastActiveAt))->toBeTrue();
 });
 
 test('同事可以认领teammate_pending会话来自收件箱', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
         ]);
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'mine',
+    $redirectTo = route('admin.inbox.show', ['view' => 'mine',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/claim')
+        ->post('/admin/inbox/'.$conversation->id.'/claim')
         ->assertRedirect($redirectTo);
 
     $conversation->refresh();
@@ -1098,25 +1041,22 @@ test('同事可以认领teammate_pending会话来自收件箱', function () {
 });
 
 test('同事可以转移AI会话到人工来自收件箱', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'mine',
+    $redirectTo = route('admin.inbox.show', ['view' => 'mine',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/claim')
+        ->post('/admin/inbox/'.$conversation->id.'/claim')
         ->assertRedirect($redirectTo);
 
     $conversation->refresh();
@@ -1125,19 +1065,18 @@ test('同事可以转移AI会话到人工来自收件箱', function () {
 });
 
 test('AI会话需要先转人工后同事才能回复', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=ai&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=ai&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.conversation.id', $conversation->id)
@@ -1157,12 +1096,11 @@ test('AI会话需要先转人工后同事才能回复', function () {
 });
 
 test('AI视图包含等待访客的未分配会话', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
@@ -1170,7 +1108,7 @@ test('AI视图包含等待访客的未分配会话', function () {
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=ai&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=ai&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'ai')
@@ -1188,10 +1126,8 @@ test('AI视图包含等待访客的未分配会话', function () {
     ))->toThrow(BusinessException::class);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/claim')
-        ->assertRedirect(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'view' => 'mine',
+        ->post('/admin/inbox/'.$conversation->id.'/claim')
+        ->assertRedirect(route('admin.inbox.show', ['view' => 'mine',
             'conversation_id' => $conversation->id,
         ], false));
 
@@ -1202,15 +1138,14 @@ test('AI视图包含等待访客的未分配会话', function () {
 });
 
 test('同事视图会将同事处理中的会话显示为可接管候选项', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
     $colleagueConversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -1219,7 +1154,6 @@ test('同事视图会将同事处理中的会话显示为可接管候选项', fu
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -1227,7 +1161,6 @@ test('同事视图会将同事处理中的会话显示为可接管候选项', fu
     Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
@@ -1236,10 +1169,10 @@ test('同事视图会将同事处理中的会话显示为可接管候选项', fu
     Conversation::factory()
         ->forContact($contact)
         ->closed()
-        ->create(['workspace_id' => $this->workspace->id]);
+        ->create([]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=teammates&conversation_id='.$colleagueConversation->id)
+        ->get('/admin/inbox?view=teammates&conversation_id='.$colleagueConversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'teammates')
@@ -1254,28 +1187,25 @@ test('同事视图会将同事处理中的会话显示为可接管候选项', fu
 });
 
 test('同事可以接管同事处理中会话来自收件箱', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'mine',
+    $redirectTo = route('admin.inbox.show', ['view' => 'mine',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/claim')
+        ->post('/admin/inbox/'.$conversation->id.'/claim')
         ->assertRedirect($redirectTo);
 
     $conversation->refresh();
@@ -1293,36 +1223,33 @@ test('同事可以接管同事处理中会话来自收件箱', function () {
 });
 
 test('同事可以转移其已分配会话到已选择同事', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $targetTeammate = User::factory()->create();
-    $this->attachWorkspace($targetTeammate, $this->workspace);
+    $this->attachSystem($targetTeammate, $this->systemContext);
 
     $conversation = Conversation::factory()
-        ->withReceptionPlanVersion($this->workspace)
+        ->withReceptionPlanVersion($this->systemContext)
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.conversation.id', $conversation->id)
             ->where('selection.can_transfer_to_teammate', true)
         );
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'teammates',
+    $redirectTo = route('admin.inbox.show', ['view' => 'teammates',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/transfer', [
+        ->post('/admin/inbox/'.$conversation->id.'/transfer', [
             'target_user_id' => $targetTeammate->id,
         ])
         ->assertRedirect($redirectTo);
@@ -1353,23 +1280,22 @@ test('同事可以转移其已分配会话到已选择同事', function () {
 });
 
 test('同事不能转移会话已分配到同事', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $ownerTeammate = User::factory()->create();
     $targetTeammate = User::factory()->create();
-    $this->attachWorkspace($ownerTeammate, $this->workspace);
-    $this->attachWorkspace($targetTeammate, $this->workspace);
+    $this->attachSystem($ownerTeammate, $this->systemContext);
+    $this->attachSystem($targetTeammate, $this->systemContext);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($ownerTeammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/transfer', [
+        ->post('/admin/inbox/'.$conversation->id.'/transfer', [
             'target_user_id' => $targetTeammate->id,
         ])
         ->assertStatus(422)
@@ -1382,17 +1308,16 @@ test('同事不能转移会话已分配到同事', function () {
 });
 
 test('同事视图可以被缩小到指定同事', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $targetTeammate = User::factory()->create();
     $otherTeammate = User::factory()->create();
-    $this->attachWorkspace($targetTeammate, $this->workspace);
-    $this->attachWorkspace($otherTeammate, $this->workspace);
+    $this->attachSystem($targetTeammate, $this->systemContext);
+    $this->attachSystem($otherTeammate, $this->systemContext);
 
     $matchingConversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($targetTeammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -1401,13 +1326,12 @@ test('同事视图可以被缩小到指定同事', function () {
         ->forContact($contact)
         ->assignedTo($otherTeammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=teammates&assignee='.$targetTeammate->id)
+        ->get('/admin/inbox?view=teammates&assignee='.$targetTeammate->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'teammates')
@@ -1418,18 +1342,16 @@ test('同事视图可以被缩小到指定同事', function () {
 });
 
 test('同事可以释放其已分配会话回到AI在回复后', function () {
-    $version = createInboxReceptionPlanVersion($this->workspace);
+    $version = createInboxReceptionPlanVersion();
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
     ]);
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $version->id,
             'status' => ConversationStatus::Open,
@@ -1438,7 +1360,6 @@ test('同事可以释放其已分配会话回到AI在回复后', function () {
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'sender_user_id' => $this->user->id,
         'role' => MessageRole::Teammate,
@@ -1447,7 +1368,7 @@ test('同事可以释放其已分配会话回到AI在回复后', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.conversation.id', $conversation->id)
@@ -1456,10 +1377,8 @@ test('同事可以释放其已分配会话回到AI在回复后', function () {
         );
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/release-to-ai')
-        ->assertRedirect(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'view' => 'ai',
+        ->post('/admin/inbox/'.$conversation->id.'/release-to-ai')
+        ->assertRedirect(route('admin.inbox.show', ['view' => 'ai',
             'conversation_id' => $conversation->id,
         ], false));
 
@@ -1470,18 +1389,16 @@ test('同事可以释放其已分配会话回到AI在回复后', function () {
 });
 
 test('访客消息后释放给AI会让AI准备回答', function () {
-    $version = createInboxReceptionPlanVersion($this->workspace);
+    $version = createInboxReceptionPlanVersion();
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
     ]);
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $version->id,
             'status' => ConversationStatus::Open,
@@ -1489,7 +1406,6 @@ test('访客消息后释放给AI会让AI准备回答', function () {
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1497,7 +1413,7 @@ test('访客消息后释放给AI会让AI准备回答', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.conversation.id', $conversation->id)
@@ -1506,10 +1422,8 @@ test('访客消息后释放给AI会让AI准备回答', function () {
         );
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/release-to-ai')
-        ->assertRedirect(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'view' => 'ai',
+        ->post('/admin/inbox/'.$conversation->id.'/release-to-ai')
+        ->assertRedirect(route('admin.inbox.show', ['view' => 'ai',
             'conversation_id' => $conversation->id,
         ], false));
 
@@ -1520,19 +1434,17 @@ test('访客消息后释放给AI会让AI准备回答', function () {
 });
 
 test('频道模型不可用时释放给AI会回退到待处理队列', function () {
-    $model = createInboxLlmModel($this->workspace, [], ['is_active' => false]);
-    $version = createInboxReceptionPlanVersion($this->workspace, $model);
+    $model = createInboxLlmModel([], ['is_active' => false]);
+    $version = createInboxReceptionPlanVersion($model);
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
         'reception_plan_version_id' => $version->id,
     ]);
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
             'reception_plan_version_id' => $version->id,
             'status' => ConversationStatus::Open,
@@ -1540,7 +1452,6 @@ test('频道模型不可用时释放给AI会回退到待处理队列', function 
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1548,7 +1459,7 @@ test('频道模型不可用时释放给AI会回退到待处理队列', function 
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&conversation_id='.$conversation->id)
+        ->get('/admin/inbox?view=mine&conversation_id='.$conversation->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('selection.conversation.id', $conversation->id)
@@ -1557,10 +1468,8 @@ test('频道模型不可用时释放给AI会回退到待处理队列', function 
         );
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/release-to-ai')
-        ->assertRedirect(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'view' => 'pending',
+        ->post('/admin/inbox/'.$conversation->id.'/release-to-ai')
+        ->assertRedirect(route('admin.inbox.show', ['view' => 'pending',
             'conversation_id' => $conversation->id,
         ], false));
 
@@ -1571,24 +1480,21 @@ test('频道模型不可用时释放给AI会回退到待处理队列', function 
 });
 
 test('同事可以直接关闭会话', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
         ]);
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'closed',
+    $redirectTo = route('admin.inbox.show', ['view' => 'closed',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/close')
+        ->post('/admin/inbox/'.$conversation->id.'/close')
         ->assertRedirect($redirectTo);
 
     $conversation->refresh();
@@ -1609,25 +1515,22 @@ test('同事可以直接关闭会话', function () {
 });
 
 test('同事可以重新打开已关闭会话来自收件箱', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
-    $channel = Channel::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
+    $channel = Channel::factory()->create([]);
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
         ]);
 
-    $redirectTo = route('workspace.inbox.show', [
-        'slug' => $this->workspaceSlug(),
-        'view' => 'mine',
+    $redirectTo = route('admin.inbox.show', ['view' => 'mine',
         'conversation_id' => $conversation->id,
     ], false);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/reopen')
+        ->post('/admin/inbox/'.$conversation->id.'/reopen')
         ->assertRedirect($redirectTo);
 
     $conversation->refresh();
@@ -1638,28 +1541,26 @@ test('同事可以重新打开已关闭会话来自收件箱', function () {
 });
 
 test('同一联系人频道已有打开会话时已关闭收件箱不允许重新打开', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
-    $channel = Channel::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
+    $channel = Channel::factory()->create([]);
     $closedConversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
         ]);
 
     Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$closedConversation->id.'/reopen')
+        ->post('/admin/inbox/'.$closedConversation->id.'/reopen')
         ->assertStatus(422)
         ->assertJson([
             'message' => '该客户在当前渠道已有进行中会话，不能恢复这条已关闭会话。',
@@ -1670,31 +1571,27 @@ test('同一联系人频道已有打开会话时已关闭收件箱不允许重�
 });
 
 test('同一联系人出现新的打开会话后已关闭收件箱会隐藏旧的已关闭会话', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
-    $channel = Channel::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
+    $channel = Channel::factory()->create([]);
 
     $closedConversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
         ]);
 
     Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channel->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.inbox.show', [
-            'slug' => $this->workspaceSlug(),
-            'view' => 'closed',
+        ->get(route('admin.inbox.show', ['view' => 'closed',
             'conversation_id' => $closedConversation->id,
         ], false))
         ->assertOk()
@@ -1707,16 +1604,15 @@ test('同一联系人出现新的打开会话后已关闭收件箱会隐藏旧�
 });
 
 test('已关闭收件箱仅保留同一联系人和频道的最新已关闭会话', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
-    $channelA = Channel::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Channel A']);
-    $channelB = Channel::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Channel B']);
+    $contact = Contact::factory()->create([]);
+    $channelA = Channel::factory()->create(['name' => 'Channel A']);
+    $channelB = Channel::factory()->create(['name' => 'Channel B']);
 
     Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channelA->id,
             'closed_at' => now()->subDays(3),
             'last_message_at' => now()->subDays(3),
@@ -1728,7 +1624,6 @@ test('已关闭收件箱仅保留同一联系人和频道的最新已关闭会�
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channelA->id,
             'closed_at' => now()->subDays(2),
             'last_message_at' => now()->subDays(2),
@@ -1740,7 +1635,6 @@ test('已关闭收件箱仅保留同一联系人和频道的最新已关闭会�
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channelA->id,
             'closed_at' => now()->subDay(),
             'last_message_at' => now()->subDay(),
@@ -1752,7 +1646,6 @@ test('已关闭收件箱仅保留同一联系人和频道的最新已关闭会�
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channelB->id,
             'closed_at' => now()->subDays(4),
             'last_message_at' => now()->subDays(4),
@@ -1760,7 +1653,7 @@ test('已关闭收件箱仅保留同一联系人和频道的最新已关闭会�
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=closed')
+        ->get('/admin/inbox?view=closed')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'closed')
@@ -1771,15 +1664,14 @@ test('已关闭收件箱仅保留同一联系人和频道的最新已关闭会�
 });
 
 test('我的视图结合并带频道筛选缩小已分配列表到频道只', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
-    $channelA = Channel::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Channel A']);
-    $channelB = Channel::factory()->create(['workspace_id' => $this->workspace->id, 'name' => 'Channel B']);
+    $contact = Contact::factory()->create([]);
+    $channelA = Channel::factory()->create(['name' => 'Channel A']);
+    $channelB = Channel::factory()->create(['name' => 'Channel B']);
 
     $assignedOnA = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channelA->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
@@ -1789,14 +1681,13 @@ test('我的视图结合并带频道筛选缩小已分配列表到频道只', fu
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'channel_id' => $channelB->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&channel='.$channelA->id)
+        ->get('/admin/inbox?view=mine&channel='.$channelA->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'mine')
@@ -1808,11 +1699,9 @@ test('我的视图结合并带频道筛选缩小已分配列表到频道只', fu
 
 test('我的视图搜索缩小已分配列表按联系人和会话摘要', function () {
     $matchingContact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Avery Billing',
     ]);
     $otherContact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Nova Support',
     ]);
 
@@ -1820,7 +1709,6 @@ test('我的视图搜索缩小已分配列表按联系人和会话摘要', funct
         ->forContact($matchingContact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'last_message_preview' => 'I need a refund for this order',
@@ -1830,14 +1718,13 @@ test('我的视图搜索缩小已分配列表按联系人和会话摘要', funct
         ->forContact($otherContact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'last_message_preview' => 'Question about setup',
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine&search=refund')
+        ->get('/admin/inbox?view=mine&search=refund')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'mine')
@@ -1848,13 +1735,12 @@ test('我的视图搜索缩小已分配列表按联系人和会话摘要', funct
 });
 
 test('AI视图结合并带负责人未分配缩小AI会话到未分配只', function () {
-    $contactA = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
-    $contactB = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contactA = Contact::factory()->create([]);
+    $contactB = Contact::factory()->create([]);
 
     $unassignedAi = Conversation::factory()
         ->forContact($contactA)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
@@ -1864,13 +1750,12 @@ test('AI视图结合并带负责人未分配缩小AI会话到未分配只', func
         ->forContact($contactB)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=ai&assignee=unassigned')
+        ->get('/admin/inbox?view=ai&assignee=unassigned')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'ai')
@@ -1881,24 +1766,24 @@ test('AI视图结合并带负责人未分配缩小AI会话到未分配只', func
 });
 
 test('已关闭视图并带显式负责人筛选严格按assigned_user_id和忽略谁已关闭它', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
     $closedAssignedToTeammate = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($teammate)
         ->closed()
-        ->create(['workspace_id' => $this->workspace->id]);
+        ->create([]);
 
     Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->closed()
-        ->create(['workspace_id' => $this->workspace->id]);
+        ->create([]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=closed&assignee='.$teammate->id)
+        ->get('/admin/inbox?view=closed&assignee='.$teammate->id)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'closed')
@@ -1909,20 +1794,18 @@ test('已关闭视图并带显式负责人筛选严格按assigned_user_id和忽�
 });
 
 test('会话列表将本人会话的冗余未读访客消息数报告为unread_count', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 2,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1932,7 +1815,6 @@ test('会话列表将本人会话的冗余未读访客消息数报告为unread_c
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -1942,7 +1824,6 @@ test('会话列表将本人会话的冗余未读访客消息数报告为unread_c
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1952,7 +1833,6 @@ test('会话列表将本人会话的冗余未读访客消息数报告为unread_c
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1962,7 +1842,7 @@ test('会话列表将本人会话的冗余未读访客消息数报告为unread_c
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine')
+        ->get('/admin/inbox?view=mine')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('current_view', 'mine')
@@ -1973,20 +1853,18 @@ test('会话列表将本人会话的冗余未读访客消息数报告为unread_c
 });
 
 test('操作员最后回复后会话列表unread_count为零', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'waiting_for_visitor_reply' => true,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -1996,7 +1874,6 @@ test('操作员最后回复后会话列表unread_count为零', function () {
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -2006,7 +1883,7 @@ test('操作员最后回复后会话列表unread_count为零', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine')
+        ->get('/admin/inbox?view=mine')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('conversation_list', 1)
@@ -2016,12 +1893,11 @@ test('操作员最后回复后会话列表unread_count为零', function () {
 });
 
 test('非本人待接待会话不显示unread_count', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'assigned_user_id' => null,
@@ -2030,7 +1906,6 @@ test('非本人待接待会话不显示unread_count', function () {
 
     foreach (range(1, 3) as $i) {
         ConversationMessage::query()->create([
-            'workspace_id' => $this->workspace->id,
             'conversation_id' => $conversation->id,
             'role' => MessageRole::Visitor,
             'kind' => MessageKind::Text,
@@ -2041,7 +1916,7 @@ test('非本人待接待会话不显示unread_count', function () {
     }
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=pending')
+        ->get('/admin/inbox?view=pending')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('conversation_list', 1)
@@ -2051,13 +1926,12 @@ test('非本人待接待会话不显示unread_count', function () {
 });
 
 test('打开会话会按当前客服清空unread_count且新访客消息会重新计数', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 2,
@@ -2065,7 +1939,6 @@ test('打开会话会按当前客服清空unread_count且新访客消息会重�
 
     foreach (range(1, 2) as $i) {
         ConversationMessage::query()->create([
-            'workspace_id' => $this->workspace->id,
             'conversation_id' => $conversation->id,
             'role' => MessageRole::Visitor,
             'kind' => MessageKind::Text,
@@ -2076,7 +1949,7 @@ test('打开会话会按当前客服清空unread_count且新访客消息会重�
     }
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine')
+        ->get('/admin/inbox?view=mine')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('conversation_list.0.id', $conversation->id)
@@ -2085,13 +1958,13 @@ test('打开会话会按当前客服清空unread_count且新访客消息会重�
         );
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/read')
+        ->post('/admin/inbox/'.$conversation->id.'/read')
         ->assertNoContent();
 
     expect($conversation->fresh()->unread_visitor_message_count)->toBe(0);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine')
+        ->get('/admin/inbox?view=mine')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('conversation_list.0.id', $conversation->id)
@@ -2100,7 +1973,6 @@ test('打开会话会按当前客服清空unread_count且新访客消息会重�
         );
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2112,7 +1984,7 @@ test('打开会话会按当前客服清空unread_count且新访客消息会重�
     $conversation->update(['unread_visitor_message_count' => 1]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=mine')
+        ->get('/admin/inbox?view=mine')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('conversation_list.0.id', $conversation->id)
@@ -2122,22 +1994,20 @@ test('打开会话会按当前客服清空unread_count且新访客消息会重�
 });
 
 test('点击非本人会话不会更新已读位置', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
     $conversation = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 1,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2147,7 +2017,7 @@ test('点击非本人会话不会更新已读位置', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox?view=teammates')
+        ->get('/admin/inbox?view=teammates')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('conversation_list.0.id', $conversation->id)
@@ -2155,19 +2025,18 @@ test('点击非本人会话不会更新已读位置', function () {
         );
 
     $this->actingAs($this->user)
-        ->post('/w/'.$this->workspaceSlug().'/inbox/'.$conversation->id.'/read')
+        ->post('/admin/inbox/'.$conversation->id.'/read')
         ->assertNoContent();
 
     expect($conversation->fresh()->unread_visitor_message_count)->toBe(1);
 });
 
 test('tab_counts.pending会统计打开和teammate_pending会话且不受未读状态影响', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
 
     Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'assigned_user_id' => null,
@@ -2176,7 +2045,6 @@ test('tab_counts.pending会统计打开和teammate_pending会话且不受未读�
     Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'assigned_user_id' => null,
@@ -2186,7 +2054,6 @@ test('tab_counts.pending会统计打开和teammate_pending会话且不受未读�
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 1,
@@ -2196,12 +2063,11 @@ test('tab_counts.pending会统计打开和teammate_pending会话且不受未读�
         ->forContact($contact)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox')
+        ->get('/admin/inbox')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('tab_counts.pending', 2)
@@ -2209,22 +2075,20 @@ test('tab_counts.pending会统计打开和teammate_pending会话且不受未读�
 });
 
 test('tab_counts.mine只统计分配给当前用户且有连续访客消息的打开会话', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
     $mineWithBacklog = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 1,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $mineWithBacklog->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -2234,7 +2098,6 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $mineWithBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2247,14 +2110,12 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'waiting_for_visitor_reply' => true,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $mineNoBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2264,7 +2125,6 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $mineNoBacklog->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -2277,14 +2137,12 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
         ->forContact($contact)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 1,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $otherTeammateBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2298,12 +2156,10 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
         ->assignedTo($this->user)
         ->closed()
         ->create([
-            'workspace_id' => $this->workspace->id,
             'unread_visitor_message_count' => 1,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $closedMine->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2313,7 +2169,7 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox')
+        ->get('/admin/inbox')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('tab_counts.mine', 1)
@@ -2321,22 +2177,20 @@ test('tab_counts.mine只统计分配给当前用户且有连续访客消息的�
 });
 
 test('tab_counts.teammates不统计同事会话未读消息', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     $teammate = User::factory()->create();
-    $this->attachWorkspace($teammate, $this->workspace);
+    $this->attachSystem($teammate, $this->systemContext);
 
     $teammateWithBacklog = Conversation::factory()
         ->forContact($contact)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
             'unread_visitor_message_count' => 1,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $teammateWithBacklog->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -2346,7 +2200,6 @@ test('tab_counts.teammates不统计同事会话未读消息', function () {
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $teammateWithBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2359,13 +2212,11 @@ test('tab_counts.teammates不统计同事会话未读消息', function () {
         ->forContact($contact)
         ->assignedTo($teammate)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $teammateNoBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2375,7 +2226,6 @@ test('tab_counts.teammates不统计同事会话未读消息', function () {
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $teammateNoBacklog->id,
         'role' => MessageRole::Teammate,
         'kind' => MessageKind::Text,
@@ -2388,7 +2238,6 @@ test('tab_counts.teammates不统计同事会话未读消息', function () {
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammateHandling,
         ]);
@@ -2397,10 +2246,10 @@ test('tab_counts.teammates不统计同事会话未读消息', function () {
         ->forContact($contact)
         ->assignedTo($teammate)
         ->closed()
-        ->create(['workspace_id' => $this->workspace->id]);
+        ->create([]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox')
+        ->get('/admin/inbox')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('tab_counts.teammates', 0)
@@ -2408,12 +2257,11 @@ test('tab_counts.teammates不统计同事会话未读消息', function () {
 });
 
 test('tab_counts.ai不统计非本人会话未读消息', function () {
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
 
     $aiWithBacklog = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
@@ -2421,7 +2269,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $aiWithBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2433,7 +2280,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
     $visitorWaitingWithBacklog = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
@@ -2441,7 +2287,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $visitorWaitingWithBacklog->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -2451,7 +2296,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $visitorWaitingWithBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2463,14 +2307,12 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
     $aiNoBacklog = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $aiNoBacklog->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2480,7 +2322,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
     ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $aiNoBacklog->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -2493,13 +2334,11 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
         ->forContact($contact)
         ->assignedTo($this->user)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::AiHandling,
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $assignedAi->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2511,7 +2350,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
     $teammatePending = Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'assigned_user_id' => null,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
@@ -2519,7 +2357,6 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
         ]);
 
     ConversationMessage::query()->create([
-        'workspace_id' => $this->workspace->id,
         'conversation_id' => $teammatePending->id,
         'role' => MessageRole::Visitor,
         'kind' => MessageKind::Text,
@@ -2529,41 +2366,39 @@ test('tab_counts.ai不统计非本人会话未读消息', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox')
+        ->get('/admin/inbox')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('tab_counts.ai', 0)
         );
 });
 
-test('tab_counts限定在当前工作区并忽略其他工作区', function () {
-    $otherWorkspace = Workspace::factory()->create();
-    $otherContact = Contact::factory()->create(['workspace_id' => $otherWorkspace->id]);
+test('tab_counts限定在当前系统并忽略其他系统', function () {
+    $otherSystem = SystemContext::factory()->create();
+    $otherContact = Contact::factory()->create([]);
 
     Conversation::factory()
         ->forContact($otherContact)
         ->create([
-            'workspace_id' => $otherWorkspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'assigned_user_id' => null,
         ]);
 
-    $contact = Contact::factory()->create(['workspace_id' => $this->workspace->id]);
+    $contact = Contact::factory()->create([]);
     Conversation::factory()
         ->forContact($contact)
         ->create([
-            'workspace_id' => $this->workspace->id,
             'status' => ConversationStatus::Open,
             'inbox_status' => ConversationInboxStatus::TeammatePending,
             'assigned_user_id' => null,
         ]);
 
     $this->actingAs($this->user)
-        ->get('/w/'.$this->workspaceSlug().'/inbox')
+        ->get('/admin/inbox')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('tab_counts.pending', 1)
+            ->where('tab_counts.pending', 2)
             ->where('tab_counts.ai', 0)
             ->where('tab_counts.mine', 0)
             ->where('tab_counts.teammates', 0)

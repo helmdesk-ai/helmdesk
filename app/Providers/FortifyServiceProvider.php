@@ -7,7 +7,7 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
 use App\Http\Responses\RegisterResponse;
 use App\Http\Responses\VerifyEmailResponse;
-use App\Settings\GeneralSettings;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -117,11 +117,11 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * 判断当前站点是否允许开放注册。
+     * 仅在系统尚未初始化超级管理员时开放注册入口。
      */
     private function registrationIsAllowed(): bool
     {
         return Features::enabled(Features::registration())
-            && app(GeneralSettings::class)->allow_registration;
+            && User::query()->doesntExist();
     }
 }

@@ -37,7 +37,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import KnowledgeBasesLayout from '@/layouts/KnowledgeBasesLayout.vue';
 import { formatFileSize } from '@/lib/format';
@@ -50,7 +49,7 @@ import KnowledgeGroupRow from '@/pages/knowledgeBase/KnowledgeGroupRow.vue';
 import KnowledgeManualDocumentPanel from '@/pages/knowledgeBase/KnowledgeManualDocumentPanel.vue';
 import KnowledgeQaDocumentPanel from '@/pages/knowledgeBase/KnowledgeQaDocumentPanel.vue';
 import KnowledgeRecallTestPanel from '@/pages/knowledgeBase/KnowledgeRecallTestPanel.vue';
-import WorkspaceKnowledgeSettingsPanel from '@/pages/knowledgeBase/WorkspaceKnowledgeSettingsPanel.vue';
+import SystemKnowledgeSettingsPanel from '@/pages/knowledgeBase/SystemKnowledgeSettingsPanel.vue';
 import type {
   KnowledgeBaseCategory,
   KnowledgeBaseData,
@@ -67,7 +66,7 @@ import {
   PenLine,
   Search,
   Settings2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue';
 
 const KnowledgeDocumentPreviewDialog = defineAsyncComponent(
@@ -76,7 +75,6 @@ const KnowledgeDocumentPreviewDialog = defineAsyncComponent(
 
 const props = defineProps<ShowKnowledgeBaseListPagePropsData>();
 const { t } = useI18n();
-const currentWorkspace = useRequiredWorkspace();
 
 const selectedKbId = ref<string | null>(
   props.selected_knowledge_base?.id ?? null,
@@ -269,7 +267,7 @@ function navigateTo(kbId: string | null, groupId: string | null): void {
   selectedGroupId.value = groupId;
 
   router.get(
-    KnowledgeBase.ListKnowledgeBasesAction.url(currentWorkspace.value.slug, {
+    KnowledgeBase.ListKnowledgeBasesAction.url({
       query: buildDocumentListQuery(kbId, groupId),
     }),
     {},
@@ -285,10 +283,7 @@ function buildDocumentListPageUrl(page: number): string {
   if (page > 1) {
     query.page = String(page);
   }
-  return KnowledgeBase.ListKnowledgeBasesAction.url(
-    currentWorkspace.value.slug,
-    { query },
-  );
+  return KnowledgeBase.ListKnowledgeBasesAction.url({ query });
 }
 
 watch(searchInput, () => {
@@ -408,7 +403,7 @@ function openEditDialog(kb: KnowledgeBaseData): void {
   activeRightPage.value = 'knowledge_base_form';
 }
 
-function openWorkspaceSettingsPage(): void {
+function openSystemSettingsPage(): void {
   clearTransientListState();
   activeRightPage.value = 'retrieval_settings';
 }
@@ -441,7 +436,6 @@ function confirmDeleteKb(): void {
   }
   deleteKbForm.delete(
     KnowledgeBase.DeleteKnowledgeBaseAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: targetId,
     }),
     {
@@ -773,7 +767,6 @@ function reindexDocument(doc: ListKnowledgeDocumentItemData): void {
   reindexingDocumentId.value = doc.id;
   reindexDocumentForm.post(
     KnowledgeBase.Indexing.ReindexKnowledgeDocumentAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       document: doc.id,
     }),
@@ -829,7 +822,6 @@ function moveDocument(): void {
 
   moveDocumentForm.put(
     KnowledgeBase.Document.MoveKnowledgeDocumentAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       document: target.id,
     }),
@@ -858,7 +850,6 @@ function moveQaEntry(): void {
 
   moveQaEntryForm.put(
     KnowledgeBase.Qa.MoveKnowledgeQaEntryAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       entry: target.id,
     }),
@@ -879,7 +870,6 @@ function confirmDeleteDocument(): void {
   }
   deleteDocumentForm.delete(
     KnowledgeBase.Document.DeleteKnowledgeDocumentAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       document: target.id,
     }),
@@ -900,7 +890,6 @@ function confirmDeleteQaEntry(): void {
   }
   deleteQaEntryForm.delete(
     KnowledgeBase.Qa.DeleteKnowledgeQaEntryAction.url({
-      slug: currentWorkspace.value.slug,
       knowledgeBase: kb.id,
       entry: target.id,
     }),
@@ -972,7 +961,7 @@ function confirmDeleteQaEntry(): void {
                       size="icon"
                       class="h-8 w-8 shrink-0"
                       :aria-label="t('检索配置')"
-                      @click="openWorkspaceSettingsPage"
+                      @click="openSystemSettingsPage"
                     >
                       <Settings2 class="h-4 w-4" />
                     </Button>
@@ -1145,9 +1134,9 @@ function confirmDeleteQaEntry(): void {
         @saved="returnToKnowledgeBasePage"
       />
 
-      <WorkspaceKnowledgeSettingsPanel
+      <SystemKnowledgeSettingsPanel
         v-else-if="activeRightPage === 'retrieval_settings'"
-        :settings="props.workspace_knowledge_settings"
+        :settings="props.system_knowledge_settings"
         :embedding-model-options="props.embedding_model_options"
         :rerank-model-options="props.rerank_model_options"
         :summary-model-options="props.summary_model_options"
@@ -1730,7 +1719,7 @@ function confirmDeleteQaEntry(): void {
         class="max-h-[calc(100vh-2rem)] overflow-hidden p-0 sm:max-w-2xl"
       >
         <div
-          class="max-h-[calc(100vh-2rem)] overflow-y-auto p-6 [scrollbar-gutter:stable]"
+          class="max-h-[calc(100vh-2rem)] [scrollbar-gutter:stable] overflow-y-auto p-6"
         >
           <DialogHeader class="space-y-3 pr-8">
             <DialogTitle>{{ t('上传文档') }}</DialogTitle>

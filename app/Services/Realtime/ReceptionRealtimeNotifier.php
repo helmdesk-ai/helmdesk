@@ -32,7 +32,6 @@ class ReceptionRealtimeNotifier
 
         $basePayload = [
             'event' => $event,
-            'workspace_id' => (string) $conversation->workspace_id,
             'conversation_id' => (string) $conversation->id,
             'contact_id' => $conversation->contact_id !== null ? (string) $conversation->contact_id : null,
             'occurred_at' => now()->toIso8601String(),
@@ -46,7 +45,7 @@ class ReceptionRealtimeNotifier
         ];
 
         $this->publisher->publish(
-            ReceptionMercureTopics::workspace((string) $conversation->workspace_id),
+            ReceptionMercureTopics::inbox(),
             'reception',
             $basePayload,
         );

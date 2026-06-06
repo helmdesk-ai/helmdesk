@@ -4,12 +4,10 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxConversationSummaryTranslationsData;
-use App\Data\WorkspaceUserContextData;
 use App\Jobs\Inbox\TranslateInboxConversationSummaryJob;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Models\Workspace;
-use App\Support\LocalePreference;
+use App\Services\Localization\LocalePreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -35,10 +33,9 @@ class QueueInboxConversationSummaryTranslationsAction
      *
      * @param  list<string>  $conversationIds
      */
-    public function handle(Workspace $workspace, User $user, string $conversationId, array $conversationIds): int
+    public function handle(User $user, string $conversationId, array $conversationIds): int
     {
         $anchor = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($anchor === null || $anchor->contact_id === null) {
@@ -49,7 +46,7 @@ class QueueInboxConversationSummaryTranslationsAction
             return 0;
         }
 
-        $conversations = $this->conversationsNeedingTranslation($workspace, $user, (string) $anchor->contact_id, $conversationIds);
+        $conversations = $this->conversationsNeedingTranslation($user, (string) $anchor->contact_id, $conversationIds);
 
         foreach ($conversations as $conversation) {
             TranslateInboxConversationSummaryJob::dispatch(
@@ -64,15 +61,13 @@ class QueueInboxConversationSummaryTranslationsAction
     /**
      * 接收会话摘要补翻请求并返回排队数量。
      */
-    public function asController(Request $request, string $slug, string $conversationId): JsonResponse
+    public function asController(Request $request, string $conversationId): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
         $data = FormQueueInboxConversationSummaryTranslationsData::from($request);
 
         return response()->json([
             'queued_count' => $this->handle(
-                workspace: $ctx->workspace(),
                 user: $user,
                 conversationId: $conversationId,
                 conversationIds: $data->conversation_ids,
@@ -86,14 +81,13 @@ class QueueInboxConversationSummaryTranslationsAction
      * @param  list<string>  $conversationIds
      * @return Collection<int, Conversation>
      */
-    private function conversationsNeedingTranslation(Workspace $workspace, User $user, string $contactId, array $conversationIds): Collection
+    private function conversationsNeedingTranslation(User $user, string $contactId, array $conversationIds): Collection
     {
         return Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contactId)
             ->whereIn('id', $conversationIds)
             ->whereNotNull('summary')
-            ->get(['id', 'workspace_id', 'contact_id', 'reception_plan_version_id', 'summary', 'summary_locale', 'summary_translations'])
+            ->get(['id', 'contact_id', 'reception_plan_version_id', 'summary', 'summary_locale', 'summary_translations'])
             ->filter(function (Conversation $conversation) use ($user): bool {
                 if (! $this->translationProviderResolver->hasUsableProvider($conversation)) {
                     return false;

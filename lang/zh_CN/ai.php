@@ -25,7 +25,7 @@ return [
     'chat' => [
         'prompt_required' => '请输入要发送的内容。',
         'model_required' => '请先选择一个模型后再发送。',
-        'model_unavailable' => '当前工作区尚未配置可用的 AI 模型，请联系管理员。',
+        'model_unavailable' => '当前系统尚未配置可用的 AI 模型，请联系管理员。',
         'selected_model_unavailable' => '所选模型已不可用，请重新选择。',
         'runtime_unavailable' => 'AI 服务暂时不可用，请稍后再试。',
         'invalid_topic' => '无法停止这次 AI 对话，请刷新后重试。',

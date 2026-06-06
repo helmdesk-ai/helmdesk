@@ -4,16 +4,16 @@ use App\Actions\Channel\Web\RegenerateWebChannelUserTokenSecretAction;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Models\Channel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 test('重新生成签名访客密钥会立即覆盖当前密钥并返回明文', function () {
-    $channel = Channel::factory()->for($this->workspace)->create([
+    $channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'current-secret-1234567890',
         ]),
@@ -28,28 +28,22 @@ test('重新生成签名访客密钥会立即覆盖当前密钥并返回明文',
 });
 
 test('重置密钥路由会回到详情页并更新密钥', function () {
-    $channel = Channel::factory()->for($this->workspace)->create([
+    $channel = Channel::factory()->create([
         'settings' => ChannelWebSettingsData::defaults([
             'user_token_secret' => 'current-secret-1234567890',
         ]),
     ]);
 
     $response = $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.show', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->from(route('admin.manage.channels.web.show', ['channel' => $channel->id,
         ]))
-        ->post(route('workspace.manage.channels.web.user-token-secret.regenerate', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->post(route('admin.manage.channels.web.user-token-secret.regenerate', ['channel' => $channel->id,
         ]));
 
     $storedSecret = $channel->fresh()->settings->user_token_secret;
 
     $response
-        ->assertRedirect(route('workspace.manage.channels.web.show', [
-            'slug' => $this->workspaceSlug(),
-            'channel' => $channel->id,
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id,
         ]));
 
     expect($storedSecret)->not->toBe('current-secret-1234567890');

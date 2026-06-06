@@ -5,11 +5,10 @@ namespace App\Actions\Channel\Web;
 use App\Actions\Attachment\AttachUploadedAttachmentsAction;
 use App\Actions\Reception\Plan\ResolveChannelReceptionPlanAction;
 use App\Data\Channel\Web\FormUpdateWebChannelBasicData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AttachmentPurpose;
+use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
-use App\Models\Workspace;
 use App\Services\Channel\WebChannelResolutionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,12 +35,11 @@ class UpdateWebChannelBasicAction
     /**
      * 保存网站渠道基础信息和接待方案绑定。
      */
-    public function handle(Workspace $workspace, Channel $channel, FormUpdateWebChannelBasicData $data): void
+    public function handle(Channel $channel, FormUpdateWebChannelBasicData $data): void
     {
         $submittedPlanId = $data->receptionPlanId();
         $requireUsable = $submittedPlanId !== $channel->reception_plan_id;
         $planId = $this->resolveChannelReceptionPlan->handle(
-            $workspace,
             $submittedPlanId,
             requireUsable: $requireUsable,
         );
@@ -63,17 +61,15 @@ class UpdateWebChannelBasicAction
     /**
      * 接收渠道基础信息表单并返回详情页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
-        $channelModel = $this->resolution->findWorkspaceChannel($workspace, $channel);
+        $channelModel = $this->resolution->findSystemChannel($channel);
 
-        $this->handle($workspace, $channelModel, FormUpdateWebChannelBasicData::from($request));
+        $this->handle($channelModel, FormUpdateWebChannelBasicData::from($request));
 
-        return redirect()->back(302, [], route('workspace.manage.channels.web.show', [
-            'slug' => $workspace->slug,
+        return redirect()->back(302, [], route('admin.manage.channels.web.show', [
             'channel' => $channelModel->id,
         ]));
     }
@@ -87,25 +83,22 @@ class UpdateWebChannelBasicAction
             return;
         }
 
-        AttachUploadedAttachmentsAction::run($channel, $attachmentId, (string) $channel->workspace_id);
+        AttachUploadedAttachmentsAction::run($channel, $attachmentId);
     }
 
     /**
      * 附件只能使用未绑定资源或当前渠道已绑定资源。
      */
-    public static function assertAttachmentAssignable(Channel $channel, AttachmentPurpose $purpose, ?string $attachmentId, ?string $workspaceId = null): void
+    public static function assertAttachmentAssignable(Channel $channel, AttachmentPurpose $purpose, ?string $attachmentId): void
     {
         if (! filled($attachmentId)) {
             return;
         }
 
-        $workspaceId ??= filled($channel->workspace_id) ? (string) $channel->workspace_id : null;
-
         try {
             app(AttachUploadedAttachmentsAction::class)->assertCanAttach(
                 attachable: $channel,
                 attachmentId: $attachmentId,
-                workspaceId: $workspaceId,
                 allowedPurposes: [$purpose],
             );
         } catch (ValidationException) {

@@ -2,7 +2,7 @@
 
 namespace App\Services\Reception;
 
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Models\Channel;
 use LogicException;
 

@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Enums\ContactSource;
 use App\Enums\ContactType;
 use App\Models\Contact;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +17,6 @@ class ContactFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'type' => fake()->randomElement(ContactType::cases()),
             'source' => fake()->randomElement(ContactSource::cases()),
             'name' => fake()->name(),

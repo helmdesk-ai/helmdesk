@@ -14,14 +14,14 @@ use Throwable;
  *  1. 生产 / 开发：始终通过 Go 二进制启动（FrankenPHP 嵌入式 PHP）。
  *     Go 在 main 入口调用 sqlite3_auto_extension(sqlite3_vec_init)，把扩展注册到与
  *     PHP 共享的 libsqlite3 上，之后任意 PDO 打开的 sqlite 连接都会自动具备 vec_*
- *     函数，PHP 端无需也不应该再调用 PDO::loadExtension —— 部分构建版本下重复加载
+ *     函数，PHP 端应跳过 PDO::loadExtension —— 部分构建版本下重复加载
  *     会直接抛 PDOException。
  *  2. 独立的 PHP CLI（CI 的 `php artisan test`、`php artisan tinker` 等）：进程不
  *     经过 Go，sqlite3_auto_extension 没有被注册，PHP 自己得 loadExtension 才能
  *     用 vec0 虚表。
  *
- * 为了在两种拓扑下都正确，这里不再按 PHP_SAPI 判断，改为 **先用 SELECT vec_version()
- * 探测**：命中说明扩展已被进程级 auto extension 加载，跳过即可；未命中再退化到
+ * 为了在两种拓扑下都正确，这里先用 SELECT vec_version() 探测：
+ * 命中说明扩展已被进程级 auto extension 加载，跳过即可；未命中再退化到
  * PDO::loadExtension。
  */
 class SqliteVecExtensionLoader

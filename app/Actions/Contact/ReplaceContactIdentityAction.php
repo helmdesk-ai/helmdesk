@@ -3,13 +3,11 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\FormReplaceContactIdentityData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\IdentityType;
 use App\Models\Contact;
 use App\Models\ContactActivityLog;
 use App\Models\ContactIdentity;
 use App\Models\User;
-use App\Models\Workspace;
 use App\Services\Contact\ContactActivityLogger;
 use App\Services\Contact\ContactIdentityNormalizer;
 use Illuminate\Http\Request;
@@ -26,18 +24,15 @@ class ReplaceContactIdentityAction
     use AsAction;
 
     public function handle(
-        Workspace $workspace,
         string $contactId,
         string $identityId,
         FormReplaceContactIdentityData $data,
         ?User $actor = null,
     ): ContactIdentity {
         $contact = Contact::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($contactId);
 
         $identity = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('contact_id', $contact->id)
             ->findOrFail($identityId);
 
@@ -75,7 +70,6 @@ class ReplaceContactIdentityAction
         }
 
         $existing = ContactIdentity::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', $identity->type)
             ->where('namespace', $identity->namespace)
             ->where('value', $normalizedValue)
@@ -96,7 +90,6 @@ class ReplaceContactIdentityAction
 
         return DB::transaction(function () use ($contact, $identity, $normalizedValue, $actor) {
             $replacement = ContactIdentity::query()->create([
-                'workspace_id' => $contact->workspace_id,
                 'contact_id' => $contact->id,
                 'type' => $identity->type,
                 'namespace' => $identity->namespace,
@@ -125,15 +118,12 @@ class ReplaceContactIdentityAction
 
     public function asController(
         Request $request,
-        string $slug,
         string $contactId,
         string $identityId,
     ): Response {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
         $data = FormReplaceContactIdentityData::from($request);
 
-        $this->handle($workspace, $contactId, $identityId, $data, $request->user());
+        $this->handle($contactId, $identityId, $data, $request->user());
 
         return back();
     }

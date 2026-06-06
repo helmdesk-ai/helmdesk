@@ -46,9 +46,7 @@ class ChannelAiAvailability
         $modelId = $compiled['reception_config']['default_model']['ai_model_id'] ?? null;
         $modelId = is_string($modelId) ? $modelId : null;
 
-        $channel->loadMissing('workspace');
-
-        return $this->aiModelResolver->resolveModelStatus($channel->workspace, $modelId)->isValid;
+        return $this->aiModelResolver->resolveModelStatus($modelId)->isValid;
     }
 
     /**
@@ -87,7 +85,6 @@ class ChannelAiAvailability
         }
 
         $lastMessage = ConversationMessage::query()
-            ->where('workspace_id', $conversation->workspace_id)
             ->where('conversation_id', $conversation->id)
             ->orderByDesc('created_at')
             ->orderByDesc('id')

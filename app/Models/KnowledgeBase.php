@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeIndexingStrategy;
+use App\Settings\KnowledgeSettings;
 use Database\Factories\KnowledgeBaseFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -18,19 +19,16 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $workspace_id
  * @property string $name
  * @property KnowledgeBaseCategory $category
  * @property string|null $avatar_id
  * @property string|null $description
  * @property mixed $use_factory
- * @property int|null $workspaces_count
  * @property int|null $avatars_count
  * @property int|null $document_groups_count
  * @property int|null $default_document_groups_count
  * @property int|null $documents_count
  * @property int|null $qa_entries_count
- * @property-read Workspace $workspace
  * @property-read Attachment|null $avatar
  * @property-read Collection|KnowledgeGroup[] $documentGroups
  * @property-read KnowledgeGroup|null $defaultDocumentGroup
@@ -42,7 +40,7 @@ use Illuminate\Support\Carbon;
 class KnowledgeBase extends Model
 {
     /**
-     * 工作区知识库模型，承载文档与问答内容。
+     * 知识库模型，承载文档与问答内容。
      */
 
     /** @use HasFactory<KnowledgeBaseFactory> */
@@ -71,11 +69,11 @@ class KnowledgeBase extends Model
      */
     public function enabledIndexingStrategies(): array
     {
-        $workspace = $this->relationLoaded('workspace')
-            ? $this->workspace
-            : $this->workspace()->first();
+        /** @var KnowledgeSettings $settings */
+        $settings = app(KnowledgeSettings::class);
+        $settings->refresh();
 
-        return $workspace?->enabledKnowledgeIndexingStrategies() ?? [];
+        return $settings->enabledIndexingStrategies();
     }
 
     /**
@@ -84,14 +82,6 @@ class KnowledgeBase extends Model
     public function hasIndexingStrategy(KnowledgeIndexingStrategy $strategy): bool
     {
         return in_array($strategy, $this->enabledIndexingStrategies(), true);
-    }
-
-    /**
-     * 知识库所属工作区。
-     */
-    public function workspace(): BelongsTo
-    {
-        return $this->belongsTo(Workspace::class);
     }
 
     /**

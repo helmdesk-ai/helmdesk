@@ -8,28 +8,29 @@ use App\Enums\Channel\Web\WebChannelWidgetEntryPosition;
 use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
 use App\Enums\Channel\Web\WebChannelWidgetIconSize;
 use App\Enums\ReceptionLanguage;
+use App\Enums\UserPermission;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
+use App\Models\SystemContext;
 use App\Models\User;
-use App\Models\Workspace;
+use App\Services\Channel\WebChannelThemePalette;
 use App\Settings\GeneralSettings;
-use App\Support\Channel\WebChannelThemePalette;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->withoutVite();
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     config(['app.url' => 'https://helmdesk.test']);
 
     $settings = app(GeneralSettings::class);
@@ -39,11 +40,10 @@ beforeEach(function () {
 
 function createChannelTestProvider(array $attributes = []): AiProvider
 {
-    /** @var Workspace $workspace */
-    $workspace = test()->workspace;
+    /** @var SystemContext $systemContext */
+    $systemContext = test()->systemContext;
 
     return AiProvider::query()->create(array_merge([
-        'workspace_id' => $workspace->id,
         'brand' => 'custom-openai',
         'slug' => 'test-provider-channel-'.Str::lower(Str::random(6)),
         'name' => 'Test Provider',
@@ -70,11 +70,10 @@ function createChannelTestModel(AiProvider $provider, array $attributes = []): A
 
 function createChannelTestAttachment(array $attributes = []): Attachment
 {
-    /** @var Workspace $workspace */
-    $workspace = test()->workspace;
+    /** @var SystemContext $systemContext */
+    $systemContext = test()->systemContext;
 
     return Attachment::factory()->create(array_merge([
-        'workspace_id' => $workspace->id,
         'disk' => 'local',
         'object_key' => 'uploads/'.Str::lower(Str::random(8)).'.png',
         'original_name' => 'test.png',
@@ -88,17 +87,17 @@ function createChannelTestAttachment(array $attributes = []): Attachment
 }
 
 /**
- * 创建一个可被渠道直接部署的接待方案版本：插入到当前 workspace、状态 published、
+ * 创建一个可被渠道直接部署的接待方案版本：插入到当前 systemContext、状态 published、
  * 接待 / 任务默认模型指向给定 AiModel，AiModelResolver 能据此判定为可用。
  */
-function createDeployableReceptionPlanVersion(Workspace $workspace, ?AiModel $model = null, array $versionAttributes = []): ReceptionPlanVersion
+function createDeployableReceptionPlanVersion(?AiModel $model = null, array $versionAttributes = []): ReceptionPlanVersion
 {
     if ($model === null) {
         $provider = createChannelTestProvider();
         $model = createChannelTestModel($provider);
     }
 
-    $plan = ReceptionPlan::factory()->for($workspace)->create([
+    $plan = ReceptionPlan::factory()->create([
         'name' => '官网接待方案-'.Str::lower(Str::random(6)),
     ]);
 
@@ -108,12 +107,11 @@ function createDeployableReceptionPlanVersion(Workspace $workspace, ?AiModel $mo
         ->create($versionAttributes);
 }
 
-test('所有者可以查看网页频道列表和详情页面', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+test('超级管理员可以查看网页频道列表和详情页面', function () {
+    $version = createDeployableReceptionPlanVersion();
     $planName = $version->plan->name;
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '官网主站',
         'description' => '官网入口备注',
         'reception_plan_id' => $version->reception_plan_id,
@@ -129,7 +127,7 @@ test('所有者可以查看网页频道列表和详情页面', function () {
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('admin.manage.channels.web.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/List')
@@ -143,7 +141,7 @@ test('所有者可以查看网页频道列表和详情页面', function () {
         );
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.create', ['slug' => $this->workspaceSlug()]))
+        ->get(route('admin.manage.channels.web.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Create')
@@ -154,7 +152,7 @@ test('所有者可以查看网页频道列表和详情页面', function () {
         );
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
+        ->get(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Show')
@@ -196,13 +194,12 @@ test('所有者可以查看网页频道列表和详情页面', function () {
 });
 
 test('网页频道列表与详情会回填 embed host 跟踪字段', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+    $version = createDeployableReceptionPlanVersion();
 
     $firstEmbedAt = CarbonImmutable::parse('2026-04-20T03:15:00Z');
     $lastEmbedAt = CarbonImmutable::parse('2026-05-20T08:42:00Z');
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '官网主站',
         'reception_plan_id' => $version->reception_plan_id,
         'first_embed_host' => 'foo.example.com',
@@ -212,7 +209,7 @@ test('网页频道列表与详情会回填 embed host 跟踪字段', function ()
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('admin.manage.channels.web.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/List')
@@ -223,7 +220,7 @@ test('网页频道列表与详情会回填 embed host 跟踪字段', function ()
         );
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
+        ->get(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Show')
@@ -235,16 +232,15 @@ test('网页频道列表与详情会回填 embed host 跟踪字段', function ()
 });
 
 test('网页频道未被嵌入时 embed host 字段为 null', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '帮助中心',
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
+        ->get(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Show')
@@ -255,9 +251,9 @@ test('网页频道未被嵌入时 embed host 字段为 null', function () {
         );
 });
 
-test('所有者可以查看网页频道列表且没有可选接待方案版本', function () {
+test('超级管理员可以查看网页频道列表且没有可选接待方案版本', function () {
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.index', ['slug' => $this->workspaceSlug()]))
+        ->get(route('admin.manage.channels.web.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/List')
@@ -267,7 +263,7 @@ test('所有者可以查看网页频道列表且没有可选接待方案版本',
         );
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.create', ['slug' => $this->workspaceSlug()]))
+        ->get(route('admin.manage.channels.web.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Create')
@@ -282,16 +278,15 @@ test('网站渠道预览地址使用后台保存的主机地址', function () {
     $settings->base_url = 'http://localhost:8080';
     $settings->save();
 
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => '本地开发站点',
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $this->actingAs($this->user)
-        ->get("http://localhost:8080/w/{$this->workspaceSlug()}/manage/channels/web/{$channel->id}")
+        ->get("http://localhost:8080/admin/manage/channels/web/{$channel->id}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Show')
@@ -300,12 +295,12 @@ test('网站渠道预览地址使用后台保存的主机地址', function () {
         );
 });
 
-test('所有者可以创建活跃频道并带名称和接待方案版本', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+test('超级管理员可以创建活跃频道并带名称和接待方案版本', function () {
+    $version = createDeployableReceptionPlanVersion();
 
     $response = $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.index', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.web.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('admin.manage.channels.web.index'))
+        ->post(route('admin.manage.channels.web.store'), [
             'name' => '帮助中心',
             'description' => '用于帮助中心页面的内部备注',
             'reception_plan_id' => $version->reception_plan_id,
@@ -313,13 +308,10 @@ test('所有者可以创建活跃频道并带名称和接待方案版本', funct
         ]);
 
     $channel = Channel::query()
-        ->where('workspace_id', $this->workspace->id)
         ->firstOrFail();
     $settings = $channel->settings;
 
-    $response->assertRedirect(route('workspace.manage.channels.web.show', [
-        'slug' => $this->workspaceSlug(),
-        'channel' => $channel->id,
+    $response->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id,
     ]));
 
     expect($channel->name)->toBe('帮助中心')
@@ -343,42 +335,41 @@ test('所有者可以创建活跃频道并带名称和接待方案版本', funct
 });
 
 test('创建频道需要名称', function () {
-    createDeployableReceptionPlanVersion($this->workspace);
+    createDeployableReceptionPlanVersion();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.web.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('admin.manage.channels.web.create'))
+        ->post(route('admin.manage.channels.web.store'), [
         ])
         ->assertSessionHasErrors(['name']);
 });
 
 test('创建频道时不部署接待方案版本则被拒绝', function () {
-    createDeployableReceptionPlanVersion($this->workspace);
+    createDeployableReceptionPlanVersion();
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.create', ['slug' => $this->workspaceSlug()]))
-        ->post(route('workspace.manage.channels.web.store', ['slug' => $this->workspaceSlug()]), [
+        ->from(route('admin.manage.channels.web.create'))
+        ->post(route('admin.manage.channels.web.store'), [
             'name' => '官网主站',
         ])
         ->assertSessionHasErrors(['reception_plan_id']);
 });
 
-test('所有者可以保存基础频道信息', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+test('超级管理员可以保存基础频道信息', function () {
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
-        ->put(route('workspace.manage.channels.web.basic.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->from(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
+        ->put(route('admin.manage.channels.web.basic.update', ['channel' => $channel->id]), [
             'name' => '帮助中心',
             'description' => '帮助中心渠道备注',
             'reception_plan_id' => $version->reception_plan_id,
             'default_visitor_locale' => ReceptionLanguage::Japanese->value,
         ])
-        ->assertRedirect(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]));
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id]));
 
     $channel->refresh();
     $settings = $channel->settings;
@@ -390,13 +381,12 @@ test('所有者可以保存基础频道信息', function () {
         ->and($settings->default_visitor_locale)->toBe(ReceptionLanguage::Japanese);
 });
 
-test('所有者可以保存小部件入口配置', function () {
+test('超级管理员可以保存小部件入口配置', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.widget.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.widget.update', ['channel' => $channel->id]), [
             'entry_mode' => WebChannelWidgetEntryMode::Bubble->value,
             'entry_position' => WebChannelWidgetEntryPosition::Left->value,
             'entry_style' => WebChannelWidgetEntryStyle::System->value,
@@ -406,7 +396,7 @@ test('所有者可以保存小部件入口配置', function () {
             'inline_toast_enabled' => '0',
             'mobile_fullscreen_enabled' => '0',
         ])
-        ->assertRedirect(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]));
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id]));
 
     $channel->refresh();
 
@@ -422,7 +412,6 @@ test('所有者可以保存小部件入口配置', function () {
 
 test('接入方式表单仅更新嵌入域名白名单且不影响入口配置', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'settings' => ChannelWebSettingsData::defaults([
             'widget' => [
                 'entry' => [
@@ -435,10 +424,10 @@ test('接入方式表单仅更新嵌入域名白名单且不影响入口配置',
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.access.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.access.update', ['channel' => $channel->id]), [
             'allowed_embed_hosts' => ['  Example.com', 'example.com', 'https://docs.example.com/install'],
         ])
-        ->assertRedirect(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]));
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id]));
 
     $channel->refresh();
 
@@ -451,13 +440,12 @@ test('接入方式表单仅更新嵌入域名白名单且不影响入口配置',
 
 test('自定义入口样式可成对上传默认图标与选中图标并解析出 URL', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $defaultIcon = createChannelTestAttachment();
     $activeIcon = createChannelTestAttachment();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.widget.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.widget.update', ['channel' => $channel->id]), [
             'entry_mode' => WebChannelWidgetEntryMode::Bubble->value,
             'entry_position' => WebChannelWidgetEntryPosition::Right->value,
             'entry_style' => WebChannelWidgetEntryStyle::Custom->value,
@@ -469,7 +457,7 @@ test('自定义入口样式可成对上传默认图标与选中图标并解析�
             'inline_toast_enabled' => '0',
             'mobile_fullscreen_enabled' => '1',
         ])
-        ->assertRedirect(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]));
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id]));
 
     $channel->refresh();
 
@@ -489,12 +477,11 @@ test('自定义入口样式可成对上传默认图标与选中图标并解析�
 
 test('自定义入口图标只传其一会被拒绝', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $defaultIcon = createChannelTestAttachment();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.widget.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.widget.update', ['channel' => $channel->id]), [
             'entry_mode' => WebChannelWidgetEntryMode::Bubble->value,
             'entry_position' => WebChannelWidgetEntryPosition::Right->value,
             'entry_style' => WebChannelWidgetEntryStyle::Custom->value,
@@ -510,12 +497,11 @@ test('自定义入口图标只传其一会被拒绝', function () {
 
 test('自定义入口模式隐藏默认气泡并放宽图标成对校验', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $defaultIcon = createChannelTestAttachment();
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.widget.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.widget.update', ['channel' => $channel->id]), [
             'entry_mode' => WebChannelWidgetEntryMode::Custom->value,
             'entry_position' => WebChannelWidgetEntryPosition::Left->value,
             'entry_style' => WebChannelWidgetEntryStyle::Custom->value,
@@ -526,7 +512,7 @@ test('自定义入口模式隐藏默认气泡并放宽图标成对校验', funct
             'inline_toast_enabled' => '1',
             'mobile_fullscreen_enabled' => '1',
         ])
-        ->assertRedirect(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]));
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id]));
 
     $channel->refresh();
 
@@ -540,24 +526,21 @@ test('自定义入口模式隐藏默认气泡并放宽图标成对校验', funct
         ->and($defaultIcon->fresh()->attachable_id)->toBeNull();
 });
 
-test('所有者可以保存访客界面配置并同步到两个入口', function () {
+test('超级管理员可以保存访客界面配置并同步到两个入口', function () {
     Storage::fake('public');
 
     $attachment = createChannelTestAttachment();
     $serviceAvatar = createChannelTestAttachment(['purpose' => 'avatar']);
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
-    $detailUrl = route('workspace.manage.channels.web.show', [
-        'slug' => $this->workspaceSlug(),
-        'channel' => $channel->id,
+    $detailUrl = route('admin.manage.channels.web.show', ['channel' => $channel->id,
         'tab' => 'visitor-interface',
     ]);
 
     $this->actingAs($this->user)
         ->from($detailUrl)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'site_name' => '帮助中心',
             'subtitle' => '产品咨询与售后支持',
             'header_enabled' => '1',
@@ -597,20 +580,17 @@ test('所有者可以保存访客界面配置并同步到两个入口', function
         ->and($webChannel->visitor_interface->subtitle)->toBe('产品咨询与售后支持');
 });
 
-test('所有者可以随访客界面保存猜你想问设置', function () {
+test('超级管理员可以随访客界面保存猜你想问设置', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
-    $detailUrl = route('workspace.manage.channels.web.show', [
-        'slug' => $this->workspaceSlug(),
-        'channel' => $channel->id,
+    $detailUrl = route('admin.manage.channels.web.show', ['channel' => $channel->id,
         'tab' => 'visitor-interface',
     ]);
 
     $this->actingAs($this->user)
         ->from($detailUrl)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'header_enabled' => '0',
             'visitor_identity_mode' => WebChannelVisitorIdentityMode::ActualReceptionist->value,
             'theme_color' => WebChannelThemePalette::DEFAULT,
@@ -629,11 +609,10 @@ test('所有者可以随访客界面保存猜你想问设置', function () {
 
 test('访客界面校验标题栏和身份模式', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'site_name' => '',
             'subtitle' => str_repeat('副', 121),
             'header_enabled' => '1',
@@ -651,12 +630,11 @@ test('访客界面校验标题栏和身份模式', function () {
 
 test('访客界面校验主题色与首页欢迎语', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     // 非预设色板的主题色被拒绝；首页模式开启时欢迎语必填。
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'header_enabled' => '0',
             'visitor_identity_mode' => WebChannelVisitorIdentityMode::ActualReceptionist->value,
             'theme_color' => '#123456',
@@ -671,11 +649,10 @@ test('访客界面校验主题色与首页欢迎语', function () {
 
 test('访客界面校验猜你想问建议数量', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'header_enabled' => '0',
             'visitor_identity_mode' => WebChannelVisitorIdentityMode::ActualReceptionist->value,
             'theme_color' => WebChannelThemePalette::DEFAULT,
@@ -688,17 +665,16 @@ test('访客界面校验猜你想问建议数量', function () {
         ]);
 });
 
-test('所有者可以软删除频道', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+test('超级管理员可以软删除频道', function () {
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.channels.web.destroy', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
-        ->assertRedirect(route('workspace.manage.channels.web.index', ['slug' => $this->workspaceSlug()]));
+        ->delete(route('admin.manage.channels.web.destroy', ['channel' => $channel->id]))
+        ->assertRedirect(route('admin.manage.channels.web.index'));
 
     $this->assertSoftDeleted('channels', [
         'id' => $channel->id,
@@ -708,22 +684,21 @@ test('所有者可以软删除频道', function () {
 test('保留当前部署不可用版本时仍能保存其它字段', function () {
     $provider = createChannelTestProvider();
     $model = createChannelTestModel($provider);
-    $version = createDeployableReceptionPlanVersion($this->workspace, $model);
+    $version = createDeployableReceptionPlanVersion($model);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $model->update(['is_active' => false]);
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
-        ->put(route('workspace.manage.channels.web.basic.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->from(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
+        ->put(route('admin.manage.channels.web.basic.update', ['channel' => $channel->id]), [
             'name' => '改个名字',
             'reception_plan_id' => $version->reception_plan_id,
         ])
-        ->assertRedirect(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]));
+        ->assertRedirect(route('admin.manage.channels.web.show', ['channel' => $channel->id]));
 
     expect($channel->fresh()->name)->toBe('改个名字')
         ->and($channel->fresh()->reception_plan_id)->toBe($version->reception_plan_id);
@@ -732,21 +707,20 @@ test('保留当前部署不可用版本时仍能保存其它字段', function ()
 test('切换到不可用接待方案版本会被拒绝', function () {
     $provider = createChannelTestProvider();
     $currentModel = createChannelTestModel($provider);
-    $currentVersion = createDeployableReceptionPlanVersion($this->workspace, $currentModel);
+    $currentVersion = createDeployableReceptionPlanVersion($currentModel);
 
     $brokenModel = createChannelTestModel($provider, [
         'is_active' => false,
         'model_id' => 'gpt-4.1-broken',
     ]);
-    $brokenVersion = createDeployableReceptionPlanVersion($this->workspace, $brokenModel);
+    $brokenVersion = createDeployableReceptionPlanVersion($brokenModel);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $currentVersion->reception_plan_id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.basic.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.basic.update', ['channel' => $channel->id]), [
             'name' => '试图切换',
             'reception_plan_id' => $brokenVersion->reception_plan_id,
         ])
@@ -761,17 +735,16 @@ test('切换到不可用接待方案版本会被拒绝', function () {
 test('详情页面暴露 reception_plan_status_detail 用于已部署版本', function () {
     $provider = createChannelTestProvider();
     $model = createChannelTestModel($provider);
-    $version = createDeployableReceptionPlanVersion($this->workspace, $model);
+    $version = createDeployableReceptionPlanVersion($model);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $model->update(['is_active' => false]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
+        ->get(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Show')
@@ -780,31 +753,26 @@ test('详情页面暴露 reception_plan_status_detail 用于已部署版本', fu
         );
 });
 
-test('基础更新拒绝跨工作区的接待方案版本', function () {
-    $otherWorkspace = Workspace::factory()->create();
-    $this->user->workspaces()->attach($otherWorkspace, ['role' => 'owner']);
-    $otherVersion = createDeployableReceptionPlanVersion($otherWorkspace);
+test('单租户下基础更新可以使用任意接待方案版本', function () {
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.basic.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
-            'name' => '非法版本',
-            'reception_plan_id' => $otherVersion->reception_plan_id,
+        ->put(route('admin.manage.channels.web.basic.update', ['channel' => $channel->id]), [
+            'name' => '新的版本',
+            'reception_plan_id' => $version->reception_plan_id,
         ])
-        ->assertUnprocessable()
-        ->assertJson([
-            'message' => __('channel.messages.invalid_reception_plan'),
-        ]);
+        ->assertRedirect();
+
+    expect($channel->fresh()->reception_plan_id)->toBe($version->reception_plan_id);
 });
 
 test('访客界面更新拒绝绑定到其他记录的页面图标', function () {
     Storage::fake('public');
 
     $otherChannel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
     $foreignAttachment = createChannelTestAttachment([
         'attachable_type' => Channel::class,
@@ -812,11 +780,10 @@ test('访客界面更新拒绝绑定到其他记录的页面图标', function ()
     ]);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'site_name' => '帮助中心',
             'subtitle' => '',
             'header_enabled' => '1',
@@ -841,11 +808,10 @@ test('访客界面更新接受未绑定页面图标并绑定到频道', function
     $serviceAvatar = createChannelTestAttachment(['purpose' => 'avatar']);
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('workspace.manage.channels.web.visitor-interface.update', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]), [
+        ->put(route('admin.manage.channels.web.visitor-interface.update', ['channel' => $channel->id]), [
             'site_name' => '帮助中心',
             'subtitle' => '',
             'header_enabled' => '1',
@@ -868,18 +834,17 @@ test('访客界面更新接受未绑定页面图标并绑定到频道', function
         ->and($serviceAvatar->fresh()->attachable_id)->toBeNull();
 });
 
-test('所有者可以查看频道回收站和恢复频道', function () {
-    $version = createDeployableReceptionPlanVersion($this->workspace);
+test('超级管理员可以查看频道回收站和恢复频道', function () {
+    $version = createDeployableReceptionPlanVersion();
 
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
     $channel->delete();
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.trash', ['slug' => $this->workspaceSlug()]))
+        ->get(route('admin.manage.channels.web.trash'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('channel/web/Trash')
@@ -888,8 +853,8 @@ test('所有者可以查看频道回收站和恢复频道', function () {
         );
 
     $this->actingAs($this->user)
-        ->from(route('workspace.manage.channels.web.trash', ['slug' => $this->workspaceSlug()]))
-        ->put(route('workspace.manage.channels.web.restore', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
+        ->from(route('admin.manage.channels.web.trash'))
+        ->put(route('admin.manage.channels.web.restore', ['channel' => $channel->id]))
         ->assertRedirect();
 
     expect($channel->fresh()->deleted_at)->toBeNull();
@@ -897,7 +862,6 @@ test('所有者可以查看频道回收站和恢复频道', function () {
 
 test('频道代码会唯一生成', function () {
     Channel::factory()->count(2)->create([
-        'workspace_id' => $this->workspace->id,
     ]);
 
     [$first, $second] = Channel::query()->orderBy('created_at')->get()->all();
@@ -909,7 +873,6 @@ test('频道代码会唯一生成', function () {
 
 test('频道设置转换水合数据对象来自数组载荷', function () {
     $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'settings' => [
             'visitor_interface' => [
                 'header' => [
@@ -928,45 +891,41 @@ test('频道设置转换水合数据对象来自数组载荷', function () {
         ->and(WebChannelData::fromModel($channel)->visitor_interface->theme_color)->toBe('#C2185B');
 });
 
-test('非所有者用户不能访问或修改网页频道', function () {
-    $admin = User::factory()->create();
-    $admin->workspaces()->attach($this->workspace, ['role' => 'admin']);
-
-    $operator = User::factory()->create();
-    $operator->workspaces()->attach($this->workspace, ['role' => 'operator']);
-
-    $channel = Channel::factory()->create([
-        'workspace_id' => $this->workspace->id,
+test('有渠道查看权限的用户可以访问网页频道一级菜单', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::ChannelsView->value],
+    ]);
+    $userWithoutPermission = User::factory()->create([
+        'permissions' => [],
     ]);
 
-    $this->actingAs($admin)
-        ->get(route('workspace.manage.channels.web.index', ['slug' => $this->workspaceSlug()]))
-        ->assertForbidden();
+    $channel = Channel::factory()->create([
+    ]);
 
-    $this->actingAs($operator)
-        ->get(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $channel->id]))
-        ->assertForbidden();
+    $this->actingAs($viewer)
+        ->get(route('admin.manage.channels.web.index'))
+        ->assertOk();
 
-    $this->actingAs($admin)
-        ->post(route('workspace.manage.channels.web.store', ['slug' => $this->workspaceSlug()]), [
-            'name' => '管理员创建',
-        ])
+    $this->actingAs($viewer)
+        ->get(route('admin.manage.channels.web.show', ['channel' => $channel->id]))
+        ->assertOk();
+
+    $this->actingAs($userWithoutPermission)
+        ->get(route('admin.manage.channels.web.index'))
         ->assertForbidden();
 });
 
-test('所有者不能访问或修改频道来自另一个工作区', function () {
-    $otherWorkspace = Workspace::factory()->create();
-    $this->user->workspaces()->attach($otherWorkspace, ['role' => 'owner']);
-
+test('单租户下超级管理员可以访问或删除任意频道', function () {
     $otherChannel = Channel::factory()->create([
-        'workspace_id' => $otherWorkspace->id,
     ]);
 
     $this->actingAs($this->user)
-        ->get(route('workspace.manage.channels.web.show', ['slug' => $this->workspaceSlug(), 'channel' => $otherChannel->id]))
-        ->assertNotFound();
+        ->get(route('admin.manage.channels.web.show', ['channel' => $otherChannel->id]))
+        ->assertOk();
 
     $this->actingAs($this->user)
-        ->delete(route('workspace.manage.channels.web.destroy', ['slug' => $this->workspaceSlug(), 'channel' => $otherChannel->id]))
-        ->assertNotFound();
+        ->delete(route('admin.manage.channels.web.destroy', ['channel' => $otherChannel->id]))
+        ->assertRedirect();
+
+    expect(Channel::query()->whereKey($otherChannel->id)->exists())->toBeFalse();
 });

@@ -3,7 +3,7 @@
 namespace App\Data\Channel\Web;
 
 use App\Enums\Channel\Web\WebChannelVisitorIdentityMode;
-use App\Support\Channel\WebChannelThemePalette;
+use App\Services\Channel\WebChannelThemePalette;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 

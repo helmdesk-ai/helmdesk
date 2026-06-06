@@ -2,12 +2,12 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\Reception\ListReceptionPlanTrashPagePropsData;
-use App\Data\Reception\ReceptionPlanData;
+use App\Data\Reception\Plan\ListReceptionPlanTrashPagePropsData;
+use App\Data\Reception\Plan\ReceptionPlanData;
 use App\Data\SimplePaginationData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,7 +17,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * 渲染接待方案回收站页（Trash.vue）。
- * 分页展示当前工作区已删除的接待方案，供查看与恢复。
+ * 分页展示当前系统已删除的接待方案，供查看与恢复。
  */
 class ListReceptionPlanTrashAction
 {
@@ -35,19 +35,18 @@ class ListReceptionPlanTrashAction
     /**
      * 组装回收站页 props：分页的已删除方案。
      */
-    public function handle(Workspace $workspace, int $page = 1): ListReceptionPlanTrashPagePropsData
+    public function handle(SystemContext $systemContext, int $page = 1): ListReceptionPlanTrashPagePropsData
     {
         $page = max(1, $page);
 
         $paginator = ReceptionPlan::query()
             ->onlyTrashed()
-            ->where('workspace_id', $workspace->id)
             ->latest('deleted_at')
             ->latest('updated_at')
             ->paginate(self::PER_PAGE, ['*'], 'page', $page);
 
         $plans = $paginator->getCollection();
-        $plans->each(fn (ReceptionPlan $plan) => $plan->setRelation('workspace', $workspace));
+        $plans->each(fn (ReceptionPlan $plan) => $plan->setRelation('systemContext', $systemContext));
 
         return new ListReceptionPlanTrashPagePropsData(
             trashed_plan_list: $plans
@@ -63,11 +62,11 @@ class ListReceptionPlanTrashAction
      */
     public function asController(Request $request): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemContext::current();
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansView);
 
         return Inertia::render('reception/plans/Trash', $this->handle(
-            workspace: $workspace,
+            systemContext: $systemContext,
             page: (int) $request->query('page', 1),
         )->toArray());
     }

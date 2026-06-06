@@ -13,7 +13,7 @@ enum CannedReplyTokenKind: string implements LabeledEnum
     case Contact = 'contact';
     case Conversation = 'conversation';
     case Teammate = 'teammate';
-    case Workspace = 'workspace';
+    case System = 'system';
     case Ai = 'ai';
 
     /**
@@ -25,18 +25,8 @@ enum CannedReplyTokenKind: string implements LabeledEnum
             self::Contact => __('canned_reply.token_kinds.contact'),
             self::Conversation => __('canned_reply.token_kinds.conversation'),
             self::Teammate => __('canned_reply.token_kinds.teammate'),
-            self::Workspace => __('canned_reply.token_kinds.workspace'),
+            self::System => __('canned_reply.token_kinds.system'),
             self::Ai => __('canned_reply.token_kinds.ai'),
         };
-    }
-
-    /**
-     * v1 已实装的命名空间；AI token 暂只解析占位。
-     *
-     * @return array<int, self>
-     */
-    public static function staticCases(): array
-    {
-        return [self::Contact, self::Conversation, self::Teammate, self::Workspace];
     }
 }

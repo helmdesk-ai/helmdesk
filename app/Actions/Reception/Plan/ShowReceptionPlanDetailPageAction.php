@@ -3,22 +3,22 @@
 namespace App\Actions\Reception\Plan;
 
 use App\Data\EnumOptionData;
-use App\Data\Reception\ReceptionPlanData;
+use App\Data\Reception\Plan\ReceptionPlanData;
+use App\Data\Reception\Plan\ShowReceptionPlanDetailPagePropsData;
 use App\Data\Reception\ServiceScenario\PlanKnowledgeBaseOptionData;
 use App\Data\Reception\ServiceScenario\PlanMcpToolOptionData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioTemplateData;
-use App\Data\Reception\ShowReceptionPlanDetailPagePropsData;
 use App\Data\Translation\TranslationProviderOptionData;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\ReceptionPersonaTone;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
+use App\Models\SystemContext;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
-use App\Support\Reception\ServiceScenarioTemplates;
+use App\Services\Reception\ServiceScenarioTemplates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -41,18 +41,18 @@ class ShowReceptionPlanDetailPageAction
     /**
      * 组装详情页 props：选中方案 + 表单选项集合。
      */
-    public function handle(Workspace $workspace, ReceptionPlan $plan): ShowReceptionPlanDetailPagePropsData
+    public function handle(SystemContext $systemContext, ReceptionPlan $plan): ShowReceptionPlanDetailPagePropsData
     {
-        $plan->setRelation('workspace', $workspace);
+        $plan->setRelation('systemContext', $systemContext);
 
         return new ShowReceptionPlanDetailPagePropsData(
-            plan: ReceptionPlanData::fromModelDetailed($plan, $workspace, $this->resolver),
-            llm_model_options: $this->resolver->getActiveLlmModelOptions($workspace),
+            plan: ReceptionPlanData::fromModelDetailed($plan, $this->resolver),
+            llm_model_options: $this->resolver->getActiveLlmModelOptions(),
             persona_tone_options: EnumOptionData::fromCases(ReceptionPersonaTone::cases()),
             message_translation_failure_mode_options: EnumOptionData::fromCases(AutoMessageTranslationFailureMode::cases()),
-            translation_provider_options: $this->buildTranslationProviderOptions($workspace),
-            knowledge_base_options: $this->buildKnowledgeBaseOptions($workspace),
-            mcp_tool_options: $this->buildMcpToolOptions($workspace),
+            translation_provider_options: $this->buildTranslationProviderOptions(),
+            knowledge_base_options: $this->buildKnowledgeBaseOptions(),
+            mcp_tool_options: $this->buildMcpToolOptions(),
             service_scenario_templates: array_map(
                 static fn (array $template): ServiceScenarioTemplateData => ServiceScenarioTemplateData::fromArray($template),
                 ServiceScenarioTemplates::all(),
@@ -61,29 +61,27 @@ class ShowReceptionPlanDetailPageAction
     }
 
     /**
-     * Controller 入口：鉴权 + 限定本工作区后渲染详情页。
+     * Controller 入口：鉴权 + 限定本系统后渲染详情页。
      */
-    public function asController(Request $request, string $slug, string $plan): Response
+    public function asController(Request $request, string $plan): Response
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemContext::current();
+        Gate::authorize('user.permission', UserPermission::ReceptionPlansView);
 
         $planModel = ReceptionPlan::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($plan);
 
-        return Inertia::render('reception/plans/Detail', $this->handle($workspace, $planModel)->toArray());
+        return Inertia::render('reception/plans/Detail', $this->handle($systemContext, $planModel)->toArray());
     }
 
     /**
-     * 加载工作区可见 KB，供方案级 KB 多选项使用。
+     * 加载系统可见 KB，供方案级 KB 多选项使用。
      *
      * @return list<PlanKnowledgeBaseOptionData>
      */
-    private function buildKnowledgeBaseOptions(Workspace $workspace): array
+    private function buildKnowledgeBaseOptions(): array
     {
         return KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->orderBy('name')
             ->get()
             ->map(fn (KnowledgeBase $kb): PlanKnowledgeBaseOptionData => PlanKnowledgeBaseOptionData::fromModel($kb))
@@ -91,19 +89,18 @@ class ShowReceptionPlanDetailPageAction
     }
 
     /**
-     * 加载工作区可用 MCP 工具（server 已启用、tool 已启用且未下线），供方案级 MCP 工具多选项使用。
+     * 加载系统可用 MCP 工具（endpoint 完整且工具未下线），供方案级 MCP 工具多选项使用。
      *
      * @return list<PlanMcpToolOptionData>
      */
-    private function buildMcpToolOptions(Workspace $workspace): array
+    private function buildMcpToolOptions(): array
     {
         return McpTool::query()
             ->with('server')
             ->whereHas('server', fn ($q) => $q
-                ->where('workspace_id', $workspace->id)
-                ->where('is_active', true)
+                ->whereNotNull('endpoint_url')
+                ->where('endpoint_url', '!=', '')
             )
-            ->where('is_enabled', true)
             ->whereNull('removed_at')
             ->orderBy('name')
             ->get()
@@ -112,13 +109,13 @@ class ShowReceptionPlanDetailPageAction
     }
 
     /**
-     * 加载工作区翻译供应商，供接待方案「信息翻译」的供应商 Select 选用。
+     * 加载系统翻译供应商，供接待方案「信息翻译」的供应商 Select 选用。
      *
      * @return list<TranslationProviderOptionData>
      */
-    private function buildTranslationProviderOptions(Workspace $workspace): array
+    private function buildTranslationProviderOptions(): array
     {
-        return $workspace->translationProviders()
+        return TranslationProvider::query()
             ->orderBy('sort_order')
             ->get()
             ->map(fn (TranslationProvider $provider): TranslationProviderOptionData => TranslationProviderOptionData::fromModel($provider))

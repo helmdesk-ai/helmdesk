@@ -8,19 +8,19 @@ use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
 
 /**
- * 批量解析会话时间线事件里涉及的工作区成员名称。
+ * 批量解析会话时间线事件里涉及的后台用户名称。
  */
 class BuildConversationTimelineUserMapAction
 {
     use AsAction;
 
     /**
-     * 从当前分页事件中提取用户 ID，并限制在当前工作区成员范围内查询名称。
+     * 从当前分页事件中提取用户 ID 并查询名称。
      *
      * @param  Collection<int, object>  $rows
      * @return array<string, string>
      */
-    public function handle(Collection $rows, string $workspaceId): array
+    public function handle(Collection $rows): array
     {
         $userIds = $rows
             ->filter(fn (object $row): bool => (string) $row->type === 'event')
@@ -34,11 +34,8 @@ class BuildConversationTimelineUserMapAction
         }
 
         return User::query()
-            ->select('users.id', 'users.name')
-            ->join('user_workspace', 'user_workspace.user_id', '=', 'users.id')
-            ->where('user_workspace.workspace_id', $workspaceId)
-            ->whereIn('users.id', $userIds->all())
-            ->pluck('users.name', 'users.id')
+            ->whereIn('id', $userIds->all())
+            ->pluck('name', 'id')
             ->mapWithKeys(fn (string $name, string $id): array => [(string) $id => $name])
             ->all();
     }

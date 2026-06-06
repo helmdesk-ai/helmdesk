@@ -5,7 +5,6 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/composables/useI18n';
-import { useCurrentWorkspace } from '@/composables/useWorkspace';
 import { toUrl, urlIsActive } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/settings/appearance';
 import { edit as editLanguage } from '@/routes/settings/language';
@@ -18,39 +17,32 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const { t } = useI18n();
-const currentWorkspace = useCurrentWorkspace();
-
-const linkOptions = computed(() => ({
-  mergeQuery: {
-    from_workspace: currentWorkspace.value?.slug,
-  },
-}));
 
 const sidebarNavItems = computed<NavItem[]>(() => {
   return [
     {
       title: t('个人资料'),
-      href: editProfile(linkOptions.value),
+      href: editProfile(),
     },
     {
       title: t('密码'),
-      href: editPassword(linkOptions.value),
+      href: editPassword(),
     },
     {
       title: t('两步验证'),
-      href: show(linkOptions.value),
+      href: show(),
     },
     {
       title: t('语言和时区'),
-      href: editLanguage(linkOptions.value),
+      href: editLanguage(),
     },
     {
       title: t('通知'),
-      href: editNotifications(linkOptions.value),
+      href: editNotifications(),
     },
     {
       title: t('外观'),
-      href: editAppearance(linkOptions.value),
+      href: editAppearance(),
     },
   ];
 });

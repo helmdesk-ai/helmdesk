@@ -5,11 +5,11 @@ namespace App\Actions\KnowledgeBase;
 use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeRecallTestResultData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeQaEntry;
-use App\Models\Workspace;
+use App\Models\SystemContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -33,9 +33,9 @@ class RunKnowledgeRecallTestAction
     /**
      * 在指定知识库范围内执行检索，并把原始命中富集成面板用结果。
      */
-    public function handle(Workspace $workspace, KnowledgeBase $knowledgeBase, FormKnowledgeSearchData $input): KnowledgeRecallTestResultData
+    public function handle(SystemContext $systemContext, KnowledgeBase $knowledgeBase, FormKnowledgeSearchData $input): KnowledgeRecallTestResultData
     {
-        $result = $this->search->handle($workspace, $input);
+        $result = $this->search->handle($systemContext, $input);
 
         return KnowledgeRecallTestResultData::fromSearchResult(
             mode: $result->mode,
@@ -103,13 +103,12 @@ class RunKnowledgeRecallTestAction
     /**
      * 鉴权后把请求转换为锁定到当前知识库的检索 Data，并以 JSON 形式返回召回结果。
      */
-    public function asController(Request $request, string $slug, string $knowledgeBase): JsonResponse
+    public function asController(Request $request, string $knowledgeBase): JsonResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        $systemContext = SystemContext::current();
+        Gate::authorize('user.permission', UserPermission::KnowledgeBasesView);
 
         $kb = KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($knowledgeBase);
 
         $data = FormKnowledgeSearchData::validateAndCreate([
@@ -118,6 +117,6 @@ class RunKnowledgeRecallTestAction
             'knowledge_base_ids' => [$kb->id],
         ]);
 
-        return response()->json($this->handle($workspace, $kb, $data)->toArray());
+        return response()->json($this->handle($systemContext, $kb, $data)->toArray());
     }
 }

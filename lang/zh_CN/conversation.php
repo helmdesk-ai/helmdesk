@@ -143,7 +143,7 @@ return [
         'claim_failed' => '接单失败，可能已经被其他同事接走。',
         'transfer_to_teammate_not_allowed' => '只能转接自己正在接待的会话。',
         'transfer_target_must_be_teammate' => '请选择其他同事作为转接目标。',
-        'transfer_target_not_found' => '请选择当前工作区内的同事。',
+        'transfer_target_not_found' => '请选择当前系统内的同事。',
         'recall_not_owner' => '只能撤回自己发送的消息。',
         'recall_already_recalled' => '消息已被撤回。',
         'recall_kind_not_allowed' => '该类型消息不支持撤回。',

@@ -2,11 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Data\Reception\AutoMessagesConfigData;
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
-use App\Data\Reception\ReceptionStrategyConfigData;
+use App\Data\Reception\Plan\AutoMessagesConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,7 +21,6 @@ class ReceptionPlanFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id' => Workspace::factory(),
             'name' => fake()->words(2, true).' 接待方案',
             'description' => fake()->sentence(),
             'persona_config' => [

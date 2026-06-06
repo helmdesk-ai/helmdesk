@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useStandaloneI18n } from '@/standalone/i18n';
 import type { ReceptionMessageData } from '@/types/generated';
-import { Paperclip } from 'lucide-vue-next';
+import { Paperclip } from '@lucide/vue';
 import { computed } from 'vue';
 
 type ReceptionAttachment = ReceptionMessageData['attachments'][number];

@@ -15,15 +15,14 @@ use App\Models\ReceptionPlanVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     $this->runList = function (array $overrides = []): array {
         $props = ShowConversationListAction::run(...array_merge([
-            'workspace' => $this->workspace,
             'currentUserId' => $this->user->id,
         ], $overrides));
 
@@ -35,20 +34,17 @@ test('会话列表回退到created_at当last_message_at为null时', function () 
     $now = now();
 
     $newerWithMessage = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'created_at' => $now->copy()->subDays(5),
         'last_message_at' => $now->copy()->subHours(2),
     ]);
 
     $nullButFreshCreated = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'created_at' => $now->copy()->subHours(1),
         'last_message_at' => null,
         'last_message_preview' => null,
     ]);
 
     $olderWithMessage = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'created_at' => $now->copy()->subDays(10),
         'last_message_at' => $now->copy()->subDays(3),
     ]);
@@ -64,13 +60,11 @@ test('会话列表使用ID作为平局排序键当时间戳相同时', function 
     $sameMoment = now()->subHour();
 
     $first = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'created_at' => $sameMoment,
         'last_message_at' => $sameMoment,
     ]);
 
     $second = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'created_at' => $sameMoment,
         'last_message_at' => $sameMoment,
     ]);
@@ -82,22 +76,18 @@ test('会话列表使用ID作为平局排序键当时间戳相同时', function 
 
 test('会话列表筛选按状态inbox_status和访客回复状态独立', function () {
     $openHandling = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'status' => ConversationStatus::Open,
         'inbox_status' => ConversationInboxStatus::TeammateHandling,
     ]);
     $openPending = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'status' => ConversationStatus::Open,
         'inbox_status' => ConversationInboxStatus::TeammatePending,
     ]);
     $closed = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'status' => ConversationStatus::Closed,
         'inbox_status' => ConversationInboxStatus::TeammateHandling,
     ]);
     $waitingForVisitor = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'status' => ConversationStatus::Open,
         'inbox_status' => ConversationInboxStatus::TeammateHandling,
         'waiting_for_visitor_reply' => true,
@@ -117,7 +107,6 @@ test('会话列表筛选按状态inbox_status和访客回复状态独立', funct
 
 test('会话列表序列化当前枚举筛选作为标量值', function () {
     $props = ShowConversationListAction::run(
-        workspace: $this->workspace,
         status: ConversationStatus::Open,
         inboxStatus: ConversationInboxStatus::TeammateHandling,
         visitorReplyStatus: ConversationVisitorReplyStatus::Waiting,
@@ -134,36 +123,31 @@ test('会话列表序列化当前枚举筛选作为标量值', function () {
 
 test('会话列表拒绝无效枚举筛选查询', function () {
     $this->actingAs($this->user)
-        ->from(route('workspace.conversations.index', ['slug' => $this->workspaceSlug()]))
-        ->get(route('workspace.conversations.index', [
-            'slug' => $this->workspaceSlug(),
-            'status' => 'unknown',
+        ->from(route('admin.conversations.index'))
+        ->get(route('admin.conversations.index', ['status' => 'unknown',
         ]))
-        ->assertRedirect(route('workspace.conversations.index', ['slug' => $this->workspaceSlug()]))
+        ->assertRedirect(route('admin.conversations.index'))
         ->assertSessionHasErrors('status');
 });
 
 test('会话列表筛选按接待方案', function () {
-    $planA = ReceptionPlan::factory()->for($this->workspace)->create([
+    $planA = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
     $versionA = ReceptionPlanVersion::factory()->for($planA, 'plan')->create();
 
-    $planB = ReceptionPlan::factory()->for($this->workspace)->create([
+    $planB = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
     $versionB = ReceptionPlanVersion::factory()->for($planB, 'plan')->create();
 
     $matching = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_version_id' => $versionA->id,
     ]);
     Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_version_id' => $versionB->id,
     ]);
     Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'reception_plan_version_id' => null,
     ]);
 
@@ -172,51 +156,43 @@ test('会话列表筛选按接待方案', function () {
 
 test('会话列表搜索匹配主题摘要预览联系人字段和消息内容', function () {
     $contact = Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => 'Alice Example',
         'primary_email' => 'alice@example.com',
         'primary_phone' => '+1-555-0100',
     ]);
 
     $bySubject = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => 'needle-subject appears here',
         'summary' => null,
         'last_message_preview' => null,
     ]);
     $bySummary = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => null,
         'summary' => 'body text contains needle-summary token',
         'last_message_preview' => null,
     ]);
     $byPreview = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => null,
         'summary' => null,
         'last_message_preview' => 'latest message needle-preview sample',
     ]);
     $byContactName = Conversation::factory()->forContact($contact)->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => null,
         'summary' => null,
         'last_message_preview' => null,
     ]);
     $byEmail = Conversation::factory()->forContact(Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => null,
         'primary_email' => 'bob@acme.com',
         'primary_phone' => null,
-    ]))->create(['workspace_id' => $this->workspace->id]);
+    ]))->create([]);
     $byPhone = Conversation::factory()->forContact(Contact::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'name' => null,
         'primary_email' => null,
         'primary_phone' => '+1-555-9999',
-    ]))->create(['workspace_id' => $this->workspace->id]);
+    ]))->create([]);
 
     $byMessageContent = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => null,
         'summary' => null,
         'last_message_preview' => null,
@@ -239,7 +215,6 @@ test('会话列表搜索匹配主题摘要预览联系人字段和消息内容',
 
 test('会话搜索不丢弃会话当某个线程有大量匹配消息时', function () {
     $spammy = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => null,
         'summary' => null,
         'last_message_preview' => null,
@@ -255,7 +230,6 @@ test('会话搜索不丢弃会话当某个线程有大量匹配消息时', funct
     }
 
     $quiet = Conversation::factory()->create([
-        'workspace_id' => $this->workspace->id,
         'subject' => null,
         'summary' => null,
         'last_message_preview' => null,
@@ -286,13 +260,11 @@ test('会话列表消息内容搜索要求中文关键词字符同时命中', fu
 
     try {
         $matching = Conversation::factory()->create([
-            'workspace_id' => $this->workspace->id,
             'subject' => null,
             'summary' => null,
             'last_message_preview' => null,
         ]);
         ConversationMessage::factory()->forConversation($matching)->create([
-            'workspace_id' => $this->workspace->id,
             'sender_user_id' => null,
             'role' => MessageRole::Visitor,
             'kind' => MessageKind::Text,
@@ -300,13 +272,11 @@ test('会话列表消息内容搜索要求中文关键词字符同时命中', fu
         ]);
 
         $missingChar = Conversation::factory()->create([
-            'workspace_id' => $this->workspace->id,
             'subject' => null,
             'summary' => null,
             'last_message_preview' => null,
         ]);
         ConversationMessage::factory()->forConversation($missingChar)->create([
-            'workspace_id' => $this->workspace->id,
             'sender_user_id' => null,
             'role' => MessageRole::Visitor,
             'kind' => MessageKind::Text,
@@ -338,15 +308,13 @@ test('会话列表消息内容搜索可匹配当前用户语言译文', function
     config()->set('scout.tntsearch.searchBoolean', false);
 
     try {
-        $channel = Channel::factory()->for($this->workspace)->create();
+        $channel = Channel::factory()->create();
         $matching = Conversation::factory()->for($channel)->create([
-            'workspace_id' => $this->workspace->id,
             'subject' => null,
             'summary' => null,
             'last_message_preview' => null,
         ]);
         ConversationMessage::factory()->forConversation($matching)->visitorText()->create([
-            'workspace_id' => $this->workspace->id,
             'content' => 'I need a refund',
             'payload' => [
                 'translations' => [
@@ -356,13 +324,11 @@ test('会话列表消息内容搜索可匹配当前用户语言译文', function
         ]);
 
         $otherLocaleConversation = Conversation::factory()->for($channel)->create([
-            'workspace_id' => $this->workspace->id,
             'subject' => null,
             'summary' => null,
             'last_message_preview' => null,
         ]);
         ConversationMessage::factory()->forConversation($otherLocaleConversation)->visitorText()->create([
-            'workspace_id' => $this->workspace->id,
             'content' => 'I need a return label',
             'payload' => [
                 'translations' => [

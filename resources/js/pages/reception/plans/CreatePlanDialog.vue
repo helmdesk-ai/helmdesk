@@ -19,12 +19,11 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import type { MessageTranslationConfigDraft } from '@/pages/reception/plans/PlanBasicsForm.vue';
 import type { ReceptionStrategyConfigDraft } from '@/pages/reception/plans/PlanStrategyForm.vue';
 import type { AiModelOptionData, EnumOptionData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -38,7 +37,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const workspace = useRequiredWorkspace();
 
 const selectedReceptionModelId = ref<string>('');
 const selectedTaskModelId = ref<string>('');
@@ -161,7 +159,7 @@ const groupedModelOptions = computed(() => {
 const hasAvailableModels = computed(() => props.llmModelOptions.length > 0);
 
 function submit(): void {
-  form.post(Plan.CreateReceptionPlanAction.url(workspace.value.slug), {
+  form.post(Plan.CreateReceptionPlanAction.url(), {
     preserveScroll: true,
     onSuccess: () => emit('saved'),
   });

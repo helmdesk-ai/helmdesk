@@ -1,8 +1,8 @@
 /**
  * 文件说明：前端通用工具，提供页面和组合式逻辑复用的辅助能力。
  */
-export function receptionWorkspaceTopic(workspaceId: string): string {
-  return `urn:helmdesk:reception:workspace:${workspaceId}`;
+export function receptionInboxTopic(): string {
+  return 'urn:helmdesk:reception:inbox';
 }
 
 export function receptionConversationTopic(conversationId: string): string {

@@ -2,41 +2,37 @@
 
 namespace App\Services\CannedReply;
 
+use App\Enums\UserPermission;
 use App\Models\CannedReply;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Support\Facades\Gate;
 
 /**
  * 快捷回复模版的权限判断服务。
- * 个人模版仅作者可改；工作区共享模版需要 canAccessManageCenter；
- * 所有工作区成员都可读到自己可见的模版（个人 + 工作区共享）。
+ * 个人模版仅作者可改；系统共享模版需要快捷回复管理权限；
+ * 所有后台成员都可读到自己可见的模版（个人 + 系统共享）。
  */
 class CannedReplyPermission
 {
     /**
-     * 当前用户能否管理（创建 / 编辑 / 删除）工作区共享模版。
+     * 当前用户能否管理（创建 / 编辑 / 删除）系统共享模版。
      */
-    public function canManageWorkspaceShared(Workspace $workspace, User $user): bool
+    public function canManageSystemShared(User $user): bool
     {
-        return Gate::forUser($user)->allows('workspace.canAccessManageCenter', [$workspace]);
+        return Gate::forUser($user)->allows('user.permission', UserPermission::CannedRepliesManage);
     }
 
     /**
      * 判断用户对某条模版是否可编辑。
      */
-    public function canEdit(CannedReply $reply, Workspace $workspace, User $user): bool
+    public function canEdit(CannedReply $reply, User $user): bool
     {
-        if ((string) $reply->workspace_id !== (string) $workspace->id) {
-            return false;
-        }
-
         if ($reply->isOwnedBy($user)) {
             return true;
         }
 
-        if ($reply->isWorkspaceShared()) {
-            return $this->canManageWorkspaceShared($workspace, $user);
+        if ($reply->isSystemShared()) {
+            return $this->canManageSystemShared($user);
         }
 
         return false;
@@ -45,20 +41,16 @@ class CannedReplyPermission
     /**
      * 删除策略与编辑相同。
      */
-    public function canDelete(CannedReply $reply, Workspace $workspace, User $user): bool
+    public function canDelete(CannedReply $reply, User $user): bool
     {
-        return $this->canEdit($reply, $workspace, $user);
+        return $this->canEdit($reply, $user);
     }
 
     /**
-     * 当前用户能看到的模版（自己个人 + 工作区共享）。
+     * 当前用户能看到的模版（自己个人 + 系统共享）。
      */
-    public function canView(CannedReply $reply, Workspace $workspace, User $user): bool
+    public function canView(CannedReply $reply, User $user): bool
     {
-        if ((string) $reply->workspace_id !== (string) $workspace->id) {
-            return false;
-        }
-
-        return $reply->isWorkspaceShared() || $reply->isOwnedBy($user);
+        return $reply->isSystemShared() || $reply->isOwnedBy($user);
     }
 }

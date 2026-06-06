@@ -2,8 +2,8 @@
 
 namespace App\Actions\Channel\Telegram;
 
-use App\Data\WorkspaceUserContextData;
 use App\Enums\ChannelType;
+use App\Enums\UserPermission;
 use App\Models\Channel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,19 +37,17 @@ class RestoreTelegramChannelAction
     /**
      * 接收恢复请求并返回列表页。
      */
-    public function asController(Request $request, string $slug, string $channel): RedirectResponse
+    public function asController(Request $request, string $channel): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::ChannelsEdit);
 
         $channelModel = Channel::query()
             ->withTrashed()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Telegram)
             ->findOrFail($channel);
 
         $this->handle($channelModel);
 
-        return redirect()->route('workspace.manage.channels.telegram.index', ['slug' => $workspace->slug]);
+        return redirect()->route('admin.manage.channels.telegram.index');
     }
 }

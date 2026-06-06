@@ -2,9 +2,8 @@
 
 namespace App\Actions\Translation;
 
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,9 +21,9 @@ class ClearTranslationProviderCredentialsAction
     /**
      * 清空凭据。
      */
-    public function handle(Workspace $workspace, string $providerSlug): TranslationProvider
+    public function handle(string $providerSlug): TranslationProvider
     {
-        $provider = $workspace->translationProviders()->where('slug', $providerSlug)->firstOrFail();
+        $provider = TranslationProvider::query()->where('slug', $providerSlug)->firstOrFail();
 
         $provider->credentials = null;
         $provider->save();
@@ -35,12 +34,11 @@ class ClearTranslationProviderCredentialsAction
     /**
      * 鉴权后清空。
      */
-    public function asController(Request $request, string $slug, string $provider): RedirectResponse
+    public function asController(Request $request, string $provider): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $this->handle($workspace, $provider);
+        $this->handle($provider);
 
         return back();
     }

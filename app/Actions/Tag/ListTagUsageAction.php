@@ -3,9 +3,7 @@
 namespace App\Actions\Tag;
 
 use App\Data\Tag\TagUsageData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\Tag;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -16,10 +14,9 @@ class ListTagUsageAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $id): TagUsageData
+    public function handle(string $id): TagUsageData
     {
         $tag = Tag::query()
-            ->where('workspace_id', $workspace->id)
             ->withTrashed()
             ->withCount('contacts')
             ->findOrFail($id);
@@ -32,10 +29,9 @@ class ListTagUsageAction
         );
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
 
-        return $this->handle($ctx->workspace(), $id)->toArray();
+        return $this->handle($id)->toArray();
     }
 }

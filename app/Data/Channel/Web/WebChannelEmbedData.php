@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 网站渠道嵌入代码数据。
- * 显示在渠道详情的组件配置页，前端把 script 地址和初始化参数展示给管理员复制。
+ * 显示在渠道详情的组件配置页，前端把 script 地址和初始化参数展示给有权限的用户复制。
  */
 class WebChannelEmbedData extends Data
 {

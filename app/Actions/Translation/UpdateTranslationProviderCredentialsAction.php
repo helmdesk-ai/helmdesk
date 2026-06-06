@@ -3,9 +3,8 @@
 namespace App\Actions\Translation;
 
 use App\Data\Translation\FormUpdateTranslationProviderData;
-use App\Data\WorkspaceUserContextData;
+use App\Enums\UserPermission;
 use App\Models\TranslationProvider;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 保存工作区翻译供应商的凭据。
+ * 保存系统翻译供应商的凭据。
  *
  * 合并语义和 UpdateAiProviderCredentialsAction 对齐：secret 字段提交空值表示"不变"，明文字段提交空值表示清空。
  */
@@ -24,9 +23,9 @@ class UpdateTranslationProviderCredentialsAction
     /**
      * 校验后保存名称，并用 mergeCredentials 合并凭据。
      */
-    public function handle(Workspace $workspace, string $providerSlug, FormUpdateTranslationProviderData $data): TranslationProvider
+    public function handle(string $providerSlug, FormUpdateTranslationProviderData $data): TranslationProvider
     {
-        $provider = $this->findProvider($workspace, $providerSlug);
+        $provider = $this->findProvider($providerSlug);
         $this->validateConfiguration($provider, $data->configuration);
 
         $credentials = $provider->mergeCredentials($data->configuration);
@@ -39,25 +38,24 @@ class UpdateTranslationProviderCredentialsAction
     }
 
     /**
-     * 从请求取表单数据、校验、保存。
+     * 从请求取表单数据、校验、保存后回到列表页。
      */
-    public function asController(Request $request, string $slug, string $provider): RedirectResponse
+    public function asController(Request $request, string $provider): RedirectResponse
     {
-        $workspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        Gate::authorize('workspace.manageAi', [$workspace]);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $data = FormUpdateTranslationProviderData::from($request);
-        $this->handle($workspace, $provider, $data);
+        $this->handle($provider, $data);
 
-        return back();
+        return redirect()->route('admin.manage.translation.providers.index');
     }
 
     /**
      * 按 provider 的 credential_fields 动态生成校验规则。
      */
-    private function findProvider(Workspace $workspace, string $slug): TranslationProvider
+    private function findProvider(string $slug): TranslationProvider
     {
-        return $workspace->translationProviders()->where('slug', $slug)->firstOrFail();
+        return TranslationProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**

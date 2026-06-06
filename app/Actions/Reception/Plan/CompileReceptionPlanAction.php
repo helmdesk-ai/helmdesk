@@ -2,13 +2,12 @@
 
 namespace App\Actions\Reception\Plan;
 
-use App\Data\Reception\ReceptionMessageTranslationConfigData;
+use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Enums\ReceptionPersonaTone;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
-use App\Models\Workspace;
 use App\Services\AiRuntime\AiModelResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -36,7 +35,7 @@ class CompileReceptionPlanAction
      *
      * @return array{snapshot_config: array<string, mixed>, compiled_config: array<string, mixed>}
      */
-    public function handle(Workspace $workspace, ReceptionPlan $plan): array
+    public function handle(ReceptionPlan $plan): array
     {
         $receptionConfig = $plan->reception_config ?? [];
         $taskConfig = $plan->task_config ?? [];
@@ -47,10 +46,10 @@ class CompileReceptionPlanAction
             ? $taskConfig['default_model']
             : [];
 
-        $this->resolver->assertActiveLlmModelOrFail($workspace, $receptionDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_reception_model');
-        $this->resolver->assertActiveLlmModelOrFail($workspace, $taskDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_task_model');
-        $receptionModelCandidates = $this->resolveModelCandidates($workspace, $receptionConfig, $receptionDefaultModel, 'reception.messages.invalid_reception_model');
-        $taskModelCandidates = $this->resolveModelCandidates($workspace, $taskConfig, $taskDefaultModel, 'reception.messages.invalid_task_model');
+        $this->resolver->assertActiveLlmModelOrFail($receptionDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_reception_model');
+        $this->resolver->assertActiveLlmModelOrFail($taskDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_task_model');
+        $receptionModelCandidates = $this->resolveModelCandidates($receptionConfig, $receptionDefaultModel, 'reception.messages.invalid_reception_model');
+        $taskModelCandidates = $this->resolveModelCandidates($taskConfig, $taskDefaultModel, 'reception.messages.invalid_task_model');
 
         $personaConfig = $plan->persona_config ?? [];
         $capabilities = $plan->capabilities;
@@ -60,8 +59,8 @@ class CompileReceptionPlanAction
         $autoMessagesConfig = $plan->auto_messages_config;
         $translationConfig = ReceptionMessageTranslationConfigData::fromArray($plan->translation_config)->toConfigArray();
 
-        $kbSnapshots = $this->loadKnowledgeBaseSnapshots($workspace, $knowledgeBaseIds);
-        $mcpToolSnapshots = $this->loadMcpToolSnapshots($workspace, $mcpToolIds);
+        $kbSnapshots = $this->loadKnowledgeBaseSnapshots($knowledgeBaseIds);
+        $mcpToolSnapshots = $this->loadMcpToolSnapshots($mcpToolIds);
 
         $snapshotConfig = [
             'name' => $plan->name,
@@ -134,7 +133,7 @@ class CompileReceptionPlanAction
      * @param  array<string, mixed>  $defaultModel
      * @return list<array{ai_model_id: string, priority: int}>
      */
-    private function resolveModelCandidates(Workspace $workspace, array $modelConfig, array $defaultModel, string $messageKey): array
+    private function resolveModelCandidates(array $modelConfig, array $defaultModel, string $messageKey): array
     {
         $primaryModelId = isset($defaultModel['ai_model_id']) && is_string($defaultModel['ai_model_id'])
             ? $defaultModel['ai_model_id']
@@ -167,7 +166,7 @@ class CompileReceptionPlanAction
                 continue;
             }
 
-            $this->resolver->assertActiveLlmModelOrFail($workspace, $modelId, $messageKey);
+            $this->resolver->assertActiveLlmModelOrFail($modelId, $messageKey);
 
             $seen[$modelId] = true;
             $candidates[] = [
@@ -197,13 +196,13 @@ class CompileReceptionPlanAction
     }
 
     /**
-     * 按方案级知识库 ID 列表加载 KB 快照，验证所有 ID 仍在工作区内可见。
+     * 按方案级知识库 ID 列表加载 KB 快照，验证所有 ID 仍可见。
      * description 透传给 Go 端，让 knowledge_search 工具描述里能体现每个 KB 的用途。
      *
      * @param  list<string>  $knowledgeBaseIds
      * @return list<array{id: string, name: string, description: string|null, category: string|null}>
      */
-    private function loadKnowledgeBaseSnapshots(Workspace $workspace, array $knowledgeBaseIds): array
+    private function loadKnowledgeBaseSnapshots(array $knowledgeBaseIds): array
     {
         $ids = array_filter(array_unique($knowledgeBaseIds), static fn ($id) => is_string($id) && filled($id));
         if ($ids === []) {
@@ -212,7 +211,6 @@ class CompileReceptionPlanAction
 
         $snapshots = [];
         KnowledgeBase::query()
-            ->where('workspace_id', $workspace->id)
             ->whereIn('id', $ids)
             ->get(['id', 'name', 'description', 'category'])
             ->each(function (KnowledgeBase $kb) use (&$snapshots): void {
@@ -234,12 +232,12 @@ class CompileReceptionPlanAction
     }
 
     /**
-     * 按方案级 MCP 工具 ID 列表加载工具快照，验证所有 ID 仍在工作区内可见。
+     * 按方案级 MCP 工具 ID 列表加载工具快照，验证所有 ID 仍可见。
      *
      * @param  list<string>  $mcpToolIds
      * @return list<array{id: string, name: string, description: string|null, server_id: string, server_slug: string, server_name: string}>
      */
-    private function loadMcpToolSnapshots(Workspace $workspace, array $mcpToolIds): array
+    private function loadMcpToolSnapshots(array $mcpToolIds): array
     {
         $ids = array_filter(array_unique($mcpToolIds), static fn ($id) => is_string($id) && filled($id));
         if ($ids === []) {
@@ -248,9 +246,13 @@ class CompileReceptionPlanAction
 
         $snapshots = [];
         McpTool::query()
-            ->with('server:id,workspace_id,slug,name')
+            ->with('server:id,slug,name')
             ->whereIn('id', $ids)
-            ->whereHas('server', fn ($q) => $q->where('workspace_id', $workspace->id))
+            ->whereNull('removed_at')
+            ->whereHas('server', fn ($q) => $q
+                ->whereNotNull('endpoint_url')
+                ->where('endpoint_url', '!=', '')
+            )
             ->get(['id', 'mcp_server_id', 'name', 'description'])
             ->each(function (McpTool $tool) use (&$snapshots): void {
                 $snapshots[(string) $tool->id] = [

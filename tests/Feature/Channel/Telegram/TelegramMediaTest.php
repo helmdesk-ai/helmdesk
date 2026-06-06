@@ -21,14 +21,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
 require_once __DIR__.'/TelegramTestSupport.php';
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
 });
 
 /**
@@ -36,11 +36,10 @@ beforeEach(function () {
  */
 function makeMediaTelegramChannel(): Channel
 {
-    $workspace = test()->workspace;
-    $version = createTelegramDeployablePlanVersion($workspace);
+    $systemContext = test()->systemContext;
+    $version = createTelegramDeployablePlanVersion();
 
     return Channel::factory()->telegram()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 }
@@ -179,7 +178,6 @@ test('Telegram 出站图片消息调用 sendPhoto 上传附件', function () {
     $conversation = $context['conversation'];
 
     $imageMessage = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Teammate,
         'sender_name' => '客服',
@@ -192,7 +190,6 @@ test('Telegram 出站图片消息调用 sendPhoto 上传附件', function () {
     $objectKey = 'conversations/'.Str::ulid().'.jpg';
     Storage::disk('local')->put($objectKey, 'OUTBOUND-IMG');
     Attachment::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'storage_profile_id' => $profile->id,
         'disk' => StorageDriver::Local,
         'object_key' => $objectKey,

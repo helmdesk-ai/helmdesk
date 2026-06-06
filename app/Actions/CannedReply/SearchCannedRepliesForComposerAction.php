@@ -3,10 +3,8 @@
 namespace App\Actions\CannedReply;
 
 use App\Data\CannedReply\CannedReplyComposerItemData;
-use App\Data\WorkspaceUserContextData;
 use App\Models\CannedReply;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,12 +30,11 @@ class SearchCannedRepliesForComposerAction
     private const MAX_QUERY_LENGTH = 64;
 
     /**
-     * 搜索当前用户可见的快捷回复模版（个人 + 工作区共享）。
+     * 搜索当前用户可见的快捷回复模版（个人 + 系统共享）。
      *
      * @return array<int, CannedReplyComposerItemData>
      */
     public function handle(
-        Workspace $workspace,
         User $user,
         ?string $conversationId,
         string $query,
@@ -47,7 +44,6 @@ class SearchCannedRepliesForComposerAction
         $normalizedQuery = mb_substr(trim($query), 0, self::MAX_QUERY_LENGTH);
 
         $builder = CannedReply::query()
-            ->where('workspace_id', $workspace->id)
             ->where(function (Builder $scope) use ($user): void {
                 $scope->whereNull('user_id')
                     ->orWhere('user_id', $user->id);
@@ -84,16 +80,13 @@ class SearchCannedRepliesForComposerAction
      */
     public function asController(Request $request): JsonResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $workspace = $ctx->workspace();
-        $user = User::query()->findOrFail($ctx->user_id);
+        $user = $request->user();
 
         $conversationId = $request->query('conversation_id');
         $query = $request->query('q');
         $rawLimit = $request->query('limit');
 
         $items = $this->handle(
-            workspace: $workspace,
             user: $user,
             conversationId: is_string($conversationId) && $conversationId !== '' ? $conversationId : null,
             query: is_string($query) ? $query : '',

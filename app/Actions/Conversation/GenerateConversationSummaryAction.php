@@ -41,7 +41,7 @@ class GenerateConversationSummaryAction
      */
     public function handle(Conversation $conversation, bool $force = false): ?string
     {
-        $conversation->loadMissing(['workspace', 'receptionPlanVersion', 'contact']);
+        $conversation->loadMissing(['receptionPlanVersion', 'contact']);
         $latestSeqNo = $this->latestTextSeqNo($conversation);
 
         if ($latestSeqNo === null) {
@@ -213,9 +213,8 @@ class GenerateConversationSummaryAction
             ->whereIn('id', array_keys($modelIds))
             ->where('type', AiModelType::Llm->value)
             ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query) use ($conversation): void {
+            ->whereHas('provider', function (Builder $query): void {
                 $query
-                    ->where('workspace_id', $conversation->workspace_id)
                     ->where('is_active', true);
             })
             ->get()
@@ -234,9 +233,8 @@ class GenerateConversationSummaryAction
                 ->with('provider')
                 ->where('type', AiModelType::Llm->value)
                 ->where('is_active', true)
-                ->whereHas('provider', function (Builder $query) use ($conversation): void {
+                ->whereHas('provider', function (Builder $query): void {
                     $query
-                        ->where('workspace_id', $conversation->workspace_id)
                         ->where('is_active', true);
                 })
                 ->orderBy('sort_order')

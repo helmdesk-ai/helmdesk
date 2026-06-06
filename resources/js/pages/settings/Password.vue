@@ -15,18 +15,11 @@ import { computed } from 'vue';
 import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCurrentWorkspace } from '@/composables/useWorkspace';
 const { t } = useI18n();
 const page = usePage();
-const currentWorkspace = useCurrentWorkspace();
 const RootLayout = computed(() =>
   page.props.auth.user.is_super_admin ? SystemAppLayout : AppLayout,
 );
-const linkOptions = computed(() => ({
-  mergeQuery: {
-    from_workspace: currentWorkspace.value?.slug ?? '',
-  },
-}));
 </script>
 
 <template>
@@ -41,7 +34,7 @@ const linkOptions = computed(() => ({
         />
 
         <Form
-          :action="update.url(linkOptions)"
+          :action="update.url()"
           method="put"
           :options="{ preserveScroll: true }"
           reset-on-success

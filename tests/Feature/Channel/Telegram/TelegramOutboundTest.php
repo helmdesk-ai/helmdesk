@@ -16,14 +16,14 @@ use App\Services\Telegram\TelegramHtmlConverter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use Tests\WithWorkspace;
+use Tests\WithSystemContext;
 
 require_once __DIR__.'/TelegramTestSupport.php';
 
-uses(RefreshDatabase::class, WithWorkspace::class);
+uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
-    $this->user = $this->createUserWithWorkspace();
+    $this->user = $this->createUserWithSystem();
     Http::fake([
         '*/getUserProfilePhotos' => Http::response(['ok' => true, 'result' => ['photos' => []]]),
     ]);
@@ -34,10 +34,9 @@ beforeEach(function () {
  */
 function seedTelegramConversation(): array
 {
-    $workspace = test()->workspace;
-    $version = createTelegramDeployablePlanVersion($workspace, withoutAutoMessages: true);
+    $systemContext = test()->systemContext;
+    $version = createTelegramDeployablePlanVersion(withoutAutoMessages: true);
     $channel = Channel::factory()->telegram()->create([
-        'workspace_id' => $workspace->id,
         'reception_plan_id' => $version->reception_plan_id,
     ]);
 
@@ -61,7 +60,6 @@ test('AI 出站消息会派发 Telegram 发送任务并先置 sending', function
     [, $conversation] = seedTelegramConversation();
 
     $ai = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -111,7 +109,6 @@ test('Telegram 发送任务调用 Bot API 并标记已送达', function () {
     [$channel, $conversation] = seedTelegramConversation();
 
     $ai = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -139,7 +136,6 @@ test('Telegram 出站把 Markdown 转成 HTML 子集发送', function () {
     [, $conversation] = seedTelegramConversation();
 
     $ai = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -163,7 +159,6 @@ test('Telegram 发送失败标记投递失败', function () {
     [, $conversation] = seedTelegramConversation();
 
     $ai = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -181,7 +176,6 @@ test('已记录 Telegram message_id 的消息重投时不再发送', function ()
     [, $conversation] = seedTelegramConversation();
 
     $ai = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -203,7 +197,6 @@ test('对账任务重投卡在 sending 的出站消息', function () {
     [, $conversation] = seedTelegramConversation();
 
     $stuck = ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,
@@ -225,7 +218,6 @@ test('对账任务不重投仍在重试窗口内的消息', function () {
     [, $conversation] = seedTelegramConversation();
 
     ConversationMessage::query()->create([
-        'workspace_id' => $conversation->workspace_id,
         'conversation_id' => $conversation->id,
         'role' => MessageRole::Ai,
         'kind' => MessageKind::Text,

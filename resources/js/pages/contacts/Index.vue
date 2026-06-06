@@ -40,7 +40,6 @@ import { Switch } from '@/components/ui/switch';
 import { useDateTime } from '@/composables/useDateTime';
 import { useI18n } from '@/composables/useI18n';
 import { useVisitorDisplay } from '@/composables/useVisitorDisplay';
-import { useRequiredWorkspace } from '@/composables/useWorkspace';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { EMAIL_MAX_LENGTH, isLikelyValidEmail } from '@/lib/email';
 import { getAvatarInitial } from '@/lib/initials';
@@ -51,7 +50,7 @@ import {
   isLikelyValidLocalPhone,
   isLikelyValidPhone,
 } from '@/lib/phone';
-import workspace from '@/routes/workspace';
+import admin from '@/routes/admin';
 import type {
   ContactListType,
   FormCreateContactData,
@@ -61,7 +60,7 @@ import type {
   TagMatchMode,
 } from '@/types/generated';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { MoreHorizontal, Search, Star } from 'lucide-vue-next';
+import { MoreHorizontal, Search, Star } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import ContactDetailDrawer from './ContactDetailDrawer.vue';
@@ -72,7 +71,6 @@ const { locale, t } = useI18n();
 const { formatDateTime } = useDateTime();
 const { formatVisitorName } = useVisitorDisplay();
 const props = defineProps<ShowContactListPagePropsData>();
-const currentWorkspace = useRequiredWorkspace();
 
 const createOpen = ref(false);
 const deletingContact = ref<ListContactItemData | null>(null);
@@ -440,9 +438,8 @@ const buildTagQueryParams = (): Record<string, unknown> => {
 };
 
 const buildContactListPageUrl = (page: number): string => {
-  return workspace.contacts.index.url(
+  return admin.contacts.index.url(
     {
-      slug: currentWorkspace.value.slug,
       type: selectedType.value,
     },
     {
@@ -462,8 +459,7 @@ const navigateWithFilters = (overrides?: Record<string, unknown>) => {
   const normalizedAttributeFilters = buildAttributeFilterQuery();
 
   router.get(
-    workspace.contacts.index.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.index.url({
       type: selectedType.value,
     }),
     {
@@ -607,7 +603,7 @@ const submitCreate = () => {
   }
 
   createForm.clearErrors('phone', 'email');
-  createForm.post(workspace.contacts.store.url(currentWorkspace.value.slug), {
+  createForm.post(admin.contacts.store.url(), {
     preserveScroll: true,
     onSuccess: () => {
       createForm.reset();
@@ -634,8 +630,7 @@ const submitDelete = () => {
     return;
   }
   deleteForm.delete(
-    workspace.contacts.destroy.url({
-      slug: currentWorkspace.value.slug,
+    admin.contacts.destroy.url({
       id: deletingContact.value.id,
     }),
     {
@@ -680,7 +675,7 @@ const submitMerge = () => {
   }
 
   mergeForm.target_contact_id = selectedContactId.value;
-  mergeForm.post(workspace.contacts.merge.url(currentWorkspace.value.slug), {
+  mergeForm.post(admin.contacts.merge.url(), {
     preserveScroll: true,
     onSuccess: () => {
       mergeForm.reset();
@@ -810,7 +805,7 @@ const onDetailOpenChange = (open: boolean) => {
             </Dialog>
 
             <Button variant="outline" as-child>
-              <Link :href="workspace.contacts.trash.url(currentWorkspace.slug)">
+              <Link :href="admin.contacts.trash.url()">
                 {{ t('回收站') }}
               </Link>
             </Button>

@@ -2,43 +2,49 @@
 
 namespace App\Actions\Teammate;
 
-use App\Data\EnumOptionData;
+use App\Data\Teammate\EditTeammateData;
+use App\Data\Teammate\PermissionGroupData;
 use App\Data\Teammate\ShowEditTeammatePagePropsData;
-use App\Data\Teammate\TeammateData;
-use App\Data\WorkspaceUserContextData;
-use App\Enums\WorkspaceRole;
-use App\Models\Workspace;
+use App\Enums\UserPermission;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 展示客服成员编辑页面。
+ * 展示客服账号编辑页面。
  */
 class ShowEditTeammatePageAction
 {
     use AsAction;
 
-    public function handle(Workspace $workspace, string $id): ShowEditTeammatePagePropsData
+    /**
+     * 查询客服账号并组装编辑页数据。
+     */
+    public function handle(User $actor, string $id): ShowEditTeammatePagePropsData
     {
-        $user = $workspace->users()
-            ->whereKey($id)
-            ->firstOrFail();
+        Gate::forUser($actor)->authorize('user.permission', UserPermission::UsersEdit);
+
+        $user = User::query()
+            ->where('is_super_admin', false)
+            ->findOrFail($id);
 
         return new ShowEditTeammatePagePropsData(
-            user_form: TeammateData::fromModel($user),
-            role_options: EnumOptionData::fromCases(WorkspaceRole::assignableCases()),
-            can_update_nickname: Gate::allows('workspace-users.updateProfile', [$workspace, $user]),
-            can_update_role: Gate::allows('workspace-users.canUpdateRole', [$workspace, $user]),
+            user_form: EditTeammateData::fromModel($user),
+            permission_groups: PermissionGroupData::allGroups(),
+            can_update_profile: Gate::forUser($actor)->allows('users.updateProfile', $user),
         );
     }
 
-    public function asController(Request $request, string $slug, string $id)
+    /**
+     * 渲染客服账号编辑页面。
+     */
+    public function asController(Request $request, string $teammate): Response
     {
-        $currentWorkspace = WorkspaceUserContextData::fromRequest($request)->workspace();
-        $props = $this->handle($currentWorkspace, $id);
+        $actor = $request->user();
 
-        return Inertia::render('teammate/Edit', $props->toArray());
+        return Inertia::render('teammates/Edit', $this->handle($actor, $teammate)->toArray());
     }
 }

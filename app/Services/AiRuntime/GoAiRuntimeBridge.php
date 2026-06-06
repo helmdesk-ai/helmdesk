@@ -36,36 +36,6 @@ class GoAiRuntimeBridge
     ) {}
 
     /**
-     * 保存供应商前校验凭据配置。
-     *
-     * @param  array<string, mixed>  $credentials
-     * @return array{success: bool, code: string, message: string, supported: bool, warnings: array<int, string>}
-     */
-    public function validateProviderConfiguration(AiProvider $provider, array $credentials): array
-    {
-        return $this->send('validate', [
-            'mode' => 'provider-save',
-            'provider' => $this->providerPayload($provider, $credentials),
-        ]);
-    }
-
-    /**
-     * 保存模型前校验候选模型配置。
-     *
-     * @param  array<string, mixed>  $credentials
-     * @param  array<string, mixed>  $candidateModel
-     * @return array{success: bool, code: string, message: string, supported: bool, warnings: array<int, string>}
-     */
-    public function validateModelConfiguration(AiProvider $provider, array $credentials, array $candidateModel): array
-    {
-        return $this->send('validate', [
-            'mode' => 'model-save',
-            'provider' => $this->providerPayload($provider, $credentials, $candidateModel),
-            'candidate_model' => $this->normalizeModelPayload($candidateModel),
-        ]);
-    }
-
-    /**
      * 手动检查供应商连接是否可用。
      *
      * @param  array<string, mixed>  $credentials

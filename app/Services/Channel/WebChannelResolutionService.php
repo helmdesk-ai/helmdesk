@@ -8,7 +8,6 @@ use App\Actions\Channel\Web\UpdateWebChannelEmbedAction;
 use App\Actions\Channel\Web\UpdateWebChannelWidgetAction;
 use App\Enums\ChannelType;
 use App\Models\Channel;
-use App\Models\Workspace;
 
 /**
  * 网站渠道解析服务：封装渠道查找等跨 Action 复用的渠道层操作。
@@ -25,12 +24,11 @@ use App\Models\Workspace;
 class WebChannelResolutionService
 {
     /**
-     * 查找当前工作区内的网站渠道，不存在时抛出 404。
+     * 查找当前系统内的网站渠道，不存在时抛出 404。
      */
-    public function findWorkspaceChannel(Workspace $workspace, string $channelId): Channel
+    public function findSystemChannel(string $channelId): Channel
     {
         return Channel::query()
-            ->where('workspace_id', $workspace->id)
             ->where('type', ChannelType::Web)
             ->findOrFail($channelId);
     }

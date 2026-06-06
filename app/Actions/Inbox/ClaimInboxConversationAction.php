@@ -3,11 +3,9 @@
 namespace App\Actions\Inbox;
 
 use App\Actions\Reception\ClaimConversationAction;
-use App\Data\WorkspaceUserContextData;
 use App\Enums\InboxView;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -24,10 +22,9 @@ class ClaimInboxConversationAction
         private readonly ClaimConversationAction $claimConversationAction,
     ) {}
 
-    public function handle(Workspace $workspace, User $user, string $conversationId): Conversation
+    public function handle(User $user, string $conversationId): Conversation
     {
         $conversation = Conversation::query()
-            ->where('workspace_id', $workspace->id)
             ->find($conversationId);
 
         if ($conversation === null) {
@@ -37,17 +34,14 @@ class ClaimInboxConversationAction
         return $this->claimConversationAction->handle($conversation, $user);
     }
 
-    public function asController(Request $request, string $slug, string $conversationId): RedirectResponse
+    public function asController(Request $request, string $conversationId): RedirectResponse
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
         $conversation = $this->handle(
-            workspace: $ctx->workspace(),
-            user: User::query()->findOrFail($ctx->user_id),
+            user: $request->user(),
             conversationId: $conversationId,
         );
 
-        return redirect()->route('workspace.inbox.show', [
-            'slug' => $slug,
+        return redirect()->route('admin.inbox.show', [
             'view' => InboxView::Mine,
             'conversation_id' => $conversation->id,
         ]);

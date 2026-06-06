@@ -2,11 +2,9 @@
 
 namespace App\Actions\Tag;
 
-use App\Data\WorkspaceUserContextData;
 use App\Exceptions\BusinessException;
 use App\Models\Tag;
 use App\Models\TagGroup;
-use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -20,10 +18,9 @@ class DeleteTagGroupAction
     /**
      * 组内仍有未删除标签时拒绝删除，否则软删除标签组。
      */
-    public function handle(Workspace $workspace, string $id): void
+    public function handle(string $id): void
     {
         $group = TagGroup::query()
-            ->where('workspace_id', $workspace->id)
             ->findOrFail($id);
 
         $hasTags = Tag::query()
@@ -41,10 +38,9 @@ class DeleteTagGroupAction
     /**
      * 接收删除标签组请求并返回上一页。
      */
-    public function asController(Request $request, string $slug, string $id)
+    public function asController(Request $request, string $id)
     {
-        $ctx = WorkspaceUserContextData::fromRequest($request);
-        $this->handle($ctx->workspace(), $id);
+        $this->handle($id);
 
         return back();
     }
