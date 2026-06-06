@@ -22,7 +22,7 @@ Thanks for helping improve HelmDesk.
 
 By submitting code, documentation, or other material to this repository, you agree to the following:
 
-1. Your contribution is licensed under the project's current license, the [Functional Source License, Version 1.1, Apache 2.0 Future License](LICENSE) (FSL-1.1-Apache-2.0).
+1. Your contribution is licensed under the project's current license, the [MIT License](LICENSE).
 2. You grant the project maintainers a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use, reproduce, modify, sublicense, and distribute your contribution as part of the project, including the right to relicense the project (or your contribution as part of it) under any license at the maintainers' discretion in the future.
 3. You confirm that you have the legal right to make the contribution and that, to the best of your knowledge, it does not infringe on the rights of any third party.
 
