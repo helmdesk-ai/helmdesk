@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Attachment\ValidateAttachmentUploadAction;
 use App\Enums\AttachmentStatus;
 use App\Enums\AttachmentUploadMode;
 use App\Enums\AttachmentUploadStatus;
@@ -10,11 +9,7 @@ use App\Models\Channel;
 use App\Models\StorageProfile;
 use App\Models\User;
 use App\Services\Storage\AttachmentUrlResolver;
-use App\Services\Storage\S3ClientFactory;
 use App\Settings\StorageSettings;
-use Aws\MockHandler;
-use Aws\Result;
-use Aws\S3\S3Client;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -346,7 +341,7 @@ test('自包含下载URL包含正确的文件名和MIME参数', function () {
         ->and($remaining)->toBeLessThanOrEqual(7200);
 });
 
-test('S3配置档会签发预签名POST、PUT和分片上传', function () {
+test('S3配置档会签发预签名POST表单直传参数', function () {
     $profile = StorageProfile::factory()->create([
         'metadata' => [],
     ]);
@@ -367,65 +362,8 @@ test('S3配置档会签发预签名POST、PUT和分片上传', function () {
         ])
         ->assertOk()
         ->assertJsonPath('upload.mode', 'presigned_post')
-        ->assertJsonPath('direct.method', 'POST');
-
-    $profile->update(['metadata' => ['direct_upload_mode' => 'presigned_put']]);
-
-    $this->actingAs($this->user)
-        ->postJson('/api/attachments/uploads', [
-            'purpose' => 'import',
-            'file_name' => 'contacts.csv',
-            'mime_type' => 'text/csv',
-            'byte_size' => 2048,
-            'context' => [],
-        ])
-        ->assertOk()
-        ->assertJsonPath('upload.mode', 'presigned_put')
-        ->assertJsonPath('direct.method', 'PUT')
-        ->assertJsonPath('direct.headers.Content-Type', 'text/csv');
-
-    $profile->update(['metadata' => []]);
-    $client = new S3Client([
-        'version' => 'latest',
-        'region' => 'us-east-1',
-        'endpoint' => 'http://minio.test',
-        'use_path_style_endpoint' => true,
-        'credentials' => ['key' => 'key', 'secret' => 'secret'],
-        'handler' => new MockHandler([
-            new Result(['UploadId' => 'multipart-1']),
-        ]),
-    ]);
-
-    app()->instance(S3ClientFactory::class, new class($client) extends S3ClientFactory
-    {
-        public function __construct(private readonly S3Client $client) {}
-
-        public function make(StorageProfile $profile): S3Client
-        {
-            return $this->client;
-        }
-    });
-
-    $multipartResponse = $this->actingAs($this->user)
-        ->postJson('/api/attachments/uploads', [
-            'purpose' => 'conversation_file',
-            'file_name' => 'manual.pdf',
-            'mime_type' => 'application/pdf',
-            'byte_size' => ValidateAttachmentUploadAction::MULTIPART_THRESHOLD + 1,
-            'context' => [],
-        ])
-        ->assertOk()
-        ->assertJsonPath('upload.mode', 'multipart')
-        ->assertJsonPath('direct.upload_id', 'multipart-1')
-        ->assertJsonPath('direct.part_size', ValidateAttachmentUploadAction::PART_SIZE);
-
-    $this->actingAs($this->user)
-        ->postJson('/api/attachments/uploads/'.$multipartResponse->json('upload.id').'/parts', [
-            'parts' => [1, 2],
-        ])
-        ->assertOk()
-        ->assertJsonCount(2, 'parts')
-        ->assertJsonPath('parts.0.method', 'PUT');
+        ->assertJsonPath('direct.method', 'POST')
+        ->assertJsonPath('direct.fields.key', fn (?string $key): bool => is_string($key) && str_ends_with($key, '.png'));
 });
 
 test('图片完成时会尽可能创建WebP缩略图快照', function () {
@@ -508,48 +446,4 @@ test('清理删除过期公开孤立附件', function () {
     expect($deleted->status)->toBe(AttachmentStatus::Deleted)
         ->and($deleted->trashed())->toBeTrue();
     Storage::disk('local')->assertMissing($attachment->object_key);
-});
-
-test('中止过期分片命令会取消远程上传并使记录过期', function () {
-    $profile = StorageProfile::factory()->create();
-    $attachment = Attachment::factory()->create([
-        'storage_profile_id' => $profile->id,
-        'disk' => 's3',
-        'bucket' => $profile->bucket,
-        'status' => AttachmentStatus::Pending,
-    ]);
-    $upload = AttachmentUpload::factory()->create([
-        'attachment_id' => $attachment->id,
-        'storage_profile_id' => $profile->id,
-        'status' => AttachmentUploadStatus::Uploading,
-        'mode' => AttachmentUploadMode::Multipart,
-        'object_key' => $attachment->object_key,
-        'upload_id' => 'multipart-to-abort',
-        'expires_at' => now()->subMinute(),
-    ]);
-    $client = new S3Client([
-        'version' => 'latest',
-        'region' => 'us-east-1',
-        'endpoint' => 'http://minio.test',
-        'use_path_style_endpoint' => true,
-        'credentials' => ['key' => 'key', 'secret' => 'secret'],
-        'handler' => new MockHandler([
-            new Result([]),
-        ]),
-    ]);
-
-    app()->instance(S3ClientFactory::class, new class($client) extends S3ClientFactory
-    {
-        public function __construct(private readonly S3Client $client) {}
-
-        public function make(StorageProfile $profile): S3Client
-        {
-            return $this->client;
-        }
-    });
-
-    $this->artisan('attachments:abort-expired-multipart')->assertSuccessful();
-
-    expect($upload->fresh()->status)->toBe(AttachmentUploadStatus::Expired)
-        ->and($attachment->fresh()->status)->toBe(AttachmentStatus::Expired);
 });

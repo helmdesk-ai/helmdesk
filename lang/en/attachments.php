@@ -29,15 +29,12 @@ return [
     'upload_modes' => [
         'proxy' => 'Proxy upload',
         'presigned_post' => 'Presigned POST',
-        'presigned_put' => 'Presigned PUT',
-        'multipart' => 'Multipart upload',
     ],
     'visibility' => [
         'public' => 'Public',
         'private' => 'Private',
     ],
     'errors' => [
-        'invalid_upload_mode' => 'The upload mode is not valid for this operation.',
         'upload_expired' => 'The upload has expired. Please upload the file again.',
         'object_mismatch' => 'The uploaded file does not match the upload intent.',
         'object_missing' => 'The uploaded object was not found.',

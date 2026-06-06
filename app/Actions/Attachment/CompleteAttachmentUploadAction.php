@@ -37,7 +37,7 @@ class CompleteAttachmentUploadAction
             abort(403);
         }
 
-        return $this->completer->complete($upload, $data->parts, $data->checksum_sha256);
+        return $this->completer->complete($upload, $data->checksum_sha256);
     }
 
     /**

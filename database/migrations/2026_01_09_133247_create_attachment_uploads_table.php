@@ -16,9 +16,6 @@ return new class extends Migration
             $table->string('mode', 30);
             $table->string('status', 20)->default('pending');
             $table->string('object_key');
-            $table->string('upload_id')->nullable();
-            $table->unsignedBigInteger('part_size')->nullable();
-            $table->json('parts')->nullable();
             $table->string('expected_name');
             $table->string('expected_mime_type');
             $table->unsignedBigInteger('expected_byte_size');

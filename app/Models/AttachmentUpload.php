@@ -20,9 +20,6 @@ use Illuminate\Support\Carbon;
  * @property AttachmentUploadMode $mode
  * @property AttachmentUploadStatus $status
  * @property string $object_key
- * @property string|null $upload_id
- * @property int|null $part_size
- * @property array|null $parts
  * @property string $expected_name
  * @property string $expected_mime_type
  * @property int $expected_byte_size
@@ -62,8 +59,6 @@ class AttachmentUpload extends Model
         return [
             'mode' => AttachmentUploadMode::class,
             'status' => AttachmentUploadStatus::class,
-            'part_size' => 'integer',
-            'parts' => 'array',
             'expected_byte_size' => 'integer',
             'expires_at' => 'datetime',
             'completed_at' => 'datetime',

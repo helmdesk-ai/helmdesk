@@ -55,8 +55,6 @@ export default {
   发送失败: 'Send failed',
   '上传失败，请重试': 'Upload failed. Please try again.',
   '缺少直传表单参数。': 'Missing direct upload form fields.',
-  '缺少直传地址。': 'Missing direct upload URL.',
-  '缺少分片大小。': 'Missing multipart chunk size.',
   'AI 润色': 'AI polish',
   当前会话不可回复: 'This conversation cannot be replied to',
   '请先配置可用 AI 模型': 'Configure an available AI model first',

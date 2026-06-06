@@ -62,7 +62,9 @@ class CreateAttachmentUploadAction
 
         $attachmentId = (string) Str::ulid();
         $objectKey = $this->pathGenerator->generate($attachmentId, $data->purpose, $data->file_name, $mimeType);
-        $mode = $this->initialMode($driver, $profile->metadata ?? [], $rule['multipart_threshold'], $data->byte_size);
+        $mode = $driver === StorageDriver::Local
+            ? AttachmentUploadMode::Proxy
+            : AttachmentUploadMode::PresignedPost;
         $expiresAt = now()->addHour();
 
         /** @var AttachmentUpload $upload */
@@ -193,25 +195,5 @@ class CreateAttachmentUploadAction
         }
 
         return [null, null, $token];
-    }
-
-    /**
-     * 根据存储驱动、配置和文件大小选择初始上传模式。
-     *
-     * @param  array<string, mixed>  $metadata
-     */
-    private function initialMode(StorageDriver $driver, array $metadata, ?int $multipartThreshold, int $byteSize): AttachmentUploadMode
-    {
-        if ($driver === StorageDriver::Local) {
-            return AttachmentUploadMode::Proxy;
-        }
-
-        if ($multipartThreshold !== null && $byteSize >= $multipartThreshold) {
-            return AttachmentUploadMode::Multipart;
-        }
-
-        return ($metadata['direct_upload_mode'] ?? null) === AttachmentUploadMode::PresignedPut->value
-            ? AttachmentUploadMode::PresignedPut
-            : AttachmentUploadMode::PresignedPost;
     }
 }

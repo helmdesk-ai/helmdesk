@@ -3,7 +3,6 @@
 namespace App\Actions\Attachment;
 
 use App\Enums\AttachmentStatus;
-use App\Enums\AttachmentUploadMode;
 use App\Enums\AttachmentUploadStatus;
 use App\Enums\StorageDriver;
 use App\Models\AttachmentUpload;
@@ -87,16 +86,6 @@ class AbortAttachmentUploadAction
         }
 
         $client = $this->s3ClientFactory->make($upload->storageProfile);
-        if ($upload->mode === AttachmentUploadMode::Multipart && filled($upload->upload_id)) {
-            $client->abortMultipartUpload([
-                'Bucket' => $upload->storageProfile->bucket,
-                'Key' => $upload->object_key,
-                'UploadId' => $upload->upload_id,
-            ]);
-
-            return;
-        }
-
         $client->deleteObject([
             'Bucket' => $upload->storageProfile->bucket,
             'Key' => $upload->object_key,
