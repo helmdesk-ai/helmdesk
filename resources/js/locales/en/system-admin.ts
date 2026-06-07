@@ -229,6 +229,7 @@ export default {
   '删除后将永久移除此知识库及其下所有文档和索引数据，不可恢复。':
     'This will permanently delete this knowledge base, its documents, and its index data. This action cannot be undone.',
   检索配置: 'Retrieval settings',
+  知识库设置: 'Knowledge base settings',
   知识库检索配置: 'Knowledge base retrieval settings',
   '系统内所有知识库共用这套检索配置。':
     'All knowledge bases in the system share these retrieval settings.',

@@ -8,8 +8,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * 知识库统一检索配置。
- * 由 ListKnowledgeBasesAction 通过 ShowKnowledgeBaseListPagePropsData 下发，
- * 用于 resources/js/pages/knowledgeBase/SystemKnowledgeSettingsPanel.vue 的表单回填。
+ * 由 ShowSystemKnowledgeSettingsAction 通过 ShowSystemKnowledgeSettingsPagePropsData 下发，
+ * 用于 resources/js/pages/systemSettings/knowledgeSettings/Index.vue 的表单回填。
  */
 class SystemKnowledgeSettingsData extends Data
 {

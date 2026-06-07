@@ -190,6 +190,7 @@ const footerNavItems = computed<SidebarShellNavItem[]>(() => {
         routePath(admin.general.show.url()),
         routePath(admin.storage.show.url()),
         routePath(admin.mail.show.url()),
+        routePath(admin.knowledge.show.url()),
         `${manageBaseUrl.value}/ai`,
         `${manageBaseUrl.value}/mcp-servers`,
         `${manageBaseUrl.value}/translation`,
