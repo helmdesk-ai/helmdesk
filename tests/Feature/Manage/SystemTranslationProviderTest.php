@@ -69,7 +69,6 @@ test('超级管理员可以查看翻译供应商列表页', function () {
             ->has('providers', 1)
             ->has('protocol_options', count(TranslationProviderType::cases()))
             ->where('providers.0.slug', 'google-tr')
-            ->where('providers.0.icon', 'google')
             ->where('providers.0.has_complete_credentials', true)
             ->where('providers.0.credential_values.api_key', null)
             ->whereType('providers.0.credential_masks.api_key', 'string')

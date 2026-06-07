@@ -15,7 +15,6 @@ return new class extends Migration
             $table->string('slug');
             $table->string('name');
             $table->string('protocol');
-            $table->string('icon')->nullable();
             $table->text('credentials')->nullable();
             $table->json('credential_fields');
             // Provider 特有运行参数（例如 DeepL 的 formality、Google 的 model variant、术语表 id），

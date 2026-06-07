@@ -21,7 +21,6 @@ class TranslationProviderFactory extends Factory
             'slug' => 'google-translate-'.Str::lower(Str::random(6)),
             'name' => 'Google Translate',
             'protocol' => TranslationProviderType::GoogleTranslate,
-            'icon' => null,
             'credentials' => ['api_key' => 'test-api-key'],
             'credential_fields' => [
                 ['field' => 'api_key', 'label' => 'API Key', 'required' => true, 'secret' => true],

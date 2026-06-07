@@ -6,7 +6,6 @@ import Translation from '@/actions/App/Actions/Translation';
 import FormActions from '@/components/common/FormActions.vue';
 import FormField from '@/components/common/FormField.vue';
 import HeadingSmall from '@/components/common/HeadingSmall.vue';
-import AiProviderIcon from '@/components/icons/AiProviderIcon.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -125,19 +124,6 @@ const description = computed(() =>
 );
 
 const submitLabel = computed(() => (isEditMode.value ? t('保存') : t('添加')));
-
-const protocolIconMap: Record<string, string> = {
-  'google-translate': 'google',
-  deepl: 'deepl',
-  'azure-translator': 'azure',
-  'baidu-translate': 'baidu',
-  'tencent-cloud-translate': 'tencent-cloud',
-  'amazon-translate': 'aws',
-};
-
-function protocolIcon(protocol: string | null | undefined): string | null {
-  return protocol ? (protocolIconMap[protocol] ?? null) : null;
-}
 
 function credentialFieldsForProtocol(
   protocol: TranslationProviderType | '',
@@ -380,42 +366,24 @@ function checkConnection(): void {
       >
         <Select v-model="form.protocol" required>
           <SelectTrigger id="translation-provider-protocol" class="mt-1 w-full">
-            <div class="flex min-w-0 items-center gap-2">
-              <AiProviderIcon
-                v-if="form.protocol"
-                :icon="protocolIcon(form.protocol)"
-                class="h-4 w-4 shrink-0"
-              />
-              <SelectValue />
-            </div>
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
               v-for="option in props.protocolOptions"
               :key="option.value"
               :value="String(option.value)"
+              hide-indicator
             >
-              <div class="flex items-center gap-2">
-                <AiProviderIcon
-                  :icon="protocolIcon(String(option.value))"
-                  class="h-4 w-4 shrink-0"
-                />
-                <span>{{ option.label }}</span>
-              </div>
+              {{ option.label }}
             </SelectItem>
           </SelectContent>
         </Select>
       </FormField>
 
       <FormField v-else :label="t('协议')">
-        <div
-          class="mt-1 flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
-        >
-          <AiProviderIcon
-            :icon="props.provider?.icon ?? protocolIcon(selectedProtocol)"
-            class="h-4 w-4 shrink-0"
-          />
-          <span>{{ selectedProtocolLabel }}</span>
+        <div class="mt-1 rounded-md border px-3 py-2 text-sm">
+          {{ selectedProtocolLabel }}
         </div>
       </FormField>
 

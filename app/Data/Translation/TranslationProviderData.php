@@ -4,7 +4,6 @@ namespace App\Data\Translation;
 
 use App\Enums\TranslationProviderType;
 use App\Models\TranslationProvider;
-use App\Services\Translation\TranslationProviderCatalog;
 use Spatie\LaravelData\Data;
 
 /**
@@ -27,7 +26,6 @@ class TranslationProviderData extends Data
         public string $name,
         public TranslationProviderType $protocol,
         public string $protocol_label,
-        public ?string $icon,
         /** @var array<int, array<string, mixed>> */
         public array $credential_fields,
         /** @var array<string, string|null> */
@@ -75,8 +73,6 @@ class TranslationProviderData extends Data
             name: $provider->name,
             protocol: $protocol,
             protocol_label: $protocol->label(),
-            icon: $provider->icon
-                ?? app(TranslationProviderCatalog::class)->iconForProtocol($protocol),
             credential_fields: $provider->credential_fields,
             credential_values: $credentialValues,
             credential_masks: $credentialMasks,

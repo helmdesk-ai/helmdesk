@@ -7,7 +7,7 @@ use App\Enums\TranslationProviderType;
 /**
  * 翻译供应商内置配置目录。
  *
- * 与 AiProviderCatalog 同构：集中维护 protocol → 凭据字段 / 图标 / 默认值，避免 Action 里散落 if-else。
+ * 与 AiProviderCatalog 同构：集中维护 protocol → 凭据字段 / 默认值，避免 Action 里散落 if-else。
  */
 class TranslationProviderCatalog
 {
@@ -21,14 +21,12 @@ class TranslationProviderCatalog
         return [
             TranslationProviderType::GoogleTranslate->value => [
                 'label' => 'Google Translate',
-                'icon' => 'google',
                 'credential_fields' => [
                     $this->passwordField('api_key', 'API Key'),
                 ],
             ],
             TranslationProviderType::DeepL->value => [
                 'label' => 'DeepL',
-                'icon' => 'deepl',
                 'credential_fields' => [
                     $this->passwordField('auth_key', 'Auth Key'),
                     $this->urlField('endpoint', 'Endpoint', required: true, default: 'https://api.deepl.com'),
@@ -36,7 +34,6 @@ class TranslationProviderCatalog
             ],
             TranslationProviderType::AzureTranslator->value => [
                 'label' => 'Microsoft Azure Translator',
-                'icon' => 'azure',
                 'credential_fields' => [
                     $this->passwordField('api_key', 'API Key'),
                     $this->textField('region', 'Region', required: false),
@@ -45,7 +42,6 @@ class TranslationProviderCatalog
             ],
             TranslationProviderType::BaiduTranslate->value => [
                 'label' => 'Baidu Translate',
-                'icon' => 'baidu',
                 'credential_fields' => [
                     $this->textField('app_id', 'App ID'),
                     $this->passwordField('app_secret', 'App Secret'),
@@ -54,7 +50,6 @@ class TranslationProviderCatalog
             ],
             TranslationProviderType::TencentCloudTranslate->value => [
                 'label' => 'Tencent Cloud Machine Translation',
-                'icon' => 'tencent-cloud',
                 'credential_fields' => [
                     $this->passwordField('secret_id', 'Secret ID'),
                     $this->passwordField('secret_key', 'Secret Key'),
@@ -64,7 +59,6 @@ class TranslationProviderCatalog
             ],
             TranslationProviderType::AmazonTranslate->value => [
                 'label' => 'Amazon Translate',
-                'icon' => 'aws',
                 'credential_fields' => [
                     $this->passwordField('access_key_id', 'Access Key ID'),
                     $this->passwordField('secret_access_key', 'Secret Access Key'),
@@ -100,16 +94,6 @@ class TranslationProviderCatalog
         }
 
         return $fields;
-    }
-
-    /**
-     * 取协议的图标标识，前端按字符串映射到具体 svg。
-     */
-    public function iconForProtocol(TranslationProviderType $protocol): ?string
-    {
-        $icon = $this->definitions()[$protocol->value]['icon'] ?? null;
-
-        return is_string($icon) ? $icon : null;
     }
 
     /**
