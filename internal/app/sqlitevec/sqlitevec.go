@@ -21,7 +21,7 @@ type artifact struct {
 
 var artifacts = map[string]artifact{
 	"linux/amd64": {
-		relativePath: filepath.Join("bootstrap", "sqlite_vec", "linux-x64", "vec0.so"),
+		relativePath: filepath.Join("bootstrap", "sqlite_vec", "linux-amd64", "vec0.so"),
 		sha256:       "5923730861b86c707cca5602b5f91092f9e52a46706dbc6e269fd4bb9c4498e8",
 	},
 	"linux/arm64": {

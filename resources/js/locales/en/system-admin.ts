@@ -236,7 +236,7 @@ export default {
   '为文档建立基础索引，用于日常知识库问答。':
     'Builds the baseline index used for everyday knowledge base answers.',
   请选择嵌入模型: 'Select an embedding model',
-  向量维度: 'Vector dimension',
+  嵌入维度: 'Embedding dimension',
   分段方式: 'Chunking method',
   '单段最大 token': 'Max tokens per chunk',
   '相邻段重叠 token': 'Overlap tokens',

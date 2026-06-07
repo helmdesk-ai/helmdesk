@@ -16,10 +16,10 @@ return [
         'header' => 'Custom header',
     ],
     'sync_statuses' => [
-        'pending' => 'Not synced yet',
+        'pending' => 'Not synced',
         'syncing' => 'Syncing',
         'success' => 'Synced',
-        'failed' => 'Sync failed',
+        'failed' => 'Failed',
     ],
     'fields' => [
         'name' => 'Name',

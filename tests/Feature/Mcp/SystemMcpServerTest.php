@@ -122,6 +122,57 @@ test('超级管理员可以查看空 MCP 服务列表', function () {
             ->has('servers', 0));
 });
 
+test('首次添加的 MCP 服务在列表中下发未同步状态与文案', function () {
+    fakeMcpBridge();
+
+    McpServer::factory()->create([
+        'last_sync_status' => McpSyncStatus::Pending->value,
+        'last_sync_error' => null,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.mcp.servers.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('systemSettings/mcpServers/Index')
+            ->where('servers.0.last_sync_status', 'pending')
+            ->where('servers.0.last_sync_status_label', '未同步')
+            ->where('servers.0.last_sync_error', null));
+});
+
+test('同步失败的 MCP 服务在列表中下发失败文案与失败原因', function () {
+    fakeMcpBridge();
+
+    McpServer::factory()->create([
+        'last_sync_status' => McpSyncStatus::Failed->value,
+        'last_sync_error' => '连接被拒绝',
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.mcp.servers.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('servers.0.last_sync_status', 'failed')
+            ->where('servers.0.last_sync_status_label', '失败')
+            ->where('servers.0.last_sync_error', '连接被拒绝'));
+});
+
+test('同步成功的 MCP 服务在列表中下发成功文案', function () {
+    fakeMcpBridge();
+
+    McpServer::factory()->create([
+        'last_sync_status' => McpSyncStatus::Success->value,
+        'last_sync_error' => null,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.manage.mcp.servers.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('servers.0.last_sync_status', 'success')
+            ->where('servers.0.last_sync_status_label', '成功'));
+});
+
 test('超级管理员可以打开 MCP 服务创建页', function () {
     $this->actingAs($this->user)
         ->get(route('admin.manage.mcp.servers.create'))

@@ -146,7 +146,7 @@ function confirmDelete(): void {
                 <tr class="text-left">
                   <th class="px-4 py-3">{{ t('名称') }}</th>
                   <th class="px-4 py-3">{{ t('协议') }}</th>
-                  <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
+                  <th class="w-56 px-4 py-3 text-right">{{ t('操作') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,22 +165,8 @@ function confirmDelete(): void {
                     {{ provider.protocol_label }}
                   </td>
 
-                  <td class="px-4 py-3">
-                    <div class="flex justify-end gap-2">
-                      <Button size="sm" variant="outline" as-child>
-                        <Link
-                          :href="
-                            Translation.ShowEditTranslationProviderPageAction.url(
-                              {
-                                provider: provider.slug,
-                              },
-                            )
-                          "
-                        >
-                          {{ t('编辑') }}
-                        </Link>
-                      </Button>
-
+                  <td class="w-56 px-4 py-3">
+                    <div class="flex justify-end gap-2 whitespace-nowrap">
                       <Button
                         type="button"
                         size="sm"
@@ -193,6 +179,20 @@ function confirmDelete(): void {
                           class="mr-2 h-4 w-4 animate-spin"
                         />
                         {{ t('测试') }}
+                      </Button>
+
+                      <Button size="sm" variant="outline" as-child>
+                        <Link
+                          :href="
+                            Translation.ShowEditTranslationProviderPageAction.url(
+                              {
+                                provider: provider.slug,
+                              },
+                            )
+                          "
+                        >
+                          {{ t('编辑') }}
+                        </Link>
                       </Button>
 
                       <DropdownMenu v-if="!provider.is_builtin">

@@ -38,7 +38,7 @@ return [
         'name_exists' => '同名知识库已存在。',
         'invalid_attachment' => '知识库头像不可用，请重新上传。',
         'invalid_embedding_model' => '请选择当前系统中可用的嵌入模型。',
-        'invalid_embedding_dimension' => '请填写嵌入模型的向量维度（1-65535 的整数）。',
+        'invalid_embedding_dimension' => '请填写嵌入模型的嵌入维度（1-65535 的整数）。',
         'invalid_rerank_model' => '请选择当前系统中可用的重排序模型。',
         'invalid_summary_model' => '请选择当前系统中可用的大语言模型作为深度索引摘要模型。',
         'model_in_use' => '该模型已被知识库使用，不能停用或删除。',

@@ -35,9 +35,9 @@ class FormUpdateSystemKnowledgeSettingsData extends Data
             'rerank_model_id' => ['nullable', 'string'],
             'vector_index_enabled' => ['boolean'],
             'raptor_index_enabled' => ['boolean'],
-            'chunking_strategy' => ['nullable', Rule::enum(KnowledgeChunkingStrategy::class)],
-            'chunk_max_tokens' => ['nullable', 'integer', 'between:64,4096'],
-            'chunk_overlap_tokens' => ['nullable', 'integer', 'between:0,2048'],
+            'chunking_strategy' => ['nullable', Rule::enum(KnowledgeChunkingStrategy::class), 'required_if:vector_index_enabled,1'],
+            'chunk_max_tokens' => ['nullable', 'integer', 'between:64,4096', 'required_if:vector_index_enabled,1'],
+            'chunk_overlap_tokens' => ['nullable', 'integer', 'between:0,2048', 'required_if:vector_index_enabled,1'],
             'summary_model_id' => ['nullable', 'string'],
         ];
     }
