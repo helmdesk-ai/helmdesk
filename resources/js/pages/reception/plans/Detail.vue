@@ -929,7 +929,7 @@ function confirmRemoveMcp(): void {
           </div>
 
           <FormActions
-            class="border-t pt-6"
+            class="pt-6"
             :submit-label="t('保存')"
             :processing="planForm.processing"
             :cancel-href="listUrl"
