@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * 系统知识库统一检索配置表单数据。
- * 来自 resources/js/pages/knowledgeBase/SystemKnowledgeSettingsPanel.vue 的检索配置面板提交。
+ * 来自系统设置「知识库设置」页 resources/js/pages/systemSettings/knowledgeSettings/Index.vue 的提交。
  */
 class FormUpdateSystemKnowledgeSettingsData extends Data
 {

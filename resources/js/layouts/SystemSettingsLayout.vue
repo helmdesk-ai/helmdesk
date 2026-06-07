@@ -47,6 +47,10 @@ const sidebarNavItems = computed<SubMenuItem[]>(() => [
     href: admin.manage.ai.providers.index.url(),
   },
   {
+    title: t('知识库设置'),
+    href: admin.knowledge.show.url(),
+  },
+  {
     title: t('MCP 服务'),
     href: admin.manage.mcp.servers.index.url(),
   },

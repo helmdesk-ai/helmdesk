@@ -93,7 +93,7 @@ class UpdateSystemKnowledgeSettingsAction
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemContext::current();
-        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($systemContext, FormUpdateSystemKnowledgeSettingsData::from($request));
 

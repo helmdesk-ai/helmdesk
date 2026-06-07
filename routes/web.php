@@ -103,6 +103,7 @@ use App\Actions\KnowledgeBase\Qa\UpdateKnowledgeQaEntryAction;
 use App\Actions\KnowledgeBase\RunKnowledgeRecallTestAction;
 use App\Actions\KnowledgeBase\ShowCreateKnowledgeBasePageAction;
 use App\Actions\KnowledgeBase\ShowEditKnowledgeBasePageAction;
+use App\Actions\KnowledgeBase\ShowSystemKnowledgeSettingsAction;
 use App\Actions\KnowledgeBase\UpdateKnowledgeBaseAction;
 use App\Actions\KnowledgeBase\UpdateSystemKnowledgeSettingsAction;
 use App\Actions\Mcp\CheckMcpServerAction;
@@ -242,6 +243,10 @@ Route::prefix('admin')->middleware(['auth', IdentifySystem::class, 'can:system_s
     Route::get('mail', ShowMailSettingsPageAction::class)->name('admin.mail.show');
     Route::put('mail', UpdateMailSettingsAction::class)->middleware('can:system_settings.edit')->name('admin.mail.update');
     Route::post('mail/test', SendMailSettingsTestEmailAction::class)->middleware('can:system_settings.edit')->name('admin.mail.test');
+
+    // 知识库设置（系统统一检索配置）
+    Route::get('knowledge', ShowSystemKnowledgeSettingsAction::class)->name('admin.knowledge.show');
+    Route::put('knowledge', UpdateSystemKnowledgeSettingsAction::class)->middleware('can:system_settings.edit')->name('admin.knowledge.update');
 });
 
 // 退出登录
@@ -316,7 +321,6 @@ Route::prefix('admin')->middleware(['auth', EnsureEmailIsVerifiedWhenMailEnabled
             Route::get('/', ListKnowledgeBasesAction::class)->middleware('can:knowledge_bases.view')->name('admin.manage.knowledge-bases.index');
             Route::get('/create', ShowCreateKnowledgeBasePageAction::class)->middleware('can:knowledge_bases.create')->name('admin.manage.knowledge-bases.create');
             Route::post('/', CreateKnowledgeBaseAction::class)->middleware('can:knowledge_bases.create')->name('admin.manage.knowledge-bases.store');
-            Route::put('/settings', UpdateSystemKnowledgeSettingsAction::class)->middleware('can:knowledge_bases.edit')->name('admin.manage.knowledge-bases.settings.update');
             Route::get('/{knowledgeBase}/edit', ShowEditKnowledgeBasePageAction::class)->middleware('can:knowledge_bases.edit')->whereUlid('knowledgeBase')->name('admin.manage.knowledge-bases.edit');
             Route::put('/{knowledgeBase}', UpdateKnowledgeBaseAction::class)->middleware('can:knowledge_bases.edit')->whereUlid('knowledgeBase')->name('admin.manage.knowledge-bases.update');
             Route::delete('/{knowledgeBase}', DeleteKnowledgeBaseAction::class)->middleware('can:knowledge_bases.delete')->whereUlid('knowledgeBase')->name('admin.manage.knowledge-bases.destroy');

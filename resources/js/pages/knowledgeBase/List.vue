@@ -49,7 +49,6 @@ import KnowledgeGroupRow from '@/pages/knowledgeBase/KnowledgeGroupRow.vue';
 import KnowledgeManualDocumentPanel from '@/pages/knowledgeBase/KnowledgeManualDocumentPanel.vue';
 import KnowledgeQaDocumentPanel from '@/pages/knowledgeBase/KnowledgeQaDocumentPanel.vue';
 import KnowledgeRecallTestPanel from '@/pages/knowledgeBase/KnowledgeRecallTestPanel.vue';
-import SystemKnowledgeSettingsPanel from '@/pages/knowledgeBase/SystemKnowledgeSettingsPanel.vue';
 import type {
   KnowledgeBaseCategory,
   KnowledgeBaseData,
@@ -65,7 +64,6 @@ import {
   MoreHorizontal,
   PenLine,
   Search,
-  Settings2,
 } from '@lucide/vue';
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue';
 
@@ -86,14 +84,12 @@ const filterPanelOpen = ref(false);
 type RightPage =
   | 'knowledge_base'
   | 'knowledge_base_form'
-  | 'retrieval_settings'
   | 'manual_document_form'
   | 'qa_entry_form'
   | 'recall_test';
 type RightPanelQueryValue =
   | 'kb-create'
   | 'kb-edit'
-  | 'settings'
   | 'manual-create'
   | 'manual-edit'
   | 'qa-create'
@@ -403,11 +399,6 @@ function openEditDialog(kb: KnowledgeBaseData): void {
   activeRightPage.value = 'knowledge_base_form';
 }
 
-function openSystemSettingsPage(): void {
-  clearTransientListState();
-  activeRightPage.value = 'retrieval_settings';
-}
-
 function openRecallTestPage(): void {
   if (!selectedKb.value) {
     return;
@@ -593,11 +584,6 @@ function applyRightPanelStateFromUrl(): void {
 
   resetRightPanelState();
 
-  if (panel === 'settings') {
-    activeRightPage.value = 'retrieval_settings';
-    return;
-  }
-
   if (panel === 'recall') {
     if (selectedKb.value) {
       activeRightPage.value = 'recall_test';
@@ -698,9 +684,7 @@ function writeKnowledgeBaseUrlState(): void {
   syncKnowledgeBaseScopeParams(url);
   clearRightPanelQueryParams(url);
 
-  if (activeRightPage.value === 'retrieval_settings') {
-    url.searchParams.set(panelQueryParam, 'settings');
-  } else if (activeRightPage.value === 'recall_test') {
+  if (activeRightPage.value === 'recall_test') {
     url.searchParams.set(panelQueryParam, 'recall');
   } else if (activeRightPage.value === 'knowledge_base_form') {
     if (knowledgeBaseFormMode.value === 'edit' && editingKb.value) {
@@ -947,30 +931,6 @@ function confirmDeleteQaEntry(): void {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Button
-                      type="button"
-                      :variant="
-                        activeRightPage === 'retrieval_settings'
-                          ? 'secondary'
-                          : 'outline'
-                      "
-                      size="icon"
-                      class="h-8 w-8 shrink-0"
-                      :aria-label="t('检索配置')"
-                      @click="openSystemSettingsPage"
-                    >
-                      <Settings2 class="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {{ t('检索配置') }}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           </div>
 
@@ -1132,15 +1092,6 @@ function confirmDeleteQaEntry(): void {
         :knowledge-base="editingKb"
         @cancel="returnToKnowledgeBasePage"
         @saved="returnToKnowledgeBasePage"
-      />
-
-      <SystemKnowledgeSettingsPanel
-        v-else-if="activeRightPage === 'retrieval_settings'"
-        :settings="props.system_knowledge_settings"
-        :embedding-model-options="props.embedding_model_options"
-        :rerank-model-options="props.rerank_model_options"
-        :summary-model-options="props.summary_model_options"
-        :chunking-strategy-options="props.chunking_strategy_options"
       />
 
       <KnowledgeManualDocumentPanel

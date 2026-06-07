@@ -78,18 +78,7 @@ function createKnowledgeBaseTestAiModel(string $type = 'embedding', ?AiProvider 
     ]);
 }
 
-test('超级管理员可以查看知识库列表页面和系统检索配置', function () {
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
-    $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
-    $this->systemContext->update([
-        'knowledge_embedding_model_id' => $embeddingModel->id,
-        'knowledge_summary_model_id' => $summaryModel->id,
-        'knowledge_vector_index_enabled' => true,
-        'knowledge_raptor_index_enabled' => true,
-        'knowledge_chunking_strategy' => KnowledgeChunkingStrategy::Semantic->value,
-        'knowledge_chunk_max_tokens' => 768,
-        'knowledge_chunk_overlap_tokens' => 96,
-    ]);
+test('超级管理员可以查看知识库列表页面', function () {
     KnowledgeBase::factory()->create([
         'name' => '售后政策库',
         'description' => '退款、退货和换货规则',
@@ -104,12 +93,36 @@ test('超级管理员可以查看知识库列表页面和系统检索配置', fu
             ->where('knowledge_base_list.0.name', '售后政策库')
             ->where('knowledge_base_list.0.avatar_id', null)
             ->where('knowledge_base_list.0.avatar_url', null)
-            ->where('system_knowledge_settings.embedding_model_id', (string) $embeddingModel->id)
-            ->where('system_knowledge_settings.summary_model_id', (string) $summaryModel->id)
-            ->where('system_knowledge_settings.vector_index_enabled', true)
-            ->where('system_knowledge_settings.raptor_index_enabled', true)
-            ->where('system_knowledge_settings.chunking_strategy', KnowledgeChunkingStrategy::Semantic->value)
+            ->missing('system_knowledge_settings')
             ->where('selected_knowledge_base', null)
+        );
+});
+
+test('超级管理员可以在系统设置中查看知识库设置页面', function () {
+    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
+    $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
+    $this->systemContext->update([
+        'knowledge_embedding_model_id' => $embeddingModel->id,
+        'knowledge_summary_model_id' => $summaryModel->id,
+        'knowledge_vector_index_enabled' => true,
+        'knowledge_raptor_index_enabled' => true,
+        'knowledge_chunking_strategy' => KnowledgeChunkingStrategy::Semantic->value,
+        'knowledge_chunk_max_tokens' => 768,
+        'knowledge_chunk_overlap_tokens' => 96,
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('admin.knowledge.show'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('systemSettings/knowledgeSettings/Index')
+            ->where('settings.embedding_model_id', (string) $embeddingModel->id)
+            ->where('settings.summary_model_id', (string) $summaryModel->id)
+            ->where('settings.vector_index_enabled', true)
+            ->where('settings.raptor_index_enabled', true)
+            ->where('settings.chunking_strategy', KnowledgeChunkingStrategy::Semantic->value)
+            ->has('embedding_model_options')
+            ->has('chunking_strategy_options')
         );
 });
 
@@ -332,7 +345,7 @@ test('超级管理员可以保存系统知识库检索配置', function () {
     $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
 
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
             'rerank_model_id' => $rerankModel->id,
@@ -361,7 +374,7 @@ test('启用向量索引但未填写维度时返回字段级校验错误', funct
     $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
 
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => '',
             'vector_index_enabled' => true,
@@ -375,7 +388,7 @@ test('启用向量索引但未填写维度时返回字段级校验错误', funct
 
 test('标准索引启用时需要嵌入模型', function () {
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => '',
             'vector_index_enabled' => true,
             'raptor_index_enabled' => false,
@@ -390,7 +403,7 @@ test('深度索引启用时同样需要嵌入模型（摘要节点也要落向�
     $summaryModel = createKnowledgeBaseTestAiModel('llm');
 
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => '',
             'summary_model_id' => $summaryModel->id,
             'vector_index_enabled' => false,
@@ -407,7 +420,7 @@ test('启用标准索引时分段参数为必填', function () {
 
     // 前端开关以隐藏域 '1'/'0' 提交，这里沿用同样的载荷形态。
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
             'vector_index_enabled' => '1',
@@ -425,7 +438,7 @@ test('启用标准索引时分段参数为必填', function () {
 
 test('深度索引启用时需要摘要模型', function () {
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'summary_model_id' => '',
             'vector_index_enabled' => false,
             'raptor_index_enabled' => true,
@@ -518,7 +531,7 @@ test('更新系统检索配置会清理索引并投递已解析文档', function
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $updatedEmbeddingModel->id,
             'embedding_dimension' => 1536,
             'summary_model_id' => $updatedSummaryModel->id,
@@ -609,7 +622,7 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
     ]);
 
     $this->actingAs($this->user)
-        ->put(route('admin.manage.knowledge-bases.settings.update'), [
+        ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
             'summary_model_id' => $summaryModel->id,
