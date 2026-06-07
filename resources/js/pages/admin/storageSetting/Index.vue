@@ -156,22 +156,22 @@ const confirmDelete = () => {
                   class="border-b transition-colors hover:bg-muted/30"
                   :class="{ 'bg-primary/5': isLocalActive }"
                 >
-                  <td class="px-4 py-3 align-top">
+                  <td class="px-4 py-3 align-middle">
                     <div class="font-medium">{{ t('本地存储') }}</div>
                   </td>
-                  <td class="px-4 py-3 align-top">
+                  <td class="px-4 py-3 align-middle">
                     <Badge variant="secondary">{{ t('本地磁盘') }}</Badge>
                   </td>
-                  <td class="px-4 py-3 align-top text-muted-foreground">
+                  <td class="px-4 py-3 align-middle text-muted-foreground">
                     {{ t('当前服务器') }}
                   </td>
-                  <td class="px-4 py-3 align-top text-muted-foreground">
+                  <td class="px-4 py-3 align-middle text-muted-foreground">
                     {{ t('应用本地文件系统') }}
                   </td>
-                  <td class="px-4 py-3 align-top text-muted-foreground">
+                  <td class="px-4 py-3 align-middle text-muted-foreground">
                     {{ t('本地 private 目录') }}
                   </td>
-                  <td class="px-4 py-3 text-right align-top">
+                  <td class="px-4 py-3 text-right align-middle">
                     <Button
                       type="button"
                       variant="outline"
@@ -190,7 +190,7 @@ const confirmDelete = () => {
                   class="border-b transition-colors last:border-b-0 hover:bg-muted/30"
                   :class="{ 'bg-primary/5': isProfileActive(p) }"
                 >
-                  <td class="px-4 py-3 align-top">
+                  <td class="px-4 py-3 align-middle">
                     <div class="font-medium">{{ p.name }}</div>
                     <div
                       v-if="p.url"
@@ -200,28 +200,28 @@ const confirmDelete = () => {
                       {{ p.url }}
                     </div>
                   </td>
-                  <td class="px-4 py-3 align-top">
+                  <td class="px-4 py-3 align-middle">
                     <Badge variant="secondary">
                       {{ providerLabel(p) }}
                     </Badge>
                   </td>
-                  <td class="px-4 py-3 align-top text-muted-foreground">
+                  <td class="px-4 py-3 align-middle text-muted-foreground">
                     {{ p.region || '-' }}
                   </td>
                   <td
-                    class="max-w-72 px-4 py-3 align-top font-mono text-xs text-muted-foreground"
+                    class="max-w-72 px-4 py-3 align-middle font-mono text-xs text-muted-foreground"
                   >
                     <div class="truncate" :title="p.endpoint || '-'">
                       {{ p.endpoint || '-' }}
                     </div>
                   </td>
                   <td
-                    class="max-w-48 truncate px-4 py-3 align-top font-mono text-xs text-muted-foreground"
+                    class="max-w-48 truncate px-4 py-3 align-middle font-mono text-xs text-muted-foreground"
                     :title="p.bucket || '-'"
                   >
                     {{ p.bucket || '-' }}
                   </td>
-                  <td class="px-4 py-3 text-right align-top" @click.stop>
+                  <td class="px-4 py-3 text-right align-middle" @click.stop>
                     <div class="inline-flex items-center justify-end gap-2">
                       <Button
                         type="button"

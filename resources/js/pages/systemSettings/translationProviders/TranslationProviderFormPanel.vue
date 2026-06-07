@@ -233,6 +233,18 @@ function showClearCredentialsAction(field: CredentialField): boolean {
   return isEditMode.value && field.secret === true && hasCredentialsToClear();
 }
 
+function secretFieldPlaceholder(field: CredentialField): string | undefined {
+  if (
+    isEditMode.value &&
+    field.secret === true &&
+    Boolean(props.provider?.credential_masks[field.field])
+  ) {
+    return t('已配置，留空则保持不变');
+  }
+
+  return undefined;
+}
+
 function handleActionError(errors: Record<string, string | undefined>): void {
   if (typeof errors.toast === 'string' && errors.toast.trim().length > 0) {
     return;
@@ -342,22 +354,6 @@ function checkConnection(): void {
 
     <form class="space-y-6" @submit.prevent="submit">
       <FormField
-        :label="t('名称')"
-        label-for="translation-provider-name"
-        :error="form.errors.name"
-        required
-      >
-        <Input
-          id="translation-provider-name"
-          v-model="form.name"
-          class="mt-1 block w-full"
-          autocomplete="off"
-          maxlength="128"
-          required
-        />
-      </FormField>
-
-      <FormField
         v-if="!isEditMode"
         :label="t('协议')"
         label-for="translation-provider-protocol"
@@ -388,6 +384,22 @@ function checkConnection(): void {
       </FormField>
 
       <FormField
+        :label="t('名称')"
+        label-for="translation-provider-name"
+        :error="form.errors.name"
+        required
+      >
+        <Input
+          id="translation-provider-name"
+          v-model="form.name"
+          class="mt-1 block w-full"
+          autocomplete="off"
+          maxlength="128"
+          required
+        />
+      </FormField>
+
+      <FormField
         v-for="field in selectedCredentialFields"
         :key="field.field"
         :label="field.label"
@@ -400,6 +412,7 @@ function checkConnection(): void {
             :id="`translation-provider-${field.field}`"
             :class="showClearCredentialsAction(field) ? 'pr-10' : ''"
             :model-value="fieldValue(field.field)"
+            :placeholder="secretFieldPlaceholder(field)"
             type="password"
             autocomplete="off"
             :required="
