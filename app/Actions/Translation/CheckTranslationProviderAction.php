@@ -128,7 +128,6 @@ class CheckTranslationProviderAction
             'slug' => 'draft',
             'name' => 'Draft',
             'protocol' => $protocol,
-            'icon' => $this->catalog->iconForProtocol($protocol),
             'credentials' => $configuration,
             'credential_fields' => $this->catalog->credentialFieldsForProtocol($protocol),
             'is_builtin' => false,

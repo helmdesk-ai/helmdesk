@@ -6,7 +6,6 @@
 import Translation from '@/actions/App/Actions/Translation';
 import ConfirmDeleteDialog from '@/components/common/ConfirmDeleteDialog.vue';
 import HeadingSmall from '@/components/common/HeadingSmall.vue';
-import AiProviderIcon from '@/components/icons/AiProviderIcon.vue';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -51,19 +50,6 @@ const deletingProvider = computed(
       (provider) => provider.slug === deletingProviderSlug.value,
     ) ?? null,
 );
-
-const protocolIconMap: Record<string, string> = {
-  'google-translate': 'google',
-  deepl: 'deepl',
-  'azure-translator': 'azure',
-  'baidu-translate': 'baidu',
-  'tencent-cloud-translate': 'tencent-cloud',
-  'amazon-translate': 'aws',
-};
-
-function providerIcon(provider: TranslationProviderData): string | null {
-  return provider.icon ?? protocolIconMap[provider.protocol] ?? null;
-}
 
 async function checkConnection(
   provider: TranslationProviderData,
@@ -170,15 +156,9 @@ function confirmDelete(): void {
                   class="border-t bg-background align-middle"
                 >
                   <td class="px-4 py-3">
-                    <div class="flex min-w-0 items-center gap-3">
-                      <AiProviderIcon
-                        :icon="providerIcon(provider)"
-                        class="h-7 w-7 shrink-0 rounded-md bg-muted p-1.5"
-                      />
-                      <span class="truncate font-medium">
-                        {{ provider.name }}
-                      </span>
-                    </div>
+                    <span class="truncate font-medium">
+                      {{ provider.name }}
+                    </span>
                   </td>
 
                   <td class="px-4 py-3 text-muted-foreground">

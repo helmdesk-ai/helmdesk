@@ -16,7 +16,6 @@ use Illuminate\Support\Carbon;
  * @property string $slug
  * @property string $name
  * @property TranslationProviderType $protocol
- * @property string|null $icon
  * @property string|null $credentials
  * @property array $credential_fields
  * @property array|null $options

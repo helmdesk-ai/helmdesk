@@ -43,7 +43,6 @@ class CreateTranslationProviderAction
             'slug' => Str::slug($data->name).'-'.Str::random(6),
             'name' => $data->name,
             'protocol' => $data->protocol,
-            'icon' => $this->catalog->iconForProtocol($data->protocol),
             'credentials' => filled($credentials) ? $credentials : null,
             'credential_fields' => $credentialFields,
             'is_builtin' => false,
