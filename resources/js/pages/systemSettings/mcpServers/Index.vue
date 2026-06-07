@@ -19,6 +19,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -42,7 +48,6 @@ const deleteForm = useForm({});
 const deletingServerSlug = ref<string | null>(null);
 const checkingServerSlug = ref<string | null>(null);
 const isQueueingSync = ref(false);
-const syncStatusVisible = ref(false);
 const pollingTimer = ref<number | null>(null);
 
 const deletingServer = computed(
@@ -58,16 +63,12 @@ const hasSyncingServer = computed(() =>
 const isSyncButtonDisabled = computed(
   () =>
     isQueueingSync.value ||
-    (syncStatusVisible.value && hasSyncingServer.value) ||
+    hasSyncingServer.value ||
     props.servers.length === 0,
 );
 
 function toolDescription(tool: McpToolData): string {
   return tool.description ?? t('远端未提供描述');
-}
-
-function statusBadgeVariant(server: McpServerData): 'default' | 'secondary' {
-  return server.last_sync_status === 'success' ? 'default' : 'secondary';
 }
 
 function openDeleteDialog(server: McpServerData): void {
@@ -143,7 +144,7 @@ function clearPollingTimer(): void {
 function scheduleSyncPolling(): void {
   clearPollingTimer();
 
-  if (!syncStatusVisible.value || !hasSyncingServer.value) {
+  if (!hasSyncingServer.value) {
     return;
   }
 
@@ -157,17 +158,10 @@ async function syncAllTools(): Promise<void> {
     return;
   }
 
-  syncStatusVisible.value = true;
   isQueueingSync.value = true;
 
   try {
-    const { data } = await axios.post(Mcp.SyncAllMcpServerToolsAction.url());
-    const message =
-      typeof data?.message === 'string' && data.message.length > 0
-        ? data.message
-        : '';
-
-    toast.success(message || t('已开始同步'));
+    await axios.post(Mcp.SyncAllMcpServerToolsAction.url());
     reloadServers(() => window.setTimeout(scheduleSyncPolling, 0));
   } catch {
     // 失败响应由全局 axios interceptor 统一处理。
@@ -176,9 +170,11 @@ async function syncAllTools(): Promise<void> {
   }
 }
 
+// 进入页面或同步状态变化时驱动轮询：仍有服务在同步则继续刷新列表。
 watch(
   () => props.servers.map((server) => server.last_sync_status).join('|'),
   scheduleSyncPolling,
+  { immediate: true },
 );
 
 onBeforeUnmount(clearPollingTimer);
@@ -207,11 +203,7 @@ onBeforeUnmount(clearPollingTimer);
               :disabled="isSyncButtonDisabled"
               @click="syncAllTools"
             >
-              {{
-                syncStatusVisible && (isQueueingSync || hasSyncingServer)
-                  ? t('同步中')
-                  : t('同步')
-              }}
+              {{ isQueueingSync || hasSyncingServer ? t('同步中') : t('同步') }}
             </Button>
           </div>
         </div>
@@ -225,7 +217,7 @@ onBeforeUnmount(clearPollingTimer);
                   <th class="px-4 py-3">{{ t('端点地址') }}</th>
                   <th class="px-4 py-3">{{ t('认证方式') }}</th>
                   <th class="px-4 py-3">{{ t('工具数') }}</th>
-                  <th class="px-4 py-3 text-right">{{ t('操作') }}</th>
+                  <th class="w-56 px-4 py-3 text-right">{{ t('操作') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -246,99 +238,92 @@ onBeforeUnmount(clearPollingTimer);
                     </td>
 
                     <td class="px-4 py-3">
-                      <Popover>
-                        <PopoverTrigger as-child>
-                          <button
-                            type="button"
-                            class="inline-flex items-center gap-2 text-left"
-                          >
-                            <span
-                              class="font-medium underline-offset-4 hover:underline"
+                      <div class="flex items-center gap-2">
+                        <Popover>
+                          <PopoverTrigger as-child>
+                            <button
+                              type="button"
+                              class="inline-flex items-center text-left"
                             >
-                              {{ server.tools_count }}
-                            </span>
-                            <template v-if="syncStatusVisible">
-                              <LoaderCircle
-                                v-if="server.last_sync_status === 'syncing'"
-                                class="h-3.5 w-3.5 animate-spin text-muted-foreground"
-                              />
-                              <Badge
-                                v-else
-                                :variant="statusBadgeVariant(server)"
-                                class="text-[10px]"
+                              <span
+                                class="font-medium underline-offset-4 hover:underline"
                               >
-                                {{ server.last_sync_status_label }}
-                              </Badge>
-                            </template>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          align="start"
-                          side="bottom"
-                          class="w-96 max-w-[calc(100vw-2rem)] p-0"
-                        >
-                          <div
-                            v-if="server.tools.length > 0"
-                            class="max-h-80 divide-y overflow-y-auto"
+                                {{ server.tools_count }}
+                              </span>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            side="bottom"
+                            class="w-96 max-w-[calc(100vw-2rem)] p-0"
                           >
                             <div
-                              v-for="tool in server.tools"
-                              :key="tool.id"
-                              class="px-4 py-3"
+                              v-if="server.tools.length > 0"
+                              class="max-h-80 divide-y overflow-y-auto"
                             >
-                              <div class="flex items-center gap-2">
-                                <span class="font-mono text-sm font-medium">
-                                  {{ tool.name }}
-                                </span>
-                                <Badge
-                                  v-if="tool.removed_at"
-                                  variant="secondary"
-                                  class="text-[10px]"
-                                >
-                                  {{ t('已下线') }}
-                                </Badge>
+                              <div
+                                v-for="tool in server.tools"
+                                :key="tool.id"
+                                class="px-4 py-3"
+                              >
+                                <div class="flex items-center gap-2">
+                                  <span class="font-mono text-sm font-medium">
+                                    {{ tool.name }}
+                                  </span>
+                                  <Badge
+                                    v-if="tool.removed_at"
+                                    variant="secondary"
+                                    class="text-[10px]"
+                                  >
+                                    {{ t('已下线') }}
+                                  </Badge>
+                                </div>
+                                <p class="mt-1 text-sm text-muted-foreground">
+                                  {{ toolDescription(tool) }}
+                                </p>
                               </div>
-                              <p class="mt-1 text-sm text-muted-foreground">
-                                {{ toolDescription(tool) }}
-                              </p>
                             </div>
-                          </div>
 
-                          <div
-                            v-else
-                            class="px-4 py-6 text-sm text-muted-foreground"
-                          >
-                            {{ t('该 MCP 服务暂无工具') }}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                      <div
-                        v-if="
-                          syncStatusVisible &&
-                          server.last_sync_status === 'failed' &&
-                          server.last_sync_error
-                        "
-                        class="mt-1 max-w-xs truncate text-xs text-muted-foreground"
-                        :title="server.last_sync_error"
-                      >
-                        {{ server.last_sync_error }}
+                            <div
+                              v-else
+                              class="px-4 py-6 text-sm text-muted-foreground"
+                            >
+                              {{ t('该 MCP 服务暂无工具') }}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+
+                        <LoaderCircle
+                          v-if="server.last_sync_status === 'syncing'"
+                          class="h-3.5 w-3.5 animate-spin text-muted-foreground"
+                        />
+                        <TooltipProvider
+                          v-else-if="server.last_sync_status === 'failed'"
+                        >
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <span
+                                class="cursor-default text-xs font-medium text-destructive"
+                              >
+                                {{ server.last_sync_status_label }}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              v-if="server.last_sync_error"
+                              class="max-w-xs break-words"
+                            >
+                              {{ server.last_sync_error }}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <span v-else class="text-xs text-muted-foreground">
+                          {{ server.last_sync_status_label }}
+                        </span>
                       </div>
                     </td>
 
-                    <td class="px-4 py-3">
-                      <div class="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" as-child>
-                          <Link
-                            :href="
-                              Mcp.ShowEditMcpServerPageAction.url({
-                                server: server.slug,
-                              })
-                            "
-                          >
-                            {{ t('编辑') }}
-                          </Link>
-                        </Button>
-
+                    <td class="w-56 px-4 py-3">
+                      <div class="flex justify-end gap-2 whitespace-nowrap">
                         <Button
                           type="button"
                           size="sm"
@@ -351,6 +336,18 @@ onBeforeUnmount(clearPollingTimer);
                             class="mr-2 h-4 w-4 animate-spin"
                           />
                           {{ t('测试') }}
+                        </Button>
+
+                        <Button size="sm" variant="outline" as-child>
+                          <Link
+                            :href="
+                              Mcp.ShowEditMcpServerPageAction.url({
+                                server: server.slug,
+                              })
+                            "
+                          >
+                            {{ t('编辑') }}
+                          </Link>
                         </Button>
 
                         <DropdownMenu>

@@ -16,10 +16,10 @@ return [
         'header' => '自定义请求头',
     ],
     'sync_statuses' => [
-        'pending' => '尚未同步',
+        'pending' => '未同步',
         'syncing' => '同步中',
-        'success' => '同步成功',
-        'failed' => '同步失败',
+        'success' => '成功',
+        'failed' => '失败',
     ],
     'fields' => [
         'name' => '名称',
