@@ -257,6 +257,7 @@ function onFormSuccess() {
         :label="t('嵌入模型')"
         label-for="system-embedding-model"
         :error="errors.embedding_model_id"
+        required
       >
         <Select v-model="selectedEmbeddingModelId">
           <SelectTrigger id="system-embedding-model" class="mt-1 w-full">
@@ -290,9 +291,10 @@ function onFormSuccess() {
 
       <FormField
         v-if="vectorIndexEnabled"
-        :label="t('向量维度')"
+        :label="t('嵌入维度')"
         label-for="system-embedding-dimension"
         :error="errors.embedding_dimension"
+        required
       >
         <Input
           id="system-embedding-dimension"
@@ -301,6 +303,7 @@ function onFormSuccess() {
           min="1"
           max="65535"
           step="1"
+          required
           v-model="embeddingDimension"
         />
         <input
@@ -322,6 +325,7 @@ function onFormSuccess() {
         v-if="vectorIndexEnabled"
         :label="t('分段方式')"
         label-for="system-chunking-strategy"
+        required
       >
         <Select v-model="selectedChunkingStrategy">
           <SelectTrigger id="system-chunking-strategy" class="mt-1 w-full">
@@ -357,6 +361,7 @@ function onFormSuccess() {
         :label="t('单段最大 token')"
         label-for="system-chunk-max"
         :error="errors.chunk_max_tokens"
+        required
       >
         <Input
           id="system-chunk-max"
@@ -365,6 +370,7 @@ function onFormSuccess() {
           type="number"
           min="64"
           max="4096"
+          required
           v-model="chunkMaxTokens"
         />
       </FormField>
@@ -374,6 +380,7 @@ function onFormSuccess() {
         :label="t('相邻段重叠 token')"
         label-for="system-chunk-overlap"
         :error="errors.chunk_overlap_tokens"
+        required
       >
         <Input
           id="system-chunk-overlap"
@@ -382,6 +389,7 @@ function onFormSuccess() {
           type="number"
           min="0"
           max="2048"
+          required
           v-model="chunkOverlapTokens"
         />
       </FormField>
@@ -423,6 +431,7 @@ function onFormSuccess() {
         :label="t('摘要模型')"
         label-for="system-summary-model"
         :error="errors.summary_model_id"
+        required
       >
         <Select v-model="selectedSummaryModelId">
           <SelectTrigger id="system-summary-model" class="mt-1 w-full">
