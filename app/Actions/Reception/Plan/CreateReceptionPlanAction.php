@@ -8,7 +8,6 @@ use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
 use App\Data\Reception\Plan\ReceptionStrategyConfigData;
 use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
-use App\Models\TranslationProvider;
 use App\Services\Reception\AutoMessageTemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,9 +39,7 @@ class CreateReceptionPlanAction
         $this->ensureNameIsAvailable($name);
 
         $autoMessagesConfig = $this->buildAutoMessagesConfig($data->auto_messages_config);
-        $translationSettings = ReceptionMessageTranslationConfigData::fromArray($data->translation_config);
-        $this->assertTranslationProviderValid($translationSettings);
-        $translationConfig = $translationSettings->toConfigArray();
+        $translationConfig = ReceptionMessageTranslationConfigData::fromArray($data->translation_config)->toConfigArray();
         $strategyConfig = ReceptionStrategyConfigData::fromArray($data->strategy_config)->toConfigArray();
 
         $plan = ReceptionPlan::query()->create([
@@ -91,25 +88,6 @@ class CreateReceptionPlanAction
         }
 
         return $config->toConfigArray();
-    }
-
-    /**
-     * 校验方案选用的翻译供应商：必须属于本系统且必填凭据齐全。
-     * provider_id 为空（未启用翻译）时跳过。
-     */
-    private function assertTranslationProviderValid(ReceptionMessageTranslationConfigData $settings): void
-    {
-        if ($settings->provider_id === null) {
-            return;
-        }
-
-        $provider = TranslationProvider::query()->whereKey($settings->provider_id)->first();
-
-        if ($provider === null || ! $provider->hasCompleteCredentials()) {
-            throw ValidationException::withMessages([
-                'translation_config.provider_id' => __('reception.messages.translation_provider_invalid'),
-            ]);
-        }
     }
 
     /**

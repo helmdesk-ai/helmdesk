@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Actions\Translation\TranslateConversationMessageAction;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
@@ -15,6 +14,7 @@ use App\Models\ReceptionPlanVersion;
 use App\Models\TranslationProvider;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use App\Services\Translation\Exceptions\TranslationException;
+use App\Services\Translation\TranslationProviderPool;
 use App\Services\Translation\TranslationResult;
 use App\Services\Translation\TranslatorContract;
 use App\Services\Translation\TranslatorManager;
@@ -68,19 +68,18 @@ function buildTranslationChannel(): Channel
 }
 
 /**
- * 在系统下创建一个可用翻译供应商，并产出一个 snapshot 已写入 provider_id 的接待方案版本。
- * 返回版本 ID，供会话挂到该版本上，让运行时从会话锁定的方案版本解析供应商。
+ * 在系统下创建一个已启用且凭据完整的全局翻译供应商，让轮询池有可用供应商；
+ * 同时产出一个启用了访客侧翻译的接待方案版本，返回版本 ID 供会话挂载（运行时不再依赖它解析供应商）。
  */
 function provisionTranslationPlanVersion(): string
 {
-    $provider = TranslationProvider::factory()->create();
+    TranslationProvider::factory()->create();
 
     $version = ReceptionPlanVersion::factory()->create();
     $snapshot = $version->snapshot_config;
     $snapshot['translation_config'] = [
         'enabled' => true,
         'failure_mode' => 'skip',
-        'provider_id' => $provider->id,
     ];
     $version->update(['snapshot_config' => $snapshot]);
 
@@ -108,7 +107,7 @@ it('访客消息翻译成客服语言并写入 payload', function () {
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
 
     $manager = createFakeTranslatorManager('你好', 'en');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     $payload = $message->fresh()->payload;
@@ -135,7 +134,7 @@ it('访客消息使用最新客服语言作为翻译目标', function () {
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => '你好']);
 
     $manager = createFakeTranslatorManager('Hello', 'zh-CN');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload['translations'])->toHaveKey('en');
@@ -155,7 +154,7 @@ it('未分配会话的访客消息不会自动翻译', function () {
 
     $manager = Mockery::mock(TranslatorManager::class);
     $manager->shouldNotReceive('driverFor');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload)->toBeNull();
@@ -174,7 +173,7 @@ it('访客消息可手动翻译到指定客服语言', function () {
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
 
     $manager = createFakeTranslatorManager('こんにちは', 'en');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handleForTargetLang($message, $conversation, $channel, 'ja');
 
     expect($message->fresh()->payload['translations']['ja']['text'])->toBe('こんにちは');
@@ -204,7 +203,7 @@ it('自动翻译只处理访客消息', function () {
 
     $manager = Mockery::mock(TranslatorManager::class);
     $manager->shouldNotReceive('driverFor');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload)->toBeNull();
@@ -229,7 +228,7 @@ it('客服消息可手动补翻成当前客服语言', function () {
     ]);
 
     $manager = createFakeTranslatorManager('你好', 'en');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handleForTargetLang($message, $conversation, $channel, 'zh-CN');
 
     expect($message->fresh()->payload['translations']['zh-CN']['text'])->toBe('你好');
@@ -267,7 +266,7 @@ it('相同供应商目标语言和正文的翻译会命中缓存', function () {
     };
     $manager = Mockery::mock(TranslatorManager::class);
     $manager->shouldReceive('driverFor')->once()->andReturn($driver);
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
 
     $action->handle($firstMessage, $conversation, $channel);
     $action->handle($secondMessage, $conversation, $channel);
@@ -295,7 +294,7 @@ it('AI 消息可手动补翻成当前客服语言', function () {
     ]);
 
     $manager = createFakeTranslatorManager('你好，有什么可以帮你的？', 'en');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handleForTargetLang($message, $conversation, $channel, 'zh-CN');
 
     $payload = $message->fresh()->payload;
@@ -318,7 +317,7 @@ it('手动补翻源语言已匹配目标语言时返回跳过结果', function (
 
     $manager = Mockery::mock(TranslatorManager::class);
     $manager->shouldNotReceive('driverFor');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
 
     expect($action->handleForTargetLangWithOutcome($message, $conversation, $channel, 'zh-CN'))
         ->toBe(MessageTranslationOutcome::Skipped);
@@ -340,7 +339,7 @@ it('补翻任务跳过时不发送失败通知', function () {
 
     $manager = Mockery::mock(TranslatorManager::class);
     $manager->shouldNotReceive('driverFor');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $notifier = Mockery::mock(ReceptionRealtimeNotifier::class);
     $notifier->shouldNotReceive('conversationChanged');
 
@@ -365,7 +364,7 @@ it('无默认翻译 provider 时不翻译', function () {
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
 
     $manager = createFakeTranslatorManager();
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload)->toBeNull();
@@ -383,12 +382,12 @@ it('翻译 API 异常时记录日志并保留原消息', function () {
     ]);
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
 
-    Log::shouldReceive('warning')->once()->withArgs(function ($msg) {
-        return str_contains($msg, '消息翻译失败');
-    });
+    // 轮询池会先记录「翻译供应商失败」再由本 Action 记录「消息翻译失败」，两条 warning 都允许出现。
+    Log::shouldReceive('warning')->with('翻译供应商失败，轮询下一个', Mockery::any())->atLeast()->once();
+    Log::shouldReceive('warning')->with('消息翻译失败', Mockery::any())->once();
 
     $manager = createFakeTranslatorManager(exception: new TranslationException('API timeout'));
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload)->toBeNull();
@@ -412,7 +411,7 @@ it('源语言等于目标语言时不存储翻译', function () {
 
     // 检测到的源语言和目标语言相同（都是 zh-CN）
     $manager = createFakeTranslatorManager('你好', 'zh-CN');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload)->toBeNull()
@@ -437,7 +436,7 @@ it('访客消息翻译不会改写会话访客语言', function () {
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'नमस्ते']);
 
     $manager = createFakeTranslatorManager('你好', 'hi');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($conversation->fresh()->visitor_locale)->toBe(ReceptionLanguage::ChineseSimplified->value)
@@ -462,7 +461,7 @@ it('已设置的 visitor_locale 不被翻译结果覆盖', function () {
     $message = ConversationMessage::factory()->forConversation($conversation)->visitorText()->create(['content' => 'Hello']);
 
     $manager = createFakeTranslatorManager('你好', 'en');
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($conversation->fresh()->visitor_locale)->toBe('hi');
@@ -489,7 +488,7 @@ it('空内容消息不翻译', function () {
     ]);
 
     $manager = createFakeTranslatorManager();
-    $action = new TranslateConversationMessageAction($manager, app(ResolveConversationTranslationProviderAction::class));
+    $action = new TranslateConversationMessageAction(new TranslationProviderPool($manager));
     $action->handle($message, $conversation, $channel);
 
     expect($message->fresh()->payload)->toBeNull();

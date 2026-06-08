@@ -92,7 +92,6 @@ function formDefaults(): CreatePlanForm {
     translation_config: {
       enabled: false,
       failure_mode: 'skip',
-      provider_id: null,
     },
   };
 }

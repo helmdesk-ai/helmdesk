@@ -173,6 +173,7 @@ use App\Actions\Translation\DeleteTranslationProviderAction;
 use App\Actions\Translation\ShowCreateTranslationProviderPageAction;
 use App\Actions\Translation\ShowEditTranslationProviderPageAction;
 use App\Actions\Translation\ShowSystemTranslationProvidersAction;
+use App\Actions\Translation\ToggleTranslationProviderAction;
 use App\Actions\Translation\UpdateTranslationProviderCredentialsAction;
 use App\Actions\User\DeleteProfileAction;
 use App\Actions\User\ShowAppearanceSettingsPageAction;
@@ -387,6 +388,7 @@ Route::prefix('admin')->middleware(['auth', EnsureEmailIsVerifiedWhenMailEnabled
             Route::post('/check', CheckTranslationProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.check-new');
             Route::get('/{provider}/edit', ShowEditTranslationProviderPageAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.edit');
             Route::put('/{provider}', UpdateTranslationProviderCredentialsAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.update');
+            Route::put('/{provider}/active', ToggleTranslationProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.toggle-active');
             Route::delete('/{provider}', DeleteTranslationProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.destroy');
             Route::delete('/{provider}/credentials', ClearTranslationProviderCredentialsAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.clear-credentials');
             Route::post('/{provider}/check', CheckTranslationProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.translation.providers.check');

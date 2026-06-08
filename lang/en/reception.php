@@ -93,7 +93,6 @@ return [
         'plan_in_use_conversation' => ':count conversation(s) are still using this plan; wait for them to close before deleting',
         'knowledge_base_invalid' => 'Some selected knowledge bases are unavailable; please reselect',
         'mcp_tool_invalid' => 'Some selected MCP tools are unavailable; please reselect',
-        'translation_provider_invalid' => 'The selected translation provider is unavailable or its credentials are incomplete; please reselect',
         'service_scenario_template_not_found' => 'The specified service scenario template does not exist',
         'service_scenario_name_duplicated' => 'Service scenario names must be unique within a plan (case- and whitespace-insensitive)',
         'auto_message_unknown_variable' => 'Unknown auto reply variable: :variable',

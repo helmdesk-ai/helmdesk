@@ -5,7 +5,6 @@ namespace App\Actions\Translation;
 use App\Data\Translation\MessageTranslationData;
 use App\Enums\MessageTranslationOutcome;
 use App\Models\Contact;
-use App\Models\Conversation;
 use App\Services\Contact\ContactAiContext;
 use App\Services\Localization\LocalePreference;
 use App\Services\Translation\Exceptions\TranslationException;
@@ -50,22 +49,12 @@ class TranslateContactAiSummaryAction
             return MessageTranslationOutcome::Skipped;
         }
 
-        // 联系人摘要无直接会话上下文：回溯最近一条锁定了接待方案版本的会话来解析翻译供应商。
-        $conversation = $contact->conversations()
-            ->whereNotNull('reception_plan_version_id')
-            ->latest()
-            ->first();
-
-        if ($conversation === null) {
-            return MessageTranslationOutcome::Skipped;
-        }
-
         try {
             $translations[$targetLang] = [
-                'profile_summary' => $this->translateString($conversation, $summary['profile_summary'] ?? null, $targetLang),
-                'open_issues' => $this->translateList($conversation, $summary['open_issues'] ?? [], $targetLang),
-                'preferences' => $this->translateList($conversation, $summary['preferences'] ?? [], $targetLang),
-                'recent_topics' => $this->translateList($conversation, $summary['recent_topics'] ?? [], $targetLang),
+                'profile_summary' => $this->translateString($summary['profile_summary'] ?? null, $targetLang),
+                'open_issues' => $this->translateList($summary['open_issues'] ?? [], $targetLang),
+                'preferences' => $this->translateList($summary['preferences'] ?? [], $targetLang),
+                'recent_topics' => $this->translateList($summary['recent_topics'] ?? [], $targetLang),
             ];
         } catch (TranslationException $exception) {
             Log::warning('联系人 AI 摘要翻译失败', [
@@ -87,13 +76,13 @@ class TranslateContactAiSummaryAction
     /**
      * 翻译单个非空字符串。
      */
-    private function translateString(Conversation $conversation, mixed $value, string $targetLang): ?array
+    private function translateString(mixed $value, string $targetLang): ?array
     {
         if (! is_string($value) || trim($value) === '') {
             return null;
         }
 
-        $result = $this->translateAction->translateContentForConversation($conversation, trim($value), $targetLang);
+        $result = $this->translateAction->translateContentForTargetLang(trim($value), $targetLang);
 
         return MessageTranslationData::fromTranslationResult($result)->toArray();
     }
@@ -103,7 +92,7 @@ class TranslateContactAiSummaryAction
      *
      * @return list<array<string, mixed>>
      */
-    private function translateList(Conversation $conversation, mixed $value, string $targetLang): array
+    private function translateList(mixed $value, string $targetLang): array
     {
         if (! is_array($value)) {
             return [];
@@ -122,7 +111,7 @@ class TranslateContactAiSummaryAction
             }
 
             if (! array_key_exists($trimmed, $cache)) {
-                $result = $this->translateAction->translateContentForConversation($conversation, $trimmed, $targetLang);
+                $result = $this->translateAction->translateContentForTargetLang($trimmed, $targetLang);
                 $cache[$trimmed] = MessageTranslationData::fromTranslationResult($result)->toArray();
             }
 

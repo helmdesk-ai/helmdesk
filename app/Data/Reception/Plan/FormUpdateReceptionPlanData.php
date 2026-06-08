@@ -73,7 +73,6 @@ class FormUpdateReceptionPlanData extends Data
             'translation_config' => ['sometimes', 'array'],
             'translation_config.enabled' => ['required_with:translation_config', 'boolean'],
             'translation_config.failure_mode' => ['required_with:translation_config', 'string', Rule::in($translationFailureValues)],
-            'translation_config.provider_id' => ['nullable', 'string', 'ulid', 'required_if:translation_config.enabled,true'],
         ], ReceptionStrategyConfigData::formRules());
     }
 

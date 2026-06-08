@@ -152,24 +152,23 @@ it('DeleteTranslationProviderAction 内置 provider 拒绝删除', function () {
     expect(TranslationProvider::find($provider->id))->not->toBeNull();
 });
 
-it('DeleteTranslationProviderAction 被接待方案引用时拒绝删除', function () {
+it('DeleteTranslationProviderAction 存在启用翻译的接待方案时仍可删除', function () {
     $provider = TranslationProvider::factory()->create([
         'is_builtin' => false,
         'credentials' => ['api_key' => 'k'],
     ]);
 
+    // 接待方案不再引用具体供应商（运行时按全局轮询池取用），删除一家只是缩小池子。
     ReceptionPlan::factory()->create([
         'translation_config' => [
             'enabled' => true,
             'failure_mode' => 'skip',
-            'provider_id' => $provider->id,
         ],
     ]);
 
-    expect(fn () => DeleteTranslationProviderAction::run($provider->slug))
-        ->toThrow(BusinessException::class);
+    DeleteTranslationProviderAction::run($provider->slug);
 
-    expect(TranslationProvider::find($provider->id))->not->toBeNull();
+    expect(TranslationProvider::find($provider->id))->toBeNull();
 });
 
 it('DeleteTranslationProviderAction 未被引用时正常删除', function () {

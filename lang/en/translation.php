@@ -12,7 +12,6 @@ return [
 
     'check_succeeded' => 'Translation test succeeded.',
     'cannot_delete_builtin' => 'Built-in providers cannot be deleted.',
-    'cannot_delete_in_use' => 'This provider is in use by a reception plan. Switch or disable translation in the plan before deleting it.',
     'reply_translation_required' => 'Confirm the visitor-facing translation before sending.',
 
     'reception_languages' => [

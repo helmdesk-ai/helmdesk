@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -21,7 +22,7 @@ import type {
   ShowTranslationProviderPagePropsData,
   TranslationProviderData,
 } from '@/types/generated';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { LoaderCircle, MoreHorizontal } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -85,6 +86,16 @@ async function checkConnection(
   }
 }
 
+function toggleActive(provider: TranslationProviderData): void {
+  router.put(
+    Translation.ToggleTranslationProviderAction.url({
+      provider: provider.slug,
+    }),
+    {},
+    { preserveScroll: true },
+  );
+}
+
 function openDeleteDialog(provider: TranslationProviderData): void {
   deletingProviderSlug.value = provider.slug;
 }
@@ -125,7 +136,7 @@ function confirmDelete(): void {
             :title="t('翻译供应商')"
             :description="
               t(
-                '为接待页消息双向翻译配置外部翻译服务的凭据；同时刻只有一家被设为当前使用。',
+                '为接待消息双向翻译配置外部翻译服务的凭据；已启用且凭据完整的供应商会自动轮询使用。',
               )
             "
           />
@@ -146,6 +157,7 @@ function confirmDelete(): void {
                 <tr class="text-left">
                   <th class="px-4 py-3">{{ t('名称') }}</th>
                   <th class="px-4 py-3">{{ t('协议') }}</th>
+                  <th class="px-4 py-3">{{ t('启用') }}</th>
                   <th class="w-56 px-4 py-3 text-right">{{ t('操作') }}</th>
                 </tr>
               </thead>
@@ -163,6 +175,19 @@ function confirmDelete(): void {
 
                   <td class="px-4 py-3 text-muted-foreground">
                     {{ provider.protocol_label }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <Switch
+                      :model-value="provider.is_active"
+                      :aria-label="t('启用该翻译供应商')"
+                      :title="
+                        provider.has_complete_credentials
+                          ? undefined
+                          : t('凭据未配置完整，启用后仍不会进入翻译轮询。')
+                      "
+                      @update:model-value="() => toggleActive(provider)"
+                    />
                   </td>
 
                   <td class="w-56 px-4 py-3">
@@ -221,7 +246,7 @@ function confirmDelete(): void {
 
                 <tr v-if="props.providers.length === 0">
                   <td
-                    colspan="5"
+                    colspan="4"
                     class="px-4 py-8 text-center text-muted-foreground"
                   >
                     {{ t('暂无供应商') }}

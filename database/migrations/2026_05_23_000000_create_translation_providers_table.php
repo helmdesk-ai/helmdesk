@@ -20,7 +20,7 @@ return new class extends Migration
             // Provider 特有运行参数（例如 DeepL 的 formality、Google 的 model variant、术语表 id），
             // 与 credentials 分开是为了让非敏感配置可直接写入 / 序列化给前端展示。
             $table->json('options')->nullable();
-            // 供应商只是「已配置凭据的目录」，用哪家由接待方案的 translation_config.provider_id 决定。
+            // is_builtin 标记内置供应商（由 Catalog 维护、禁止删除）；是否启用见后续 is_active 迁移。
             $table->boolean('is_builtin')->default(true);
             $table->integer('sort_order')->default(0);
 

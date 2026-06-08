@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $credentials
  * @property array $credential_fields
  * @property array|null $options
+ * @property bool $is_active
  * @property bool $is_builtin
  * @property int $sort_order
  * @property mixed $use_factory
@@ -30,7 +31,8 @@ class TranslationProvider extends Model
     /**
      * 翻译供应商模型，保存协议、凭据字段和运行参数。
      *
-     * 供应商本身不带启用状态：用哪家由接待方案的 translation_config.provider_id 决定。
+     * is_active 决定该供应商是否进入运行时翻译轮询池：接待方案不再指定具体供应商，
+     * 运行时从「已启用且凭据完整」的供应商里随机取用、失败轮询（见 TranslationProviderPool）。
      */
 
     /** @use HasFactory<TranslationProviderFactory> */
@@ -52,6 +54,7 @@ class TranslationProvider extends Model
             'credentials' => 'encrypted:array',
             'credential_fields' => 'array',
             'options' => 'array',
+            'is_active' => 'boolean',
             'is_builtin' => 'boolean',
         ];
     }
@@ -59,7 +62,7 @@ class TranslationProvider extends Model
     /**
      * 判断该供应商的所有必填凭据是否都已填写。
      *
-     * 接待方案选用该供应商前、设置页只读状态展示都依赖这个判断；凭据不全的 driver 会在运行时失败。
+     * 供应商进入轮询池前、设置页状态展示都依赖这个判断；凭据不全的 driver 会在运行时失败。
      */
     public function hasCompleteCredentials(): bool
     {
