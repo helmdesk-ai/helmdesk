@@ -9,7 +9,7 @@ return [
     'model_purposes' => [
         'reception_chat' => '接待智能体',
         'background_task' => '任务智能体',
-        'assistant' => 'AI问答',
+        'assistant' => 'AI 问答',
         'embedding' => '向量检索',
         'rerank' => '重排序',
         'summary' => '会话总结',

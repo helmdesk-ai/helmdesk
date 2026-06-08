@@ -55,7 +55,7 @@ function confirmDelete(): void {
 
   deleteForm.delete(
     AiProvider.DeleteAiProviderAction.url({
-      provider: deletingProvider.value.id,
+      provider: deletingProvider.value.slug,
     }),
     {
       preserveScroll: true,
@@ -98,7 +98,6 @@ function confirmDelete(): void {
                   <th class="px-4 py-3">{{ t('名称') }}</th>
                   <th class="px-4 py-3">{{ t('品牌') }}</th>
                   <th class="px-4 py-3">Base URL</th>
-                  <th class="px-4 py-3">{{ t('凭据状态') }}</th>
                   <th class="w-44 px-4 py-3 text-right">{{ t('操作') }}</th>
                 </tr>
               </thead>
@@ -122,21 +121,13 @@ function confirmDelete(): void {
                     {{ provider.base_url ?? '—' }}
                   </td>
 
-                  <td class="px-4 py-3 text-muted-foreground">
-                    {{
-                      provider.has_complete_credentials
-                        ? t('已配置')
-                        : t('未配置')
-                    }}
-                  </td>
-
                   <td class="w-44 px-4 py-3">
                     <div class="flex justify-end gap-2 whitespace-nowrap">
                       <Button size="sm" variant="outline" as-child>
                         <Link
                           :href="
                             AiProvider.ShowEditAiProviderPageAction.url({
-                              provider: provider.id,
+                              provider: provider.slug,
                             })
                           "
                         >
@@ -170,7 +161,7 @@ function confirmDelete(): void {
 
                 <tr v-if="props.providers.length === 0">
                   <td
-                    colspan="5"
+                    colspan="4"
                     class="px-4 py-8 text-center text-muted-foreground"
                   >
                     {{ t('暂无供应商') }}

@@ -122,7 +122,7 @@ class AiProviderCatalog
                 'protocol' => AiProviderProtocol::OpenAI->value,
                 'credential_fields' => [
                     $this->passwordField('key', 'API Key'),
-                    $this->urlField('base_uri', 'Base URI', placeholder: 'https://RESOURCE.openai.azure.com/openai/v1'),
+                    $this->urlField('base_uri', 'Base URI', placeholder: 'https://RESOURCE.openai.azure.com/openai/v1', editable: true),
                 ],
                 'default_models' => [],
             ],
@@ -132,7 +132,7 @@ class AiProviderCatalog
                 'protocol' => AiProviderProtocol::OpenAI->value,
                 'credential_fields' => [
                     $this->passwordField('key', 'API Key', required: false),
-                    $this->urlField('base_uri', 'Base URI', default: 'http://localhost:11434/v1'),
+                    $this->urlField('base_uri', 'Base URI', default: 'http://localhost:11434/v1', editable: true),
                 ],
                 'default_models' => [],
             ],
@@ -320,7 +320,7 @@ class AiProviderCatalog
      *
      * @return array<string, mixed>
      */
-    private function urlField(string $field, string $label, bool $required = true, ?string $default = null, ?string $placeholder = null): array
+    private function urlField(string $field, string $label, bool $required = true, ?string $default = null, ?string $placeholder = null, bool $editable = false): array
     {
         return [
             'field' => $field,
@@ -329,6 +329,8 @@ class AiProviderCatalog
             'required' => $required,
             'default' => $default,
             'placeholder' => $placeholder,
+            // 端点因部署而异（Azure 按资源、Ollama 按主机），即便是预设品牌也允许手动修改 base_uri
+            'editable' => $editable,
         ];
     }
 }

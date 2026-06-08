@@ -36,7 +36,7 @@ function clearCredentials(): void {
 
   router.delete(
     AiProvider.ClearAiProviderCredentialsAction.url({
-      provider: props.provider.id,
+      provider: props.provider.slug,
     }),
     {
       preserveScroll: true,

@@ -30,6 +30,7 @@ type CredentialField = {
   required?: boolean;
   secret?: boolean;
   default?: string | null;
+  editable?: boolean;
 };
 
 type ProviderForm = {
@@ -95,7 +96,8 @@ const description = computed(() =>
 const submitLabel = computed(() => (isEditMode.value ? t('保存') : t('创建')));
 
 function isReadonlyField(field: CredentialField): boolean {
-  return field.type === 'url' && !isCustomBrand.value;
+  // 预设品牌的 base_url 默认只读；但端点因部署而异的字段（Azure/Ollama，catalog 标了 editable）允许手动修改
+  return field.type === 'url' && !isCustomBrand.value && field.editable !== true;
 }
 
 function credentialFieldsForBrand(brand: string): CredentialField[] {
@@ -244,7 +246,7 @@ function submit(): void {
       }))
       .put(
         AiProvider.UpdateAiProviderCredentialsAction.url({
-          provider: props.provider.id,
+          provider: props.provider.slug,
         }),
         {
           preserveScroll: true,
@@ -279,7 +281,7 @@ function checkConnection(): void {
 
   checkHttp.configuration = form.configuration;
   checkHttp.post(
-    AiProvider.CheckAiProviderAction.url({ provider: props.provider.id }),
+    AiProvider.CheckAiProviderAction.url({ provider: props.provider.slug }),
     {
       onSuccess: (response: CheckResponse) => {
         if (response.success) {
@@ -320,6 +322,7 @@ function checkConnection(): void {
               v-for="option in brandOptions"
               :key="option.brand"
               :value="option.brand"
+              hide-indicator
             >
               {{ option.label }}
             </SelectItem>
