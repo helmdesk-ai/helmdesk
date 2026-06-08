@@ -6,14 +6,16 @@ use App\Data\AiProvider\FormCreateAiProviderData;
 use App\Enums\UserPermission;
 use App\Models\AiProvider;
 use App\Services\AiProvider\AiProviderCatalog;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 从品牌目录一步创建系统 AI 供应商：写入协议/图标/凭据字段，校验并保存凭据，带上该品牌的内置模型。
+ * 按品牌创建全局 AI 供应商（总后台，纯凭据）。
+ *
+ * 对齐翻译供应商：只落一条供应商记录，不再自动播种任何模型；模型在「AI 模型管理」页单独添加。
  */
 class CreateAiProviderAction
 {
@@ -23,56 +25,62 @@ class CreateAiProviderAction
         private readonly AiProviderCatalog $catalog,
     ) {}
 
+    /**
+     * 按品牌拼装协议/图标/凭据字段并落库。
+     */
     public function handle(FormCreateAiProviderData $data): AiProvider
     {
-        $brand = $this->catalog->brand($data->brand);
-        $isCustom = (bool) ($brand['is_custom'] ?? false);
-        $name = filled($data->name) ? trim((string) $data->name) : (string) $brand['label'];
+        $brand = $data->brand;
+        $credentialFields = $this->catalog->credentialFieldsForBrand($brand);
+        $name = filled($data->name) ? trim((string) $data->name) : $this->catalog->labelForBrand($brand);
+        $credentials = $this->buildCredentials($credentialFields, [
+            ...$this->catalog->defaultConfigurationForBrand($brand),
+            ...$data->configuration,
+        ]);
 
-        return DB::transaction(function () use ($data, $brand, $isCustom, $name) {
-            $maxSort = AiProvider::query()->max('sort_order') ?? 0;
-
-            $provider = AiProvider::query()->create([
-                'brand' => $data->brand,
-                'slug' => Str::slug($data->brand).'-'.Str::random(6),
-                'name' => $name,
-                'protocol' => $brand['protocol'],
-                'icon' => is_string($brand['icon'] ?? null) ? $brand['icon'] : null,
-                'credentials' => null,
-                'credential_fields' => $brand['credential_fields'],
-                'is_builtin' => ! $isCustom,
-                'sort_order' => $maxSort + 1,
-            ]);
-
-            // 预置品牌默认凭据（如 base_uri），并入用户填写后由凭据 Action 统一校验必填并保存
-            $configuration = array_merge(
-                $this->catalog->defaultConfigurationForBrand($data->brand),
-                $data->configuration,
-            );
-            UpdateAiProviderCredentialsAction::run($provider->slug, $configuration, allowEndpointUpdate: true);
-
-            foreach ($this->catalog->defaultModelsForBrand($data->brand) as $index => $model) {
-                $provider->models()->create([
-                    'model_id' => $model['model_id'],
-                    'name' => $model['name'],
-                    'type' => $model['type'],
-                    'is_active' => true,
-                    'is_builtin' => true,
-                    'sort_order' => $index,
-                ]);
-            }
-
-            return $provider->refresh();
-        });
+        return AiProvider::query()->create([
+            'brand' => $brand,
+            'slug' => Str::slug($name).'-'.Str::lower(Str::random(6)),
+            'name' => $name,
+            'protocol' => $this->catalog->protocolForBrand($brand),
+            'icon' => $this->catalog->iconForBrand($brand),
+            'credentials' => filled($credentials) ? $credentials : null,
+            'credential_fields' => $credentialFields,
+        ]);
     }
 
-    public function asController(Request $request)
+    /**
+     * 鉴权、校验表单并落库后回到列表页。
+     */
+    public function asController(Request $request): RedirectResponse
     {
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $data = FormCreateAiProviderData::from($request);
-        $this->handle($data);
+        $this->handle(FormCreateAiProviderData::from($request));
 
-        return back();
+        return redirect()->route('admin.manage.ai.providers.index');
+    }
+
+    /**
+     * 仅保留有值的凭据字段。
+     *
+     * @param  array<int, array<string, mixed>>  $fields
+     * @param  array<string, mixed>  $configuration
+     * @return array<string, mixed>
+     */
+    private function buildCredentials(array $fields, array $configuration): array
+    {
+        $credentials = [];
+
+        foreach ($fields as $field) {
+            $fieldName = (string) $field['field'];
+            $value = $configuration[$fieldName] ?? null;
+
+            if (filled($value)) {
+                $credentials[$fieldName] = $value;
+            }
+        }
+
+        return $credentials;
     }
 }

@@ -20,6 +20,7 @@ if (file_exists($ragDbPath)) {
 touch($ragDbPath);
 
 require_once __DIR__.'/Support/KnowledgeRecallHelpers.php';
+require_once __DIR__.'/Support/AiModelHelpers.php';
 
 pest()->extend(TestCase::class)
     ->in('Feature');

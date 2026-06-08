@@ -171,6 +171,12 @@ export default {
   备用模型: 'Backup models',
   '优先级 {priority}': 'Priority {priority}',
   '未配置备用模型。': 'No backup models configured.',
+  '模型由总后台按用途统一配置，运行时自动取用，无需在此选择。':
+    'Models are configured by purpose in the admin console and selected automatically at runtime; no choice is needed here.',
+  '任务智能体的模型由总后台按用途统一配置，运行时自动取用，无需在此选择。':
+    'Task agent models are configured by purpose in the admin console and selected automatically at runtime; no choice is needed here.',
+  '重排序、摘要等模型由总后台「AI 模型管理」页按用途统一配置，运行时自动取用，无需在此选择。':
+    'Rerank, summary and similar models are configured by purpose on the admin "AI model management" page and selected automatically at runtime; no choice is needed here.',
   上移: 'Move up',
   下移: 'Move down',
   接待指引: 'Reception instructions',

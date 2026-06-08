@@ -2,7 +2,9 @@
 
 namespace App\Services\KnowledgeBase\Search;
 
+use App\Enums\AiModelPurpose;
 use App\Models\SystemContext;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use Illuminate\Support\Facades\Log;
@@ -11,11 +13,11 @@ use Throwable;
 /**
  * 重排序器。
  *
- * 系统配置了 rerank 模型时，调 GoKnowledgeBridge::rerank 拿到分数，写回
+ * rerank 用途池有可用模型时，调 GoKnowledgeBridge::rerank 拿到分数，写回
  * hit.metadata['rerank_score'] 并按分数降序排列，返回 applied=true 的结果。
  *
  * 以下场景退回为按 fused 顺序的截断 (applied=false)，errorCode 给出稳定标识：
- *  - 系统未配置 rerank 模型 → model_missing
+ *  - rerank 用途池无可用模型 → model_missing
  *  - Go 桥 / 远端任何调用失败 → remote_unavailable（详细异常进服务端日志）
  *  - 远端返回 results 为空 / 无可用 index → empty_response
  *
@@ -26,6 +28,7 @@ class KnowledgeReranker
     public function __construct(
         private readonly GoKnowledgeBridge $bridge,
         private readonly KnowledgeEmbeddingService $embedder,
+        private readonly AiModelPool $aiModelPool,
     ) {}
 
     /**
@@ -42,8 +45,7 @@ class KnowledgeReranker
             );
         }
 
-        $systemContext->loadMissing('knowledgeRerankModel.provider');
-        $model = $systemContext->knowledgeRerankModel;
+        $model = $this->aiModelPool->firstForPurpose(AiModelPurpose::Rerank);
         if ($model === null || $model->provider === null) {
             return new KnowledgeRerankResult(
                 hits: array_slice($hits, 0, $topK),

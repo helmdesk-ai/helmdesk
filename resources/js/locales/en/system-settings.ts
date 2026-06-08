@@ -118,4 +118,42 @@ export default {
   // 模型表单对话框
   模型类型: 'Model type',
   显示名称: 'Display name',
+
+  // AI 供应商（纯凭据）
+  'AI 供应商': 'AI Providers',
+  '新增 AI 供应商': 'Add AI Provider',
+  '系统级 AI 服务凭据，跨工作区共享。模型在「AI 模型管理」页维护。':
+    'System-level AI credentials shared across workspaces. Manage models on the AI Models page.',
+  品牌: 'Brand',
+  凭据状态: 'Credentials',
+  已配置: 'Configured',
+  未配置: 'Not configured',
+  '调整 AI 供应商的名称与凭据。':
+    'Adjust the AI provider name and credentials.',
+  '选择品牌并填写凭据。': 'Pick a brand and fill in the credentials.',
+  '确认删除该 AI 供应商？': 'Delete this AI provider?',
+  '删除后该供应商及其下所有模型立即移出全局取用池，且无法恢复。':
+    'Once deleted, the provider and all its models leave the global pool immediately and cannot be restored.',
+  '已配置，留空则保持不变': 'Configured. Leave blank to keep unchanged.',
+  清空凭据: 'Clear credentials',
+  '清空后已保存的凭据将被移除，该供应商下的模型将无法继续调用。':
+    'After clearing, the saved credentials are removed and models under this provider can no longer be called.',
+
+  // AI 模型管理
+  'AI 模型管理': 'AI Models',
+  '按用途管理模型，同用途内排序定主备。':
+    'Manage models by purpose; ordering within a purpose sets primary/backup.',
+  用途: 'Purpose',
+  选择供应商: 'Select provider',
+  该用途暂无模型: 'No models for this purpose',
+  '删除后该模型立即移出全局取用池，且无法恢复。':
+    'Once deleted, the model leaves the global pool immediately and cannot be restored.',
+  新增模型: 'Add model',
+  '选择供应商与用途，填写模型 ID 与显示名称。':
+    'Select a provider and purpose, then fill in the model ID and display name.',
+  '调整模型的显示名称与启用状态。':
+    'Adjust the model display name and active state.',
+  预设模型: 'Preset models',
+  '选择一个预设模型以填充模型 ID。':
+    'Pick a preset model to fill the model ID.',
 } as const;

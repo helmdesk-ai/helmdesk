@@ -43,8 +43,12 @@ const sidebarNavItems = computed<SubMenuItem[]>(() => [
     href: admin.mail.show.url(),
   },
   {
-    title: t('大模型供应商'),
+    title: t('AI 供应商'),
     href: admin.manage.ai.providers.index.url(),
+  },
+  {
+    title: t('AI 模型管理'),
+    href: admin.manage.ai.models.index.url(),
   },
   {
     title: t('知识库设置'),

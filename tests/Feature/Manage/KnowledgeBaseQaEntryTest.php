@@ -2,6 +2,7 @@
 
 use App\Actions\KnowledgeBase\Indexing\IndexKnowledgeQaEntryVectorAction;
 use App\Actions\KnowledgeBase\Indexing\WriteCanonicalChunksAction;
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentIndexingStatus;
 use App\Enums\KnowledgeIndexingStrategy;
@@ -14,12 +15,10 @@ use App\Models\KnowledgeNode;
 use App\Models\KnowledgeQaAnswer;
 use App\Models\KnowledgeQaEntry;
 use App\Models\KnowledgeQaQuestion;
-use App\Models\SystemContext;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Tests\WithSystemContext;
 
 uses(RefreshDatabase::class, WithSystemContext::class);
@@ -34,30 +33,12 @@ beforeEach(function () {
     ]);
 });
 
+/**
+ * Seed 一个全局可用的 embedding 模型，供问答向量索引用例 pin。
+ */
 function createKnowledgeBaseQaTestEmbeddingModel(): AiModel
 {
-    /** @var SystemContext $systemContext */
-    $systemContext = test()->systemContext;
-
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'qa-index-'.Str::lower((string) Str::ulid()),
-        'name' => 'QA Index Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-
-    return AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'qa-index-embedding-'.Str::lower((string) Str::ulid()),
-        'name' => 'QA Index Embedding Model',
-        'type' => 'embedding',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    return makeAiModel(AiModelPurpose::Embedding);
 }
 
 test('超级管理员可以创建带相似问法和多答案的问答条目', function () {

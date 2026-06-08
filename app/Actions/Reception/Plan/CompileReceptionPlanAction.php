@@ -8,7 +8,6 @@ use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
-use App\Services\AiRuntime\AiModelResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -20,15 +19,11 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *   Go task agent 构造时一次性注入全量指令
  * - compiled_config.knowledge_base_ids 是方案级 KB 快照，Go 侧闭包捕获后按 plan 范围检索
  * - compiled_config.mcp_tools 是方案级 MCP 工具快照，Go 据此挂载工具
- * - compiled_config.reception_config / task_config 仅持默认模型与备用模型引用
+ * - 模型不再由方案选择，运行时按用途从全局池取用，编译产物不再持模型引用
  */
 class CompileReceptionPlanAction
 {
     use AsAction;
-
-    public function __construct(
-        private readonly AiModelResolver $resolver,
-    ) {}
 
     /**
      * 输出 ['snapshot_config' => [...], 'compiled_config' => [...]]。
@@ -37,20 +32,6 @@ class CompileReceptionPlanAction
      */
     public function handle(ReceptionPlan $plan): array
     {
-        $receptionConfig = $plan->reception_config ?? [];
-        $taskConfig = $plan->task_config ?? [];
-        $receptionDefaultModel = is_array($receptionConfig['default_model'] ?? null)
-            ? $receptionConfig['default_model']
-            : [];
-        $taskDefaultModel = is_array($taskConfig['default_model'] ?? null)
-            ? $taskConfig['default_model']
-            : [];
-
-        $this->resolver->assertActiveLlmModelOrFail($receptionDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_reception_model');
-        $this->resolver->assertActiveLlmModelOrFail($taskDefaultModel['ai_model_id'] ?? null, 'reception.messages.invalid_task_model');
-        $receptionModelCandidates = $this->resolveModelCandidates($receptionConfig, $receptionDefaultModel, 'reception.messages.invalid_reception_model');
-        $taskModelCandidates = $this->resolveModelCandidates($taskConfig, $taskDefaultModel, 'reception.messages.invalid_task_model');
-
         $personaConfig = $plan->persona_config ?? [];
         $capabilities = $plan->capabilities;
         $knowledgeBaseIds = $plan->knowledge_base_ids;
@@ -67,14 +48,6 @@ class CompileReceptionPlanAction
             'description' => $plan->description,
             'persona_config' => $personaConfig,
             'global_instructions' => $plan->global_instructions,
-            'reception_config' => [
-                'default_model' => $receptionDefaultModel,
-                'model_candidates' => $receptionModelCandidates,
-            ],
-            'task_config' => [
-                'default_model' => $taskDefaultModel,
-                'model_candidates' => $taskModelCandidates,
-            ],
             'capabilities' => $capabilities,
             'knowledge_base_ids' => $knowledgeBaseIds,
             'always_on_tools' => $mcpToolIds,
@@ -86,14 +59,6 @@ class CompileReceptionPlanAction
         $compiledConfig = [
             'reception_agent' => [
                 'instruction' => $this->buildReceptionInstruction($personaConfig, $plan->global_instructions, $capabilities),
-            ],
-            'reception_config' => [
-                'default_model' => $receptionDefaultModel,
-                'model_candidates' => $receptionModelCandidates,
-            ],
-            'task_config' => [
-                'default_model' => $taskDefaultModel,
-                'model_candidates' => $taskModelCandidates,
             ],
             'service_scenarios' => $this->compileServiceScenarios($capabilities),
             'knowledge_bases' => $kbSnapshots,
@@ -123,75 +88,6 @@ class CompileReceptionPlanAction
                 'instructions' => (string) $capability['instructions'],
             ],
             $capabilities,
-        );
-    }
-
-    /**
-     * 发布时重新校验候选模型，并在缺省候选列表时补齐默认模型。
-     *
-     * @param  array<string, mixed>  $modelConfig
-     * @param  array<string, mixed>  $defaultModel
-     * @return list<array{ai_model_id: string, priority: int}>
-     */
-    private function resolveModelCandidates(array $modelConfig, array $defaultModel, string $messageKey): array
-    {
-        $primaryModelId = isset($defaultModel['ai_model_id']) && is_string($defaultModel['ai_model_id'])
-            ? $defaultModel['ai_model_id']
-            : null;
-
-        if ($primaryModelId === null) {
-            throw new BusinessException(__($messageKey));
-        }
-
-        $rawCandidates = isset($modelConfig['model_candidates']) && is_array($modelConfig['model_candidates'])
-            ? $modelConfig['model_candidates']
-            : [];
-
-        if ($rawCandidates === []) {
-            return [['ai_model_id' => $primaryModelId, 'priority' => 0]];
-        }
-
-        $seen = [];
-        $candidates = [];
-        foreach ($rawCandidates as $candidate) {
-            if (! is_array($candidate)) {
-                continue;
-            }
-
-            $modelId = isset($candidate['ai_model_id']) && is_string($candidate['ai_model_id'])
-                ? $candidate['ai_model_id']
-                : null;
-
-            if ($modelId === null || isset($seen[$modelId])) {
-                continue;
-            }
-
-            $this->resolver->assertActiveLlmModelOrFail($modelId, $messageKey);
-
-            $seen[$modelId] = true;
-            $candidates[] = [
-                'ai_model_id' => $modelId,
-                'priority' => $modelId === $primaryModelId
-                    ? 0
-                    : (isset($candidate['priority']) && is_numeric($candidate['priority'])
-                    ? max(1, (int) $candidate['priority'])
-                    : count($candidates) + 1),
-            ];
-        }
-
-        if (! isset($seen[$primaryModelId])) {
-            array_unshift($candidates, ['ai_model_id' => $primaryModelId, 'priority' => 0]);
-        }
-
-        usort($candidates, static fn (array $a, array $b): int => $a['priority'] <=> $b['priority']);
-
-        return array_map(
-            static fn (array $candidate, int $index): array => [
-                'ai_model_id' => $candidate['ai_model_id'],
-                'priority' => $index,
-            ],
-            $candidates,
-            array_keys($candidates),
         );
     }
 

@@ -7,9 +7,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * AI 模型可选项。
- * 由 AiModelResolver 统一下发，覆盖 LLM、Embedding、Rerank 等场景：
- *  - 接待方案版本编辑、AI 浮动助手用到 LLM 列表；
- *  - 知识库创建/编辑用到 Embedding / Rerank 列表。
+ * 当前仅用于知识库引擎页 pin 嵌入模型的下拉选项（由 ShowSystemKnowledgeSettingsAction 下发）；
+ * 其它取模型场景已统一改走 AiModelPool 按用途路由，不再需要下发模型选项。
  */
 class AiModelOptionData extends Data
 {

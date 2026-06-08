@@ -3,9 +3,10 @@
 namespace App\Actions\Reception\Plan;
 
 use App\Data\Reception\Plan\ReceptionPlanOptionData;
+use App\Enums\AiModelPurpose;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
-use App\Services\AiRuntime\AiModelResolver;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\Reception\ChannelActivePlanVersionResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -20,11 +21,11 @@ class ListReceptionPlansForChannelSelectionAction
     use AsAction;
 
     /**
-     * 注入版本解析器与 AI 模型解析器，用于判定方案最新版可用性。
+     * 注入版本解析器与模型用途池，用于判定方案最新版可用性。
      */
     public function __construct(
         private readonly ChannelActivePlanVersionResolver $activePlanVersionResolver,
-        private readonly AiModelResolver $resolver,
+        private readonly AiModelPool $aiModelPool,
     ) {}
 
     /**
@@ -52,7 +53,7 @@ class ListReceptionPlansForChannelSelectionAction
     }
 
     /**
-     * 解析方案最新已发布版本能否部署：无已发布版本 / 默认接待模型失效都会标记不可用。
+     * 解析方案最新已发布版本能否部署：无已发布版本 / reception_chat 用途池无可用模型都会标记不可用。
      *
      * @return array{0: bool, 1: ?string, 2: ?string}
      */
@@ -65,8 +66,7 @@ class ListReceptionPlansForChannelSelectionAction
             return [false, 'reception_plan_no_usable_version', __('reception.plan_version_unusable_reasons.no_usable_version')];
         }
 
-        $compiled = is_array($version->compiled_config) ? $version->compiled_config : [];
-        if (! $this->resolver->hasUsableModels($compiled)) {
+        if (! $this->aiModelPool->hasUsable(AiModelPurpose::ReceptionChat)) {
             return [false, 'reception_model_unavailable', __('reception.plan_version_unusable_reasons.reception_model_unavailable')];
         }
 

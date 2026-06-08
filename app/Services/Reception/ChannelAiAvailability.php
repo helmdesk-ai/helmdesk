@@ -2,33 +2,34 @@
 
 namespace App\Services\Reception;
 
+use App\Enums\AiModelPurpose;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\MessageRole;
 use App\Enums\Reception\ReceptionRoutingMode;
 use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
-use App\Services\AiRuntime\AiModelResolver;
+use App\Services\AiRuntime\AiModelPool;
 use Carbon\CarbonInterface;
 
 /**
  * 判断网站渠道当前是否可以交给 AI 接待，以及各类 AI 接管时机。
  *
- * 接待是否可用，等价于渠道当前部署的 PlanVersion 是否处于已发布状态且其默认接待模型仍然可用。
+ * 接待是否可用，等价于渠道当前部署了已发布的 PlanVersion 且全局 reception_chat 用途池有可用模型。
  */
 class ChannelAiAvailability
 {
     /**
-     * 注入 AI 模型解析器与版本解析器以判断方案最新版默认模型是否可用。
+     * 注入模型用途池与版本解析器以判断渠道方案与接待模型是否可用。
      */
     public function __construct(
-        private readonly AiModelResolver $aiModelResolver,
+        private readonly AiModelPool $aiModelPool,
         private readonly ReceptionPlanStrategyResolver $strategyResolver,
         private readonly ChannelActivePlanVersionResolver $activePlanVersionResolver,
     ) {}
 
     /**
-     * 判断渠道绑定方案的最新已发布版本足以运行 AI 接待。
+     * 判断渠道有已发布的最新版本，且 reception_chat 用途池存在可用模型。
      */
     public function canUseAi(Channel $channel): bool
     {
@@ -42,11 +43,7 @@ class ChannelAiAvailability
             return false;
         }
 
-        $compiled = is_array($version->compiled_config) ? $version->compiled_config : [];
-        $modelId = $compiled['reception_config']['default_model']['ai_model_id'] ?? null;
-        $modelId = is_string($modelId) ? $modelId : null;
-
-        return $this->aiModelResolver->resolveModelStatus($modelId)->isValid;
+        return $this->aiModelPool->hasUsable(AiModelPurpose::ReceptionChat);
     }
 
     /**

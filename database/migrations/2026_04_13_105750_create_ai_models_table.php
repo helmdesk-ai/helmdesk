@@ -9,19 +9,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ai_models', function (Blueprint $table) {
+            $table->comment('全局 AI 供应商下的模型（一行=一个模型+一个用途；type：llm / embedding / rerank）');
+
             $table->ulid('id')->primary();
             $table->timestamps();
 
-            $table->ulid('ai_provider_id');
-            $table->string('model_id');
+            $table->ulid('ai_provider_id')->comment('所属 AI 供应商，指向 ai_providers.id');
+            $table->string('model_id')->comment('供应商侧的模型标识，调用时下发给上游 API，如 gpt-4o');
             $table->string('name');
-            $table->string('type');              // llm, embedding, rerank
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_builtin')->default(false);
-            $table->integer('sort_order')->default(0);
+            $table->string('type')->comment('模型能力类型：llm / embedding / rerank');
+            $table->string('purpose')->comment('单一运行时用途；同 model 多用途拆成多行');
+            $table->boolean('is_active')->default(true)->comment('是否启用，停用后不参与运行时取用');
+            $table->integer('sort_order')->default(0)->comment('同用途内主备优先级，升序，运行时按此 fallback');
 
-            $table->unique(['ai_provider_id', 'model_id', 'type']);
-            $table->index(['ai_provider_id', 'type', 'is_active', 'sort_order'], 'idx_ai_models_provider_type_active');
+            $table->unique(['ai_provider_id', 'model_id', 'purpose']);
         });
     }
 

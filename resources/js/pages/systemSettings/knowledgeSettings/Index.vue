@@ -1,6 +1,7 @@
 <!--
-  文件说明：系统设置「知识库设置」页面，统一配置嵌入模型、分段策略、深度索引和重排序模型等检索参数，
+  文件说明：系统设置「知识库设置」页面，统一配置嵌入模型、嵌入维度、分段策略和深度索引等检索参数，
   系统内所有知识库共用这套配置，保存时若配置变更会触发索引重建确认。
+  重排序、摘要等模型由总后台「AI 模型管理」页按用途统一配置，不在此页选择。
   消费后端 ShowSystemKnowledgeSettingsPagePropsData。
 -->
 <script setup lang="ts">
@@ -46,13 +47,9 @@ const props = defineProps<ShowSystemKnowledgeSettingsPagePropsData>();
 const { t } = useI18n();
 
 const noEmbeddingModelValue = '__none__';
-const noRerankModelValue = '__none__';
-const noSummaryModelValue = '__none__';
 
 const selectedEmbeddingModelId = ref(noEmbeddingModelValue);
 const embeddingDimension = ref<number | null>(null);
-const selectedRerankModelId = ref(noRerankModelValue);
-const selectedSummaryModelId = ref(noSummaryModelValue);
 const vectorIndexEnabled = ref(false);
 const raptorIndexEnabled = ref(false);
 const selectedChunkingStrategy = ref<KnowledgeChunkingStrategy>('fixed');
@@ -71,18 +68,6 @@ const submittedEmbeddingModelId = computed(() =>
     : selectedEmbeddingModelId.value,
 );
 
-const submittedRerankModelId = computed(() =>
-  selectedRerankModelId.value === noRerankModelValue
-    ? ''
-    : selectedRerankModelId.value,
-);
-
-const submittedSummaryModelId = computed(() =>
-  selectedSummaryModelId.value === noSummaryModelValue
-    ? ''
-    : selectedSummaryModelId.value,
-);
-
 const submittedEmbeddingDimension = computed(() =>
   embeddingDimension.value !== null &&
   Number.isFinite(Number(embeddingDimension.value))
@@ -96,7 +81,6 @@ const currentSignature = computed(() =>
     embeddingModelId: submittedEmbeddingModelId.value,
     embeddingDimension: submittedEmbeddingDimension.value,
     raptorIndexEnabled: raptorIndexEnabled.value,
-    summaryModelId: submittedSummaryModelId.value,
     chunkingStrategy: selectedChunkingStrategy.value,
     chunkMaxTokens: Number(chunkMaxTokens.value),
     chunkOverlapTokens: Number(chunkOverlapTokens.value),
@@ -113,7 +97,6 @@ const initialSignature = computed(() =>
         ? String(props.settings.embedding_dimension)
         : '',
     raptorIndexEnabled: Boolean(props.settings.raptor_index_enabled),
-    summaryModelId: props.settings.summary_model_id ?? '',
     chunkingStrategy: props.settings.chunking_strategy,
     chunkMaxTokens: props.settings.chunk_max_tokens ?? 512,
     chunkOverlapTokens: props.settings.chunk_overlap_tokens ?? 64,
@@ -128,14 +111,6 @@ const groupedEmbeddingOptions = computed(() =>
   groupModelOptions(props.embedding_model_options),
 );
 
-const groupedRerankOptions = computed(() =>
-  groupModelOptions(props.rerank_model_options),
-);
-
-const groupedSummaryOptions = computed(() =>
-  groupModelOptions(props.summary_model_options),
-);
-
 watch(() => props.settings, initForm, { immediate: true });
 
 function initForm() {
@@ -147,10 +122,6 @@ function initForm() {
     props.settings.embedding_dimension !== undefined
       ? Number(props.settings.embedding_dimension)
       : null;
-  selectedRerankModelId.value =
-    props.settings.rerank_model_id ?? noRerankModelValue;
-  selectedSummaryModelId.value =
-    props.settings.summary_model_id ?? noSummaryModelValue;
   vectorIndexEnabled.value = Boolean(props.settings.vector_index_enabled);
   raptorIndexEnabled.value = Boolean(props.settings.raptor_index_enabled);
   selectedChunkingStrategy.value = props.settings.chunking_strategy;
@@ -163,7 +134,6 @@ function settingsSignature(config: {
   embeddingModelId: string;
   embeddingDimension: string;
   raptorIndexEnabled: boolean;
-  summaryModelId: string;
   chunkingStrategy: KnowledgeChunkingStrategy;
   chunkMaxTokens: number;
   chunkOverlapTokens: number;
@@ -432,77 +402,13 @@ function onFormSuccess() {
             />
           </div>
 
-          <FormField
-            v-if="raptorIndexEnabled"
-            :label="t('摘要模型')"
-            label-for="system-summary-model"
-            :error="errors.summary_model_id"
-            required
-          >
-            <Select v-model="selectedSummaryModelId">
-              <SelectTrigger id="system-summary-model" class="mt-1 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem :value="noSummaryModelValue">
-                  {{ t('请选择摘要模型') }}
-                </SelectItem>
-                <SelectGroup
-                  v-for="group in groupedSummaryOptions"
-                  :key="group.providerName"
-                >
-                  <SelectLabel>{{ group.providerName }}</SelectLabel>
-                  <SelectItem
-                    v-for="option in group.options"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <input
-              type="hidden"
-              name="summary_model_id"
-              :value="submittedSummaryModelId"
-            />
-          </FormField>
-
-          <FormField
-            :label="t('重排序模型（可选）')"
-            label-for="system-rerank-model"
-            :error="errors.rerank_model_id"
-          >
-            <Select v-model="selectedRerankModelId">
-              <SelectTrigger id="system-rerank-model" class="mt-1 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem :value="noRerankModelValue">
-                  {{ t('不使用重排序') }}
-                </SelectItem>
-                <SelectGroup
-                  v-for="group in groupedRerankOptions"
-                  :key="group.providerName"
-                >
-                  <SelectLabel>{{ group.providerName }}</SelectLabel>
-                  <SelectItem
-                    v-for="option in group.options"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <input
-              type="hidden"
-              name="rerank_model_id"
-              :value="submittedRerankModelId"
-            />
-          </FormField>
+          <p class="text-sm text-muted-foreground">
+            {{
+              t(
+                '重排序、摘要等模型由总后台「AI 模型管理」页按用途统一配置，运行时自动取用，无需在此选择。',
+              )
+            }}
+          </p>
 
           <FormActions :submit-label="t('保存')" :processing="processing" />
 

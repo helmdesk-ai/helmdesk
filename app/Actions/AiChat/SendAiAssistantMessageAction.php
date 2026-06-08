@@ -2,10 +2,10 @@
 
 namespace App\Actions\AiChat;
 
+use App\Enums\AiModelPurpose;
 use App\Enums\AiProviderProtocol;
-use App\Models\AiModel;
 use App\Models\SystemContext;
-use App\Services\AiRuntime\AiModelResolver;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\GoBridge\Exceptions\GoBridgeException;
 use App\Services\GoBridge\GoBridgeClient;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +19,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * 把系统浮动框里输入的一条消息转发给 Go 侧流式处理器。
+ * 模型不再由前端选择：按 assistant 用途从全局池取首个可用模型。
  */
 class SendAiAssistantMessageAction
 {
@@ -33,7 +34,7 @@ class SendAiAssistantMessageAction
 
     public function __construct(
         private GoBridgeClient $goBridge,
-        private AiModelResolver $modelResolver,
+        private AiModelPool $aiModelPool,
         private CollectConfiguredMcpServersAction $collectMcpServers,
         private CollectActiveKnowledgeBasesAction $collectKnowledgeBases,
     ) {}
@@ -42,7 +43,7 @@ class SendAiAssistantMessageAction
      * @param  array<int, array{role: string, content: string}>  $history
      * @return array{topic: string, model: array{provider: string, name: string, model_id: string}}
      */
-    public function handle(SystemContext $systemContext, string $prompt, array $history = [], ?string $modelId = null): array
+    public function handle(SystemContext $systemContext, string $prompt, array $history = []): array
     {
         $trimmed = trim($prompt);
         if ($trimmed === '') {
@@ -51,13 +52,13 @@ class SendAiAssistantMessageAction
             ]);
         }
 
-        if (! is_string($modelId) || trim($modelId) === '') {
+        $model = $this->aiModelPool->firstForPurpose(AiModelPurpose::Assistant);
+        if ($model === null || $model->provider === null) {
             throw ValidationException::withMessages([
-                'model_id' => __('ai.chat.model_required'),
+                'prompt' => __('ai.chat.selected_model_unavailable'),
             ]);
         }
 
-        $model = $this->resolveActiveModel(trim($modelId));
         $provider = $model->provider;
 
         $protocol = $provider->protocol instanceof AiProviderProtocol
@@ -132,7 +133,6 @@ class SendAiAssistantMessageAction
 
         $validated = $request->validate([
             'prompt' => ['required', 'string'],
-            'model_id' => ['required', 'string'],
             'history' => ['sometimes', 'array', 'max:'.self::MAX_HISTORY_MESSAGES],
             'history.*.role' => ['required_with:history', 'string', 'in:user,assistant,system'],
             'history.*.content' => ['required_with:history', 'string'],
@@ -150,35 +150,9 @@ class SendAiAssistantMessageAction
             $systemContext,
             (string) $validated['prompt'],
             $history,
-            (string) $validated['model_id'],
         );
 
         return response()->json($payload, Response::HTTP_ACCEPTED);
-    }
-
-    /**
-     * 选出当前系统应当使用的有效 LLM 模型。
-     */
-    private function resolveActiveModel(string $modelId): AiModel
-    {
-        if (! $this->modelResolver->isValidActiveLlmModel($modelId)) {
-            throw ValidationException::withMessages([
-                'model_id' => __('ai.chat.selected_model_unavailable'),
-            ]);
-        }
-
-        $model = AiModel::query()
-            ->with('provider')
-            ->whereHas('provider')
-            ->find($modelId);
-
-        if ($model === null || $model->provider === null) {
-            throw ValidationException::withMessages([
-                'model_id' => __('ai.chat.selected_model_unavailable'),
-            ]);
-        }
-
-        return $model;
     }
 
     /**

@@ -11,9 +11,7 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -21,13 +19,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/composables/useI18n';
 import type { MessageTranslationConfigDraft } from '@/pages/reception/plans/PlanBasicsForm.vue';
 import type { ReceptionStrategyConfigDraft } from '@/pages/reception/plans/PlanStrategyForm.vue';
-import type { AiModelOptionData, EnumOptionData } from '@/types/generated';
+import type { EnumOptionData } from '@/types/generated';
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
-  llmModelOptions: AiModelOptionData[];
   personaToneOptions: EnumOptionData[];
 }>();
 
@@ -38,19 +34,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const selectedReceptionModelId = ref<string>('');
-const selectedTaskModelId = ref<string>('');
-
 type CreatePlanForm = {
   name: string;
   description: string;
   persona_display_name: string;
   persona_tone: string;
   global_instructions: string | null;
-  reception_ai_model_id: string;
-  reception_model_candidates: Array<{ ai_model_id: string; priority: number }>;
-  task_ai_model_id: string;
-  task_model_candidates: Array<{ ai_model_id: string; priority: number }>;
   strategy_config: ReceptionStrategyConfigDraft;
   auto_messages_config: {
     ai_welcome: { enabled: boolean; message: string };
@@ -60,15 +49,7 @@ type CreatePlanForm = {
   translation_config: MessageTranslationConfigDraft;
 };
 
-function defaultModelId(): string {
-  return props.llmModelOptions[0]?.value !== undefined
-    ? String(props.llmModelOptions[0].value)
-    : '';
-}
-
 function formDefaults(): CreatePlanForm {
-  const modelId = defaultModelId();
-
   return {
     name: '',
     description: '',
@@ -77,10 +58,6 @@ function formDefaults(): CreatePlanForm {
     global_instructions: t(
       '请保持友好、简洁、准确；先理解访客问题，再给出可执行答复。不确定时说明限制并询问关键信息。',
     ),
-    reception_ai_model_id: modelId,
-    reception_model_candidates: [],
-    task_ai_model_id: modelId,
-    task_model_candidates: [],
     strategy_config: {
       reception_mode: 'ai_first',
       unassigned_ai_takeover_enabled: false,
@@ -121,42 +98,6 @@ function formDefaults(): CreatePlanForm {
 }
 
 const form = useForm<CreatePlanForm>(formDefaults());
-
-watch(
-  () => props.llmModelOptions,
-  () => {
-    const defaults = formDefaults();
-    form.defaults(defaults);
-    form.reset();
-    form.clearErrors();
-    selectedReceptionModelId.value = defaults.reception_ai_model_id;
-    selectedTaskModelId.value = defaults.task_ai_model_id;
-  },
-  { immediate: true },
-);
-
-watch(selectedReceptionModelId, (modelId) => {
-  form.reception_ai_model_id = modelId;
-});
-
-watch(selectedTaskModelId, (modelId) => {
-  form.task_ai_model_id = modelId;
-});
-
-const groupedModelOptions = computed(() => {
-  const groups = new Map<string, AiModelOptionData[]>();
-  for (const option of props.llmModelOptions) {
-    const list = groups.get(option.provider_name) ?? [];
-    list.push(option);
-    groups.set(option.provider_name, list);
-  }
-  return Array.from(groups, ([providerName, options]) => ({
-    providerName,
-    options,
-  }));
-});
-
-const hasAvailableModels = computed(() => props.llmModelOptions.length > 0);
 
 function submit(): void {
   form.post(Plan.CreateReceptionPlanAction.url(), {
@@ -239,70 +180,11 @@ function submit(): void {
         </Select>
       </FormField>
 
-      <FormField
-        :label="t('接待智能体模型')"
-        label-for="create_plan_reception_model"
-        :error="form.errors.reception_ai_model_id"
-        required
-      >
-        <Select
-          v-model="selectedReceptionModelId"
-          :disabled="!hasAvailableModels"
-        >
-          <SelectTrigger id="create_plan_reception_model" class="mt-1 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup
-              v-for="group in groupedModelOptions"
-              :key="group.providerName"
-            >
-              <SelectLabel>{{ group.providerName }}</SelectLabel>
-              <SelectItem
-                v-for="option in group.options"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </FormField>
+      <p class="text-sm text-muted-foreground">
+        {{ t('模型由总后台按用途统一配置，运行时自动取用，无需在此选择。') }}
+      </p>
 
-      <FormField
-        :label="t('任务智能体默认模型')"
-        label-for="create_plan_task_model"
-        :error="form.errors.task_ai_model_id"
-        required
-      >
-        <Select v-model="selectedTaskModelId" :disabled="!hasAvailableModels">
-          <SelectTrigger id="create_plan_task_model" class="mt-1 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup
-              v-for="group in groupedModelOptions"
-              :key="group.providerName"
-            >
-              <SelectLabel>{{ group.providerName }}</SelectLabel>
-              <SelectItem
-                v-for="option in group.options"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </FormField>
-
-      <FormActions
-        :submit-label="t('添加')"
-        :processing="form.processing"
-        :submit-disabled="!hasAvailableModels"
-      >
+      <FormActions :submit-label="t('添加')" :processing="form.processing">
         <template #submit>
           <LoaderCircle
             v-if="form.processing"

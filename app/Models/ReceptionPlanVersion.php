@@ -96,22 +96,4 @@ class ReceptionPlanVersion extends Model
     {
         return $this->hasMany(Conversation::class, 'reception_plan_version_id');
     }
-
-    /**
-     * 解析轻量任务（打标签、摘要）应使用的模型配置块：优先用任务智能体（task_config），
-     * 任务槽未配置模型时回退到接待模型（reception_config），让简单任务尽量不占用对话主模型。
-     *
-     * @return array<string, mixed>
-     */
-    public function resolveTaskAgentConfig(): array
-    {
-        $compiled = $this->compiled_config;
-
-        $taskConfig = is_array($compiled['task_config'] ?? null) ? $compiled['task_config'] : [];
-        if (($taskConfig['default_model']['ai_model_id'] ?? null) !== null || ($taskConfig['model_candidates'] ?? []) !== []) {
-            return $taskConfig;
-        }
-
-        return is_array($compiled['reception_config'] ?? null) ? $compiled['reception_config'] : [];
-    }
 }

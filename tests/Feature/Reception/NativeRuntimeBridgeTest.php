@@ -9,6 +9,7 @@ use App\Actions\Native\Reception\RequestHandoffBridgeAction;
 use App\Actions\Native\Reception\StartOrResumeReceptionSessionBridgeAction;
 use App\Actions\Reception\AppendAiMessageAction;
 use App\Actions\Reception\AppendVisitorMessageAction;
+use App\Enums\AiModelPurpose;
 use App\Enums\ConversationEntryMode;
 use App\Enums\ConversationEventType;
 use App\Enums\ConversationInboxStatus;
@@ -17,7 +18,6 @@ use App\Enums\MessageRole;
 use App\Enums\Reception\ReceptionRoutingMode;
 use App\Enums\UserOnlineStatus;
 use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactIdentity;
@@ -71,46 +71,14 @@ test('LoadReceptionRuntimeBridgeAction 在 AI 接待时返回 system prompt 与�
         ->and($payload['task_model_candidates'])->toHaveCount(1);
 });
 
-test('LoadReceptionRuntimeBridgeAction 返回任务智能体配置的模型', function () {
-    $systemContext = SystemContext::factory()->create();
+test('LoadReceptionRuntimeBridgeAction 从全局池按用途返回接待与任务模型候选', function () {
+    SystemContext::factory()->create();
 
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'provider-'.Str::lower(Str::random(6)),
-        'name' => 'Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $receptionModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Reception',
-        'model_id' => 'gpt-reception',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $taskModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Task',
-        'model_id' => 'gpt-task',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 1,
-    ]);
-    $taskBackup = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Task Backup',
-        'model_id' => 'gpt-task-backup',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 2,
-    ]);
+    // 接待与任务候选都来自全局用途池，按 sort_order 排主备。
+    $provider = makeUsableAiProvider();
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider)->update(['model_id' => 'gpt-reception']);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider)->update(['model_id' => 'gpt-task']);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider)->update(['model_id' => 'gpt-task-backup']);
 
     $plan = ReceptionPlan::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
@@ -118,31 +86,13 @@ test('LoadReceptionRuntimeBridgeAction 返回任务智能体配置的模型', fu
         ->for($plan, 'plan')
         ->create([
             'snapshot_config' => array_replace_recursive($baseSnapshot, [
-                'reception_config' => [
-                    'default_model' => ['ai_model_id' => $receptionModel->id],
-                ],
-                'task_config' => [
-                    'default_model' => ['ai_model_id' => $taskModel->id],
-                    'model_candidates' => [
-                        ['ai_model_id' => $taskModel->id, 'priority' => 0],
-                        ['ai_model_id' => $taskBackup->id, 'priority' => 1],
-                    ],
-                ],
                 'strategy_config' => nativeRuntimeStrategyConfig([]),
                 'auto_messages_config' => nativeRuntimeDisabledAutoMessagesConfig(),
             ]),
             'compiled_config' => [
                 'reception_agent' => ['instruction' => '测试指令'],
-                'reception_config' => [
-                    'default_model' => ['ai_model_id' => $receptionModel->id],
-                ],
-                'task_config' => [
-                    'default_model' => ['ai_model_id' => $taskModel->id],
-                    'model_candidates' => [
-                        ['ai_model_id' => $taskModel->id, 'priority' => 0],
-                        ['ai_model_id' => $taskBackup->id, 'priority' => 1],
-                    ],
-                ],
+                'reception_config' => ['default_model' => null],
+                'task_config' => ['default_model' => null],
                 'service_scenarios' => [],
                 'knowledge_bases' => [],
                 'mcp_tools' => [],
@@ -308,6 +258,23 @@ test('LoadReceptionRuntimeBridgeAction 在 plan version 缺失时返回 no_plan'
 
     expect($payload['available'])->toBeFalse()
         ->and($payload['reason'])->toBe('no_plan');
+});
+
+test('LoadReceptionRuntimeBridgeAction 在全局池没有接待模型时返回 no_model', function () {
+    $channel = makeNativeRuntimeChannel();
+    $started = app(StartOrResumeReceptionSessionBridgeAction::class)->handle(
+        $channel->code,
+        null,
+        ConversationEntryMode::Standalone->value,
+    );
+
+    // 清空全局 reception_chat 用途池，模拟没有可用接待模型。
+    AiModel::query()->where('purpose', AiModelPurpose::ReceptionChat->value)->delete();
+
+    $payload = app(LoadReceptionRuntimeBridgeAction::class)->handle($started->conversation_id);
+
+    expect($payload['available'])->toBeFalse()
+        ->and($payload['reason'])->toBe('no_model');
 });
 
 test('RequestHandoffBridgeAction 在人工可用时把会话翻成 TeammatePending 并记录事件', function () {
@@ -646,54 +613,20 @@ test('LogReceptionEventBridgeAction 拒绝未知 type', function () {
 });
 
 test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不可用兜底文案', function () {
-    $systemContext = SystemContext::factory()->create();
+    SystemContext::factory()->create();
 
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'provider-'.Str::lower(Str::random(6)),
-        'name' => 'Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'primary-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $primary = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Primary',
-        'model_id' => 'gpt-primary',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $backup = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Backup',
-        'model_id' => 'gpt-backup',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 1,
-    ]);
+    // 接待候选按 sort_order 主备排序，全部来自全局 reception_chat 用途池。
+    $provider = makeUsableAiProvider();
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider)->update(['model_id' => 'gpt-primary']);
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider)->update(['model_id' => 'gpt-backup']);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider);
 
     $plan = ReceptionPlan::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($primary->id)
         ->create([
             'snapshot_config' => array_replace_recursive($baseSnapshot, [
-                'reception_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                    'model_candidates' => [
-                        ['ai_model_id' => $primary->id, 'priority' => 0],
-                        ['ai_model_id' => $backup->id, 'priority' => 1],
-                    ],
-                ],
-                'task_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                ],
                 'strategy_config' => nativeRuntimeStrategyConfig([
                     'ai_unavailable_notice' => '自定义兜底文案',
                 ]),
@@ -701,16 +634,8 @@ test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不�
             ]),
             'compiled_config' => [
                 'reception_agent' => ['instruction' => '测试指令'],
-                'reception_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                    'model_candidates' => [
-                        ['ai_model_id' => $primary->id, 'priority' => 0],
-                        ['ai_model_id' => $backup->id, 'priority' => 1],
-                    ],
-                ],
-                'task_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                ],
+                'reception_config' => ['default_model' => null],
+                'task_config' => ['default_model' => null],
                 'service_scenarios' => [],
                 'knowledge_bases' => [],
                 'mcp_tools' => [],
@@ -739,65 +664,27 @@ test('LoadReceptionRuntimeBridgeAction 返回完整模型候选列表和 AI 不�
 });
 
 test('LoadReceptionRuntimeBridgeAction 过滤已停用的备用模型', function () {
-    $systemContext = SystemContext::factory()->create();
+    SystemContext::factory()->create();
 
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'provider-'.Str::lower(Str::random(6)),
-        'name' => 'Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $primary = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Primary',
-        'model_id' => 'gpt-primary',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $disabled = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Disabled',
-        'model_id' => 'gpt-disabled',
-        'type' => 'llm',
-        'is_active' => false,
-        'is_builtin' => false,
-        'sort_order' => 1,
-    ]);
+    // 已停用的接待模型不进入全局池，因此不会出现在候选里。
+    $provider = makeUsableAiProvider();
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider)->update(['model_id' => 'gpt-primary']);
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider, false)->update(['model_id' => 'gpt-disabled']);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider);
 
     $plan = ReceptionPlan::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($primary->id)
         ->create([
             'snapshot_config' => array_replace_recursive($baseSnapshot, [
-                'reception_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                ],
-                'task_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                ],
                 'strategy_config' => nativeRuntimeStrategyConfig([]),
                 'auto_messages_config' => nativeRuntimeDisabledAutoMessagesConfig(),
             ]),
             'compiled_config' => [
                 'reception_agent' => ['instruction' => '测试指令'],
-                'reception_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                    'model_candidates' => [
-                        ['ai_model_id' => $primary->id, 'priority' => 0],
-                        ['ai_model_id' => $disabled->id, 'priority' => 1],
-                    ],
-                ],
-                'task_config' => [
-                    'default_model' => ['ai_model_id' => $primary->id],
-                ],
+                'reception_config' => ['default_model' => null],
+                'task_config' => ['default_model' => null],
                 'service_scenarios' => [],
                 'knowledge_bases' => [],
                 'mcp_tools' => [],
@@ -890,42 +777,18 @@ function makeNativeRuntimeChannel(array $strategyOverrides = []): Channel
         'online_status' => UserOnlineStatus::Online->value,
     ]);
 
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'reception-provider-'.Str::lower(Str::random(6)),
-        'name' => 'Reception Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $model = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Reception Model',
-        'model_id' => 'gpt-reception',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // 运行时按用途从全局池取模型：seed 一个接待模型 + 一个任务模型，都挂在凭据完整的供应商下。
+    $provider = makeUsableAiProvider(['credentials' => ['key' => 'test-key']]);
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider)->update(['model_id' => 'gpt-reception']);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider)->update(['model_id' => 'gpt-reception']);
 
     $plan = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $baseSnapshot['auto_messages_config'] = nativeRuntimeDisabledAutoMessagesConfig();
-    $baseSnapshot['reception_config'] = array_merge(
-        $baseSnapshot['reception_config'] ?? [],
-        ['default_model' => ['ai_model_id' => $model->id]],
-    );
-    $baseSnapshot['task_config'] = array_merge(
-        $baseSnapshot['task_config'] ?? [],
-        ['default_model' => ['ai_model_id' => $model->id]],
-    );
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($model->id)
         ->create([
             'snapshot_config' => array_replace_recursive($baseSnapshot, [
                 'strategy_config' => nativeRuntimeStrategyConfig($strategyOverrides),

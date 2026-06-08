@@ -3,10 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Actions\User\TouchSystemUserLastActiveAtAction;
-use App\Data\AiRuntime\AiModelOptionData;
 use App\Data\SystemUserContextData;
 use App\Enums\UserPermission;
-use App\Services\AiRuntime\AiModelResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -19,10 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 class IdentifySystem
 {
     /**
-     * 注入模型选项解析器和成员活跃时间刷新动作。
+     * 注入成员活跃时间刷新动作。
      */
     public function __construct(
-        private AiModelResolver $modelResolver,
         private TouchSystemUserLastActiveAtAction $touchSystemUserLastActiveAtAction,
     ) {}
 
@@ -48,13 +45,6 @@ class IdentifySystem
         Inertia::share('canAccessReceptionPlans', Gate::allows('user.permission', UserPermission::ReceptionPlansView));
         Inertia::share('canAccessChannels', Gate::allows('user.permission', UserPermission::ChannelsView));
         Inertia::share('canManageSystemSettings', Gate::allows('user.permission', UserPermission::SystemSettingsView));
-        Inertia::share(
-            'aiAssistantLlmModelOptions',
-            array_map(
-                fn (AiModelOptionData $option): array => $option->toArray(),
-                $this->modelResolver->getActiveLlmModelOptions(),
-            ),
-        );
 
         return $next($request);
     }

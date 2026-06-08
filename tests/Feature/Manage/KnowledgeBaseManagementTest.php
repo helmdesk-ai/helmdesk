@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeChunkingStrategy;
 use App\Enums\KnowledgeDocumentIndexingStatus;
 use App\Enums\KnowledgeDocumentParseStatus;
@@ -52,30 +53,12 @@ function createKnowledgeBaseTestAttachment(array $attributes = []): Attachment
     ], $attributes));
 }
 
-function createKnowledgeBaseTestAiModel(string $type = 'embedding', ?AiProvider $provider = null): AiModel
+/**
+ * Seed 一个全局可用的指定用途 AI 模型（embedding / summary / rerank 等）。
+ */
+function createKnowledgeBaseTestAiModel(AiModelPurpose $purpose = AiModelPurpose::Embedding, ?AiProvider $provider = null): AiModel
 {
-    /** @var SystemContext $systemContext */
-    $systemContext = test()->systemContext;
-
-    $provider ??= AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'kb-test-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Test Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-
-    return AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'kb-test-'.$type.'-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Test '.Str::title($type).' Model',
-        'type' => $type,
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    return makeAiModel($purpose, $provider);
 }
 
 test('超级管理员可以查看知识库列表页面', function () {
@@ -99,11 +82,10 @@ test('超级管理员可以查看知识库列表页面', function () {
 });
 
 test('超级管理员可以在系统设置中查看知识库设置页面', function () {
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
-    $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
+    $embeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding);
     $this->systemContext->update([
         'knowledge_embedding_model_id' => $embeddingModel->id,
-        'knowledge_summary_model_id' => $summaryModel->id,
+        'knowledge_embedding_dimension' => 1536,
         'knowledge_vector_index_enabled' => true,
         'knowledge_raptor_index_enabled' => true,
         'knowledge_chunking_strategy' => KnowledgeChunkingStrategy::Semantic->value,
@@ -117,7 +99,6 @@ test('超级管理员可以在系统设置中查看知识库设置页面', funct
         ->assertInertia(fn (Assert $page) => $page
             ->component('systemSettings/knowledgeSettings/Index')
             ->where('settings.embedding_model_id', (string) $embeddingModel->id)
-            ->where('settings.summary_model_id', (string) $summaryModel->id)
             ->where('settings.vector_index_enabled', true)
             ->where('settings.raptor_index_enabled', true)
             ->where('settings.chunking_strategy', KnowledgeChunkingStrategy::Semantic->value)
@@ -340,16 +321,13 @@ test('删除知识库会一并清空 sqlite_rag 中的节点 / 全文 / 大纲',
 });
 
 test('超级管理员可以保存系统知识库检索配置', function () {
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
-    $rerankModel = createKnowledgeBaseTestAiModel('rerank', $embeddingModel->provider);
-    $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
+    // 重排 / 摘要模型改由全局用途池路由，本页只 pin 嵌入模型。
+    $embeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding);
 
     $this->actingAs($this->user)
         ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
-            'rerank_model_id' => $rerankModel->id,
-            'summary_model_id' => $summaryModel->id,
             'vector_index_enabled' => true,
             'raptor_index_enabled' => true,
             'chunking_strategy' => KnowledgeChunkingStrategy::Semantic->value,
@@ -361,8 +339,6 @@ test('超级管理员可以保存系统知识库检索配置', function () {
     $this->systemContext->refresh();
     expect($this->systemContext->knowledge_embedding_model_id)->toBe($embeddingModel->id)
         ->and($this->systemContext->knowledge_embedding_dimension)->toBe(1536)
-        ->and($this->systemContext->knowledge_rerank_model_id)->toBe($rerankModel->id)
-        ->and($this->systemContext->knowledge_summary_model_id)->toBe($summaryModel->id)
         ->and($this->systemContext->knowledge_vector_index_enabled)->toBeTrue()
         ->and($this->systemContext->knowledge_raptor_index_enabled)->toBeTrue()
         ->and($this->systemContext->knowledge_chunking_strategy)->toBe(KnowledgeChunkingStrategy::Semantic)
@@ -371,7 +347,7 @@ test('超级管理员可以保存系统知识库检索配置', function () {
 });
 
 test('启用向量索引但未填写维度时返回字段级校验错误', function () {
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
+    $embeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding);
 
     $this->actingAs($this->user)
         ->put(route('admin.knowledge.update'), [
@@ -400,12 +376,9 @@ test('标准索引启用时需要嵌入模型', function () {
 });
 
 test('深度索引启用时同样需要嵌入模型（摘要节点也要落向量）', function () {
-    $summaryModel = createKnowledgeBaseTestAiModel('llm');
-
     $this->actingAs($this->user)
         ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => '',
-            'summary_model_id' => $summaryModel->id,
             'vector_index_enabled' => false,
             'raptor_index_enabled' => true,
             'chunking_strategy' => KnowledgeChunkingStrategy::Fixed->value,
@@ -416,7 +389,7 @@ test('深度索引启用时同样需要嵌入模型（摘要节点也要落向�
 });
 
 test('启用标准索引时分段参数为必填', function () {
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
+    $embeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding);
 
     // 前端开关以隐藏域 '1'/'0' 提交，这里沿用同样的载荷形态。
     $this->actingAs($this->user)
@@ -436,19 +409,6 @@ test('启用标准索引时分段参数为必填', function () {
         ]);
 });
 
-test('深度索引启用时需要摘要模型', function () {
-    $this->actingAs($this->user)
-        ->put(route('admin.knowledge.update'), [
-            'summary_model_id' => '',
-            'vector_index_enabled' => false,
-            'raptor_index_enabled' => true,
-            'chunking_strategy' => KnowledgeChunkingStrategy::Fixed->value,
-            'chunk_max_tokens' => 512,
-            'chunk_overlap_tokens' => 64,
-        ])
-        ->assertSessionHasErrors(['summary_model_id']);
-});
-
 test('更新系统检索配置会清理索引并投递已解析文档', function () {
     Bus::fake([
         IndexVectorKnowledgeDocumentJob::class,
@@ -456,14 +416,11 @@ test('更新系统检索配置会清理索引并投递已解析文档', function
         IndexVectorKnowledgeQaEntryJob::class,
     ]);
 
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
-    $updatedEmbeddingModel = createKnowledgeBaseTestAiModel('embedding', $embeddingModel->provider);
-    $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
-    $updatedSummaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
+    $embeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding);
+    $updatedEmbeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding, $embeddingModel->provider);
     $this->systemContext->update([
         'knowledge_embedding_model_id' => $embeddingModel->id,
         'knowledge_embedding_dimension' => 1024,
-        'knowledge_summary_model_id' => $summaryModel->id,
         'knowledge_vector_index_enabled' => true,
         'knowledge_raptor_index_enabled' => true,
         'knowledge_chunking_strategy' => KnowledgeChunkingStrategy::Fixed->value,
@@ -534,7 +491,6 @@ test('更新系统检索配置会清理索引并投递已解析文档', function
         ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $updatedEmbeddingModel->id,
             'embedding_dimension' => 1536,
-            'summary_model_id' => $updatedSummaryModel->id,
             'vector_index_enabled' => true,
             'raptor_index_enabled' => true,
             'chunking_strategy' => KnowledgeChunkingStrategy::Semantic->value,
@@ -583,12 +539,10 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
         IndexVectorKnowledgeQaEntryJob::class,
     ]);
 
-    $embeddingModel = createKnowledgeBaseTestAiModel('embedding');
-    $summaryModel = createKnowledgeBaseTestAiModel('llm', $embeddingModel->provider);
+    $embeddingModel = createKnowledgeBaseTestAiModel(AiModelPurpose::Embedding);
     $this->systemContext->update([
         'knowledge_embedding_model_id' => $embeddingModel->id,
         'knowledge_embedding_dimension' => 1024,
-        'knowledge_summary_model_id' => $summaryModel->id,
         'knowledge_vector_index_enabled' => true,
         'knowledge_raptor_index_enabled' => true,
     ]);
@@ -625,7 +579,6 @@ test('维度变化时清空 vec0 注册表并把已有 Text 节点的 embedding_
         ->put(route('admin.knowledge.update'), [
             'embedding_model_id' => $embeddingModel->id,
             'embedding_dimension' => 1536,
-            'summary_model_id' => $summaryModel->id,
             'vector_index_enabled' => true,
             'raptor_index_enabled' => true,
             'chunking_strategy' => KnowledgeChunkingStrategy::Fixed->value,

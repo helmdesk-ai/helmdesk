@@ -3,15 +3,13 @@
 use App\Actions\KnowledgeBase\Indexing\WriteCanonicalChunksAction;
 use App\Actions\KnowledgeBase\SearchKnowledgeBaseAction;
 use App\Data\KnowledgeBase\FormKnowledgeSearchData;
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeSearchMode;
-use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Services\KnowledgeBase\Search\FullTextRetriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\WithSystemContext;
 
 uses(RefreshDatabase::class, WithSystemContext::class);
@@ -28,26 +26,10 @@ uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function (): void {
     $this->user = $this->createUserWithSystem();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'kb-recall-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Recall Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $this->embeddingModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'kb-recall-embedding-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Recall Embedding',
-        'type' => 'embedding',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    $this->embeddingModel = makeAiModel(AiModelPurpose::Embedding);
     $this->systemContext->update([
         'knowledge_embedding_model_id' => $this->embeddingModel->id,
+        'knowledge_embedding_dimension' => 3,
         // 中文 FTS 召回是本次评测的主要测试面，向量与 RAPTOR 需要外部模型，先关掉。
         'knowledge_vector_index_enabled' => false,
         'knowledge_raptor_index_enabled' => false,

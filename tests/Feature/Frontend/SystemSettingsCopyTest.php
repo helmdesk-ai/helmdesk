@@ -3,13 +3,17 @@
 use Illuminate\Support\Facades\File;
 
 test('系统模型编辑表单显示不可修改字段并允许修改名称', function (): void {
-    $contents = File::get(resource_path('js/pages/systemSettings/aiProviders/ModelFormDialog.vue'));
+    // AI 模型从供应商页拆出，独立到「AI 模型管理」页；编辑态下供应商 / 用途 / 模型 ID 只读，仅名称与启用可改。
+    $editPage = File::get(resource_path('js/pages/systemSettings/aiModels/Edit.vue'));
+    $modelForm = File::get(resource_path('js/pages/systemSettings/aiModels/ModelForm.vue'));
 
-    expect($contents)
-        ->toContain("return t('编辑模型')")
-        ->toContain('<Select v-model="form.type" :disabled="isEdit">')
-        ->toContain(':disabled="isEdit"')
-        ->toContain('<Input v-model="form.name" autocomplete="off" />');
+    expect($editPage)->toContain("t('编辑模型')");
+
+    expect($modelForm)
+        ->toContain('isEditMode')
+        ->toContain('v-if="!isEditMode"')
+        ->toContain('disabled')
+        ->toContain('v-model="form.name"');
 });
 
 test('接待方案自动回复默认开启并使用真实初始文案', function (): void {
@@ -94,17 +98,15 @@ test('创建接待方案表单默认使用简洁语气并展示核心字段', fu
     $contents = File::get(resource_path('js/pages/reception/plans/CreatePlanDialog.vue'));
     $createPage = File::get(resource_path('js/pages/reception/plans/Create.vue'));
 
+    // 接待方案不再有按方案选模型的下拉（模型改由全局用途池路由）；只校验昵称与语气字段顺序。
     $displayNameOffset = strpos($contents, 'label-for="create_plan_persona_display_name"');
     $toneOffset = strpos($contents, 'label-for="create_plan_persona_tone"');
-    $receptionModelOffset = strpos($contents, 'label-for="create_plan_reception_model"');
 
     expect($contents)
         ->toContain("persona_tone: 'concise'")
         ->and($displayNameOffset)->not->toBeFalse()
         ->and($toneOffset)->not->toBeFalse()
-        ->and($receptionModelOffset)->not->toBeFalse()
-        ->and($displayNameOffset < $toneOffset)->toBeTrue()
-        ->and($toneOffset < $receptionModelOffset)->toBeTrue();
+        ->and($displayNameOffset < $toneOffset)->toBeTrue();
 
     expect($createPage)->toContain(':persona-tone-options="props.persona_tone_options"');
 });

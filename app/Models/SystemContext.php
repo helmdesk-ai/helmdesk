@@ -20,8 +20,6 @@ use Illuminate\Support\Carbon;
  * @property string|null $slug
  * @property string|null $logo_id
  * @property string|null $knowledge_embedding_model_id
- * @property string|null $knowledge_rerank_model_id
- * @property string|null $knowledge_summary_model_id
  * @property int|null $knowledge_embedding_dimension
  * @property bool $knowledge_vector_index_enabled
  * @property bool $knowledge_raptor_index_enabled
@@ -30,8 +28,6 @@ use Illuminate\Support\Carbon;
  * @property int $knowledge_chunk_overlap_tokens
  * @property mixed $use_factory
  * @property-read AiModel|null $knowledgeEmbeddingModel
- * @property-read AiModel|null $knowledgeRerankModel
- * @property-read AiModel|null $knowledgeSummaryModel
  *
  * @method static \Database\Factories\SystemContextFactory<self> factory($count = null, $state = [])
  */
@@ -52,8 +48,6 @@ class SystemContext extends Model
         'slug',
         'logo_id',
         'knowledge_embedding_model_id',
-        'knowledge_rerank_model_id',
-        'knowledge_summary_model_id',
         'knowledge_embedding_dimension',
         'knowledge_vector_index_enabled',
         'knowledge_raptor_index_enabled',
@@ -81,8 +75,6 @@ class SystemContext extends Model
             'slug' => 'admin',
             'logo_id' => $generalSettings->logo_id,
             'knowledge_embedding_model_id' => $knowledgeSettings->embedding_model_id,
-            'knowledge_rerank_model_id' => $knowledgeSettings->rerank_model_id,
-            'knowledge_summary_model_id' => $knowledgeSettings->summary_model_id,
             'knowledge_embedding_dimension' => $knowledgeSettings->embedding_dimension,
             'knowledge_vector_index_enabled' => $knowledgeSettings->vector_index_enabled,
             'knowledge_raptor_index_enabled' => $knowledgeSettings->raptor_index_enabled,
@@ -142,16 +134,6 @@ class SystemContext extends Model
     public function knowledgeEmbeddingModel(): BelongsTo
     {
         return $this->belongsTo(AiModel::class, 'knowledge_embedding_model_id');
-    }
-
-    public function knowledgeRerankModel(): BelongsTo
-    {
-        return $this->belongsTo(AiModel::class, 'knowledge_rerank_model_id');
-    }
-
-    public function knowledgeSummaryModel(): BelongsTo
-    {
-        return $this->belongsTo(AiModel::class, 'knowledge_summary_model_id');
     }
 
     /**
@@ -249,12 +231,6 @@ class SystemContext extends Model
 
         if (array_key_exists('knowledge_embedding_model_id', $this->attributes)) {
             $knowledgeSettings->embedding_model_id = $this->nullableStringAttribute('knowledge_embedding_model_id');
-        }
-        if (array_key_exists('knowledge_rerank_model_id', $this->attributes)) {
-            $knowledgeSettings->rerank_model_id = $this->nullableStringAttribute('knowledge_rerank_model_id');
-        }
-        if (array_key_exists('knowledge_summary_model_id', $this->attributes)) {
-            $knowledgeSettings->summary_model_id = $this->nullableStringAttribute('knowledge_summary_model_id');
         }
         if (array_key_exists('knowledge_embedding_dimension', $this->attributes)) {
             $knowledgeSettings->embedding_dimension = $this->getAttribute('knowledge_embedding_dimension') === null

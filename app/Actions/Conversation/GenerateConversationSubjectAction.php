@@ -2,18 +2,18 @@
 
 namespace App\Actions\Conversation;
 
-use App\Enums\AiModelType;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
-use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Services\Conversation\ConversationLlmCandidateResolver;
 use App\Services\Conversation\GoConversationSubjectBridge;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
+use Throwable;
 
 /**
  * 为会话生成并保存自动主题。
@@ -31,10 +31,11 @@ class GenerateConversationSubjectAction
     private const SUBJECT_WRAPPER_PATTERN = '/^[\s"\'`“”‘’。\.]+|[\s"\'`“”‘’。\.]+$/u';
 
     /**
-     * 注入 Go AI 桥接和实时通知服务。
+     * 注入 Go AI 桥接、后台任务候选模型解析器和实时通知服务。
      */
     public function __construct(
         private readonly GoConversationSubjectBridge $bridge,
+        private readonly ConversationLlmCandidateResolver $candidates,
         private readonly ReceptionRealtimeNotifier $realtimeNotifier,
     ) {}
 
@@ -43,8 +44,6 @@ class GenerateConversationSubjectAction
      */
     public function handle(Conversation $conversation): ?string
     {
-        $conversation->loadMissing('receptionPlanVersion');
-
         if (filled($conversation->subject)) {
             return $conversation->subject;
         }
@@ -54,8 +53,7 @@ class GenerateConversationSubjectAction
             throw new RuntimeException('Conversation subject generation requires visitor text messages.');
         }
 
-        $model = $this->resolveModel($conversation);
-        $subject = $this->normalizeSubject($this->bridge->generate($model->provider, $model, $messages));
+        $subject = $this->generateWithCandidates($conversation, $messages);
         if ($subject === null) {
             throw new RuntimeException('Conversation subject generation returned an empty subject.');
         }
@@ -106,31 +104,32 @@ class GenerateConversationSubjectAction
     }
 
     /**
-     * 按会话锁定的接待方案版本解析接待模型。
+     * 按 background_task 用途池候选模型顺序生成主题，首个成功即返回。
+     *
+     * @param  list<string>  $messages
      */
-    private function resolveModel(Conversation $conversation): AiModel
+    private function generateWithCandidates(Conversation $conversation, array $messages): ?string
     {
-        $version = $conversation->receptionPlanVersion;
-        if ($version === null || ! is_array($version->compiled_config)) {
-            throw new RuntimeException('Conversation subject generation requires a reception plan version.');
+        $lastError = null;
+
+        foreach ($this->candidates->resolve() as $model) {
+            try {
+                return $this->normalizeSubject($this->bridge->generate($model->provider, $model, $messages));
+            } catch (Throwable $exception) {
+                $lastError = $exception;
+                Log::warning('会话主题生成候选模型失败', [
+                    'conversation_id' => $conversation->id,
+                    'ai_model_id' => $model->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
         }
 
-        $compiled = $version->compiled_config;
-        $modelId = $compiled['reception_config']['default_model']['ai_model_id'] ?? null;
-        if (! is_string($modelId) || $modelId === '') {
-            throw new RuntimeException('Conversation subject generation requires a reception LLM model.');
+        if ($lastError !== null) {
+            throw $lastError;
         }
 
-        return AiModel::query()
-            ->with('provider')
-            ->whereKey($modelId)
-            ->where('type', AiModelType::Llm->value)
-            ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query): void {
-                $query
-                    ->where('is_active', true);
-            })
-            ->firstOrFail();
+        throw new RuntimeException('Conversation subject generation requires a usable background task model.');
     }
 
     /**

@@ -2,10 +2,11 @@
 
 namespace App\Actions\Reception\Plan;
 
+use App\Enums\AiModelPurpose;
 use App\Exceptions\BusinessException;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
-use App\Services\AiRuntime\AiModelResolver;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\Reception\ChannelActivePlanVersionResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -18,11 +19,11 @@ class ResolveChannelReceptionPlanAction
     use AsAction;
 
     /**
-     * 注入版本解析器与 AI 模型解析器以校验方案最新版可用。
+     * 注入版本解析器与模型用途池以校验方案最新版可用。
      */
     public function __construct(
         private readonly ChannelActivePlanVersionResolver $activePlanVersionResolver,
-        private readonly AiModelResolver $resolver,
+        private readonly AiModelPool $aiModelPool,
     ) {}
 
     /**
@@ -48,8 +49,7 @@ class ResolveChannelReceptionPlanAction
             throw new BusinessException(__('channel.messages.reception_plan_no_usable_version'));
         }
 
-        $compiled = is_array($version->compiled_config) ? $version->compiled_config : [];
-        if (! $this->resolver->hasUsableModels($compiled)) {
+        if (! $this->aiModelPool->hasUsable(AiModelPurpose::ReceptionChat)) {
             throw new BusinessException(__('channel.messages.reception_plan_version_model_unavailable'));
         }
 

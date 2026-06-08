@@ -18,7 +18,6 @@ class FormPolishInboxReplyData extends Data
      * 承载助手模式、可选文本、模型、风格和可选引用消息。
      */
     public function __construct(
-        public string $model_id,
         public ReplyAssistantMode $mode,
         public ReplyPolishTone $tone,
         public ?string $content = null,
@@ -33,7 +32,6 @@ class FormPolishInboxReplyData extends Data
     public static function rules(): array
     {
         return [
-            'model_id' => ['required', 'string', 'max:64'],
             'mode' => ['required', Rule::in(array_map(static fn (ReplyAssistantMode $mode): string => $mode->value, ReplyAssistantMode::cases()))],
             'tone' => ['required', Rule::in(array_map(static fn (ReplyPolishTone $tone): string => $tone->value, ReplyPolishTone::cases()))],
             'content' => [
