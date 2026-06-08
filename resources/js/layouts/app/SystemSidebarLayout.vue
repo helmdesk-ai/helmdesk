@@ -171,7 +171,7 @@ const footerNavItems = computed<SidebarShellNavItem[]>(() => {
   const items: SidebarShellNavItem[] = [
     {
       title: t('GitHub仓库'),
-      href: 'https://github.com/shellphy/helmdesk',
+      href: 'https://github.com/helmdesk-ai/helmdesk',
       icon: GitBranch,
     },
     {

@@ -2,6 +2,7 @@
   文件说明：认证页布局，承接登录、注册和密码相关页面的外层结构。
 -->
 <script setup lang="ts">
+import AppLogoIcon from '@/components/common/AppLogoIcon.vue';
 import { home } from '@/routes';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -14,6 +15,8 @@ defineProps<{
 const page = usePage();
 const logo = computed(() => page.props.generalSettings.logo_url);
 const systemName = computed(() => page.props.generalSettings.name);
+// 未上传自定义 Logo 时回退到矢量品牌组件，随主题自适应颜色
+const isDefaultLogo = computed(() => !page.props.generalSettings.logo_id);
 </script>
 
 <template>
@@ -30,7 +33,12 @@ const systemName = computed(() => page.props.generalSettings.name);
             <div
               class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
             >
+              <AppLogoIcon
+                v-if="isDefaultLogo"
+                class="size-9 text-foreground"
+              />
               <img
+                v-else
                 :src="logo"
                 :alt="systemName + ' Logo'"
                 class="size-9 object-contain"
