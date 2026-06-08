@@ -4,7 +4,6 @@
 <script setup lang="ts">
 import ConfirmDeleteDialog from '@/components/common/ConfirmDeleteDialog.vue';
 import FilterPopover from '@/components/common/FilterPopover.vue';
-import HeadingSmall from '@/components/common/HeadingSmall.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -168,14 +167,18 @@ watch(editOpen, (open) => {
     <section class="w-full space-y-12 px-4 py-6 sm:px-6">
       <div class="space-y-6">
           <div class="flex flex-wrap items-start justify-between gap-4">
-            <HeadingSmall
-              :title="t('快捷回复')"
-              :description="
-                t(
-                  '维护客服常用的标准回复，可在收件箱直接调用。支持个人沉淀与系统共享。',
-                )
-              "
-            />
+            <div class="space-y-0.5">
+              <h2 class="text-xl font-semibold tracking-tight">
+                {{ t('快捷回复') }}
+              </h2>
+              <p class="text-sm text-muted-foreground">
+                {{
+                  t(
+                    '维护客服常用的标准回复，可在收件箱直接调用。支持个人沉淀与系统共享。',
+                  )
+                }}
+              </p>
+            </div>
 
             <div class="flex items-center gap-2">
               <Dialog v-model:open="createOpen">
