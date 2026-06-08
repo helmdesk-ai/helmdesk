@@ -2,11 +2,11 @@
 
 namespace App\Actions\Inbox;
 
-use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxContactAiSummaryTranslationData;
 use App\Jobs\Inbox\TranslateInboxContactAiSummaryJob;
 use App\Models\Contact;
 use App\Services\Localization\LocalePreference;
+use App\Services\Translation\TranslationProviderPool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -20,10 +20,10 @@ class QueueInboxContactAiSummaryTranslationAction
     use AsAction;
 
     /**
-     * 注入会话翻译供应商解析器。
+     * 注入全局翻译供应商轮询池。
      */
     public function __construct(
-        private readonly ResolveConversationTranslationProviderAction $translationProviderResolver,
+        private readonly TranslationProviderPool $translationPool,
     ) {}
 
     /**
@@ -38,7 +38,7 @@ class QueueInboxContactAiSummaryTranslationAction
             throw new NotFoundHttpException;
         }
 
-        if ($this->translationProviderResolver->forLatestContactConversation($contact) === null) {
+        if (! $this->translationPool->hasUsable()) {
             return 0;
         }
 

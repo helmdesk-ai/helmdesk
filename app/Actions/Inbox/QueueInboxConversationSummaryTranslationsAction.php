@@ -2,12 +2,12 @@
 
 namespace App\Actions\Inbox;
 
-use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxConversationSummaryTranslationsData;
 use App\Jobs\Inbox\TranslateInboxConversationSummaryJob;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Services\Localization\LocalePreference;
+use App\Services\Translation\TranslationProviderPool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -22,10 +22,10 @@ class QueueInboxConversationSummaryTranslationsAction
     use AsAction;
 
     /**
-     * 注入会话翻译供应商解析器。
+     * 注入全局翻译供应商轮询池。
      */
     public function __construct(
-        private readonly ResolveConversationTranslationProviderAction $translationProviderResolver,
+        private readonly TranslationProviderPool $translationPool,
     ) {}
 
     /**
@@ -42,7 +42,7 @@ class QueueInboxConversationSummaryTranslationsAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->translationProviderResolver->hasUsableProvider($anchor)) {
+        if (! $this->translationPool->hasUsable()) {
             return 0;
         }
 
@@ -89,10 +89,6 @@ class QueueInboxConversationSummaryTranslationsAction
             ->whereNotNull('summary')
             ->get(['id', 'contact_id', 'reception_plan_version_id', 'summary', 'summary_locale', 'summary_translations'])
             ->filter(function (Conversation $conversation) use ($user): bool {
-                if (! $this->translationProviderResolver->hasUsableProvider($conversation)) {
-                    return false;
-                }
-
                 if ($conversation->summary_locale !== null && LocalePreference::matches($conversation->summary_locale, $user->locale)) {
                     return false;
                 }

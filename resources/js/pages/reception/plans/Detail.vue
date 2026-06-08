@@ -158,7 +158,6 @@ function planMessageTranslationConfig(): MessageTranslationConfigDraft {
   return {
     enabled: plan.translation_config.enabled,
     failure_mode: plan.translation_config.failure_mode,
-    provider_id: plan.translation_config.provider_id,
   };
 }
 
@@ -499,7 +498,6 @@ function confirmRemoveMcp(): void {
             :message-translation-failure-mode-options="
               props.message_translation_failure_mode_options
             "
-            :translation-provider-options="props.translation_provider_options"
             :plan="props.plan"
           />
 

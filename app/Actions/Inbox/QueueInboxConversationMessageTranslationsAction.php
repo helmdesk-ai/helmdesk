@@ -2,7 +2,6 @@
 
 namespace App\Actions\Inbox;
 
-use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Inbox\FormQueueInboxMessageTranslationsData;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
@@ -11,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\User;
 use App\Services\Localization\LocalePreference;
+use App\Services\Translation\TranslationProviderPool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -25,10 +25,10 @@ class QueueInboxConversationMessageTranslationsAction
     use AsAction;
 
     /**
-     * 注入会话翻译供应商解析器。
+     * 注入全局翻译供应商轮询池。
      */
     public function __construct(
-        private readonly ResolveConversationTranslationProviderAction $translationProviderResolver,
+        private readonly TranslationProviderPool $translationPool,
     ) {}
 
     /**
@@ -46,7 +46,7 @@ class QueueInboxConversationMessageTranslationsAction
             throw new NotFoundHttpException;
         }
 
-        if (! $this->translationProviderResolver->hasUsableProvider($conversation)) {
+        if (! $this->translationPool->hasUsable()) {
             return 0;
         }
 

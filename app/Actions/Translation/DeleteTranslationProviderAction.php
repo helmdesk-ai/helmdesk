@@ -4,7 +4,6 @@ namespace App\Actions\Translation;
 
 use App\Enums\UserPermission;
 use App\Exceptions\BusinessException;
-use App\Models\ReceptionPlan;
 use App\Models\TranslationProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,10 +11,10 @@ use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除系统翻译供应商（仅限非内置且未被接待方案引用）。
+ * 删除系统翻译供应商（仅限非内置）。
  *
  * 内置供应商（is_builtin = true）禁止删除，因为它们由 Catalog 维护、删了会被下次设置页加载再次重建。
- * 渠道默认跟随接待方案最新版，故引用检查只看当前 reception_plans 草稿行的 translation_config.provider_id。
+ * 接待方案不再引用具体供应商（运行时按全局轮询池取用），删除一家只是缩小池子，故无需引用检查。
  */
 class DeleteTranslationProviderAction
 {
@@ -32,21 +31,7 @@ class DeleteTranslationProviderAction
             throw new BusinessException(__('translation.cannot_delete_builtin'));
         }
 
-        if ($this->isReferencedByReceptionPlan($provider->id)) {
-            throw new BusinessException(__('translation.cannot_delete_in_use'));
-        }
-
         $provider->delete();
-    }
-
-    /**
-     * 判断该供应商是否被本系统任意接待方案选用。
-     */
-    private function isReferencedByReceptionPlan(string $providerId): bool
-    {
-        return ReceptionPlan::query()
-            ->where('translation_config->provider_id', $providerId)
-            ->exists();
     }
 
     /**

@@ -26,6 +26,7 @@ class TranslationProviderFactory extends Factory
                 ['field' => 'api_key', 'label' => 'API Key', 'required' => true, 'secret' => true],
             ],
             'options' => null,
+            'is_active' => true,
             'is_builtin' => true,
             'sort_order' => 0,
         ];

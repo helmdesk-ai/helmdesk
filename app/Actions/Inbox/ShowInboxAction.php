@@ -4,7 +4,6 @@ namespace App\Actions\Inbox;
 
 use App\Actions\Contact\ShowContactConversationTimelineAction;
 use App\Actions\Conversation\GetContactConversationTagAggregatesAction;
-use App\Actions\Translation\ResolveConversationTranslationProviderAction;
 use App\Data\Conversation\ConversationContactSummaryData;
 use App\Data\Conversation\ConversationSummaryData;
 use App\Data\Conversation\ListConversationItemData;
@@ -35,6 +34,7 @@ use App\Models\Conversation;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Reception\ChannelAiAvailability;
+use App\Services\Translation\TranslationProviderPool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
@@ -60,7 +60,7 @@ class ShowInboxAction
         private readonly ShowContactConversationTimelineAction $contactTimelineAction,
         private readonly ChannelAiAvailability $aiAvailability,
         private readonly GetContactConversationTagAggregatesAction $conversationTagAggregates,
-        private readonly ResolveConversationTranslationProviderAction $translationProviderResolver,
+        private readonly TranslationProviderPool $translationPool,
     ) {}
 
     /**
@@ -605,7 +605,7 @@ class ShowInboxAction
             && $isAssignedToCurrentUser
             && $selected->inbox_status === ConversationInboxStatus::TeammateHandling;
         $releaseToAiWillUseAi = $canReleaseToAi && $this->conversationCanUseAi($selected);
-        $canTranslateMessages = $this->translationProviderResolver->hasUsableProvider($selected);
+        $canTranslateMessages = $this->translationPool->hasUsable();
 
         return new InboxSelectionData(
             conversation: ConversationSummaryData::fromModel($selected),

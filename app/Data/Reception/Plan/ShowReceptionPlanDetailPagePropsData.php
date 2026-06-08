@@ -7,7 +7,6 @@ use App\Data\EnumOptionData;
 use App\Data\Reception\ServiceScenario\PlanKnowledgeBaseOptionData;
 use App\Data\Reception\ServiceScenario\PlanMcpToolOptionData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioTemplateData;
-use App\Data\Translation\TranslationProviderOptionData;
 use Spatie\LaravelData\Data;
 
 /**
@@ -30,8 +29,6 @@ class ShowReceptionPlanDetailPagePropsData extends Data
         public array $persona_tone_options,
         /** @var EnumOptionData[] */
         public array $message_translation_failure_mode_options,
-        /** @var TranslationProviderOptionData[] */
-        public array $translation_provider_options,
         /** @var PlanKnowledgeBaseOptionData[] */
         public array $knowledge_base_options,
         /** @var PlanMcpToolOptionData[] */

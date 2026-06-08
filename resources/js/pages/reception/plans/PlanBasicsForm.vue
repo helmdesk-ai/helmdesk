@@ -28,7 +28,6 @@ import type {
   AiModelOptionData,
   EnumOptionData,
   ReceptionPlanData,
-  TranslationProviderOptionData,
 } from '@/types/generated';
 import type { InertiaForm } from '@inertiajs/vue3';
 import { AlertTriangle, ArrowDown, ArrowUp, Trash2 } from '@lucide/vue';
@@ -42,11 +41,7 @@ export type ReceptionModelCandidateDraft = {
 export type MessageTranslationConfigDraft = {
   enabled: boolean;
   failure_mode: string;
-  provider_id: string | null;
 };
-
-// 供应商 Select 的「不启用翻译」哨兵值（provider_id 为 null）
-const TRANSLATION_PROVIDER_NONE = '__none__';
 
 export type PlanBasicsFormShape = {
   name: string;
@@ -72,7 +67,6 @@ const props = defineProps<{
   llmModelOptions: AiModelOptionData[];
   personaToneOptions: EnumOptionData[];
   messageTranslationFailureModeOptions: EnumOptionData[];
-  translationProviderOptions: TranslationProviderOptionData[];
   plan: ReceptionPlanData;
   section: PlanBasicsFormSection;
 }>();
@@ -85,24 +79,6 @@ const selectedFailureModeDescription = computed(() => {
   );
   return option?.description ?? null;
 });
-
-// 把 provider_id（null 表示不翻译）映射到 Select 可用的字符串值；清空供应商时同步关闭访客侧翻译
-const selectedTranslationProviderId = computed<string>({
-  get: () =>
-    props.form.translation_config.provider_id ?? TRANSLATION_PROVIDER_NONE,
-  set: (value) => {
-    if (value === TRANSLATION_PROVIDER_NONE) {
-      props.form.translation_config.provider_id = null;
-      props.form.translation_config.enabled = false;
-      return;
-    }
-    props.form.translation_config.provider_id = value;
-  },
-});
-
-const hasTranslationProvider = computed(
-  () => props.form.translation_config.provider_id !== null,
-);
 
 const selectedReceptionModelId = computed<string>({
   get: () => props.form.reception_ai_model_id,
@@ -434,40 +410,6 @@ function translationConfigError(
       </div>
 
       <div class="grid gap-3 pt-1">
-        <div class="grid gap-2">
-          <Label for="plan_basics_message_translation_provider">
-            {{ t('翻译供应商') }}
-          </Label>
-          <Select v-model="selectedTranslationProviderId">
-            <SelectTrigger
-              id="plan_basics_message_translation_provider"
-              class="w-full"
-            >
-              <SelectValue :placeholder="t('不启用翻译')" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem :value="TRANSLATION_PROVIDER_NONE">
-                {{ t('不启用翻译') }}
-              </SelectItem>
-              <SelectItem
-                v-for="option in props.translationProviderOptions"
-                :key="option.id"
-                :value="option.id"
-                :disabled="!option.has_complete_credentials"
-              >
-                {{ option.name }}
-                <span v-if="!option.has_complete_credentials">
-                  （{{ t('凭据未配置完整') }}）
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <p class="text-xs text-muted-foreground">
-            {{ t('选择该方案用于消息翻译的供应商；不选则该方案不翻译。') }}
-          </p>
-          <InputError :message="translationConfigError('provider_id')" />
-        </div>
-
         <div class="flex items-center justify-between gap-4">
           <div class="grid gap-1">
             <Label for="plan_basics_message_translation_enabled">
@@ -476,7 +418,7 @@ function translationConfigError(
             <p class="text-xs text-muted-foreground">
               {{
                 t(
-                  '开启后，接待方案内需要发送给访客的预设文案会按访客语言发送。',
+                  '开启后，接待方案内需要发送给访客的预设文案会按访客语言发送；系统已启用且凭据完整的翻译供应商会自动轮询使用。',
                 )
               }}
             </p>
@@ -484,7 +426,6 @@ function translationConfigError(
           <Switch
             id="plan_basics_message_translation_enabled"
             v-model="props.form.translation_config.enabled"
-            :disabled="!hasTranslationProvider"
           />
         </div>
         <InputError :message="translationConfigError('enabled')" />

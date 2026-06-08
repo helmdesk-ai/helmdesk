@@ -93,7 +93,6 @@ return [
         'plan_in_use_conversation' => '当前接待方案有 :count 个会话正在使用，请等会话关闭后再删除',
         'knowledge_base_invalid' => '所选知识库存在不可用项，请重新选择',
         'mcp_tool_invalid' => '所选 MCP 工具存在不可用项，请重新选择',
-        'translation_provider_invalid' => '所选翻译供应商不可用或凭据未配置完整，请重新选择',
         'service_scenario_template_not_found' => '指定的服务场景模板不存在',
         'service_scenario_name_duplicated' => '同一方案内的服务场景名称不能重复（忽略大小写与首尾空格）',
         'auto_message_unknown_variable' => '自动回复变量不存在：:variable',

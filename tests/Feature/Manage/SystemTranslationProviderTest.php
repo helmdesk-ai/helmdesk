@@ -224,15 +224,15 @@ test('删除非内置 provider 成功', function () {
     expect(TranslationProvider::find($provider->id))->toBeNull();
 });
 
-test('被接待方案引用的 provider 不允许删除', function () {
+test('存在启用翻译的接待方案时仍可删除 provider', function () {
     $provider = TranslationProvider::factory()->create([
         'is_builtin' => false,
     ]);
+    // 接待方案不再引用具体供应商，删除非内置供应商不受方案影响。
     ReceptionPlan::factory()->create([
         'translation_config' => [
             'enabled' => true,
             'failure_mode' => 'skip',
-            'provider_id' => $provider->id,
         ],
     ]);
 
@@ -241,9 +241,9 @@ test('被接待方案引用的 provider 不允许删除', function () {
         ->from(route('admin.manage.translation.providers.index'))
         ->delete(route('admin.manage.translation.providers.destroy', ['provider' => $provider->slug,
         ]))
-        ->assertSessionHasErrors('toast');
+        ->assertSessionHasNoErrors();
 
-    expect(TranslationProvider::find($provider->id))->not->toBeNull();
+    expect(TranslationProvider::find($provider->id))->toBeNull();
 });
 
 test('内置 provider 不允许删除', function () {
@@ -259,6 +259,40 @@ test('内置 provider 不允许删除', function () {
         ->assertSessionHasErrors('toast');
 
     expect(TranslationProvider::find($provider->id))->not->toBeNull();
+});
+
+// ---------------------------------------------------------------------------
+// 启用开关
+// ---------------------------------------------------------------------------
+
+test('可以切换 provider 的启用状态', function () {
+    $provider = TranslationProvider::factory()->create(['is_active' => true]);
+
+    $this->actingAs($this->user)
+        ->from(route('admin.manage.translation.providers.index'))
+        ->put(route('admin.manage.translation.providers.toggle-active', ['provider' => $provider->slug]))
+        ->assertRedirect(route('admin.manage.translation.providers.index'));
+
+    expect($provider->fresh()->is_active)->toBeFalse();
+
+    $this->actingAs($this->user)
+        ->from(route('admin.manage.translation.providers.index'))
+        ->put(route('admin.manage.translation.providers.toggle-active', ['provider' => $provider->slug]));
+
+    expect($provider->fresh()->is_active)->toBeTrue();
+});
+
+test('无系统设置编辑权限的用户不能切换启用状态', function () {
+    $viewer = User::factory()->create([
+        'permissions' => [UserPermission::SystemSettingsView->value],
+    ]);
+    $provider = TranslationProvider::factory()->create(['is_active' => true]);
+
+    $this->actingAs($viewer)
+        ->put(route('admin.manage.translation.providers.toggle-active', ['provider' => $provider->slug]))
+        ->assertForbidden();
+
+    expect($provider->fresh()->is_active)->toBeTrue();
 });
 
 // ---------------------------------------------------------------------------

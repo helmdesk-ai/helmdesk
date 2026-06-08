@@ -12,7 +12,6 @@ return [
 
     'check_succeeded' => '翻译测试成功',
     'cannot_delete_builtin' => '内置供应商不允许删除。',
-    'cannot_delete_in_use' => '该供应商已被接待方案选用，请先在方案中改选或关闭翻译后再删除。',
     'reply_translation_required' => '请先确认发送给访客的译文。',
 
     'reception_languages' => [

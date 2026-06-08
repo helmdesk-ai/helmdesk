@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
  * resources/js/pages/systemSettings/translationProviders/Index.vue 渲染列表行。
  * credential_values 仅暴露非 secret 字段的明文；secret 字段只下发遮掩值（credential_masks），保证 API Key 不回写到前端。
  * protocol 直接以 Enum 形式下发，protocol_label 同步给出对应展示文案，避免前端手写枚举文案映射。
- * has_complete_credentials 供设置页只读 Badge 标识凭据是否已填齐（决定能否被接待方案选用）。
+ * has_complete_credentials 标识凭据是否已填齐，is_active 标识是否启用；两者皆满足才进入运行时翻译轮询池。
  */
 class TranslationProviderData extends Data
 {
@@ -33,6 +33,7 @@ class TranslationProviderData extends Data
         /** @var array<string, string> */
         public array $credential_masks,
         public bool $has_complete_credentials,
+        public bool $is_active,
         public bool $is_builtin,
         public int $sort_order,
     ) {}
@@ -77,6 +78,7 @@ class TranslationProviderData extends Data
             credential_values: $credentialValues,
             credential_masks: $credentialMasks,
             has_complete_credentials: $provider->hasCompleteCredentials(),
+            is_active: $provider->is_active,
             is_builtin: $provider->is_builtin,
             sort_order: $provider->sort_order,
         );

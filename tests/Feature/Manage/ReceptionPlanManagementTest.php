@@ -12,7 +12,6 @@ use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ReceptionPlan;
 use App\Models\ReceptionPlanVersion;
-use App\Models\TranslationProvider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -53,15 +52,6 @@ function createReceptionTestModel(AiProvider $provider, array $attributes = []):
         'is_builtin' => false,
         'sort_order' => 0,
     ], $attributes));
-}
-
-function createReceptionTestTranslationProvider(array $attributes = []): TranslationProvider
-{
-    /** @var SystemContext $systemContext */
-    $systemContext = test()->systemContext;
-
-    return TranslationProvider::factory()
-        ->create($attributes);
 }
 
 function receptionPlanStrategyPayload(array $overrides = []): array
@@ -107,10 +97,9 @@ test('接待方案访客侧文案自动翻译默认关闭', function () {
         ->toMatchArray([
             'enabled' => false,
             'failure_mode' => AutoMessageTranslationFailureMode::Skip->value,
-            'provider_id' => null,
         ])
         ->and(ReceptionMessageTranslationConfigData::fromArray(null)->enabled)->toBeFalse()
-        ->and(ReceptionMessageTranslationConfigData::fromArray(null)->provider_id)->toBeNull();
+        ->and(ReceptionMessageTranslationConfigData::fromArray(null)->failure_mode)->toBe(AutoMessageTranslationFailureMode::Skip);
 });
 
 test('超级管理员可以查看接待方案列表页', function () {
@@ -144,7 +133,6 @@ test('超级管理员可以查看接待方案列表页', function () {
             ->where('plan_list.0.name', '默认接待方案')
             ->where('plan_list.0.service_scenarios_count', 1)
             ->where('plan_list.0.translation_config.enabled', false)
-            ->where('plan_list.0.translation_config.provider_id', null)
             ->where('plan_list.0.strategy_config.quote_visitor_message_enabled', false)
             ->where('plan_list.0.reception_model_status.is_valid', true)
         );
@@ -292,7 +280,6 @@ test('超级管理员可以创建接待方案草稿', function () {
     $translationConfig = receptionPlanTranslationPayload([
         'enabled' => true,
         'failure_mode' => AutoMessageTranslationFailureMode::SendOriginal->value,
-        'provider_id' => createReceptionTestTranslationProvider()->id,
     ]);
 
     $response = $this->actingAs($this->user)
@@ -475,7 +462,6 @@ test('超级管理员可以更新接待方案草稿', function () {
     $translationConfig = receptionPlanTranslationPayload([
         'enabled' => true,
         'failure_mode' => AutoMessageTranslationFailureMode::SendOriginal->value,
-        'provider_id' => createReceptionTestTranslationProvider()->id,
     ]);
 
     $this->actingAs($this->user)

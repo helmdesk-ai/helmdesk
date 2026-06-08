@@ -41,7 +41,7 @@ class ReceptionPresetMessageTranslator
         $targetLang = $conversation->visitor_locale;
 
         try {
-            $result = $this->translateAction->translateContentForTargetLang($conversation, $content, $targetLang);
+            $result = $this->translateAction->translateContentForTargetLang($content, $targetLang);
         } catch (TranslationException $e) {
             Log::warning('接待方案预设文案翻译失败', [
                 'context' => $context,

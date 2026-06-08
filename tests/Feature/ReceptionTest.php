@@ -108,8 +108,8 @@ function createReceptionChannel(
     $plan = ReceptionPlan::factory()->create([
         'name' => '接待方案-'.Str::lower(Str::random(6)),
     ]);
-    // 翻译供应商由接待方案版本快照引用：默认给每个接待渠道挂一个可用供应商。
-    $translationProvider = TranslationProvider::factory()->create();
+    // 运行时翻译由全局轮询池取用：建一个已启用且凭据完整的供应商，让池可用。
+    TranslationProvider::factory()->create();
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $baseSnapshot['auto_messages_config'] = receptionTestDisabledAutoMessagesConfig();
     $baseSnapshot['translation_config'] = receptionMessageTranslationConfig(['enabled' => false]);
@@ -134,9 +134,6 @@ function createReceptionChannel(
     } else {
         $versionAttributes['snapshot_config'] = $baseSnapshot;
     }
-
-    // 强制把供应商写入合并后的快照，避免测试覆盖 translation_config 时丢掉 provider_id。
-    $versionAttributes['snapshot_config']['translation_config']['provider_id'] = $translationProvider->id;
 
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')

@@ -63,7 +63,7 @@ class PreviewInboxReplyTranslationAction
         }
 
         try {
-            $result = $this->translateAction->translateContentForTargetLang($conversation, $content, (string) $targetLang);
+            $result = $this->translateAction->translateContentForTargetLang($content, (string) $targetLang);
         } catch (TranslationException $e) {
             Log::warning('客服回复访客内容预览失败', [
                 'conversation_id' => $conversation->id,

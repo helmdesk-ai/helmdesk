@@ -14,19 +14,17 @@ class ReceptionMessageTranslationConfigData extends Data
     public const DEFAULT_CONFIG = [
         'enabled' => false,
         'failure_mode' => AutoMessageTranslationFailureMode::Skip->value,
-        'provider_id' => null,
     ];
 
     /**
      * 创建访客侧预设文案翻译策略。
      *
-     * provider_id 指向本系统的翻译供应商；为 null 时该方案不做任何翻译。
-     * 启用访客侧文案翻译（enabled）前必须先选定 provider_id。
+     * 不再指定具体翻译供应商：启用后由全局翻译轮询池随机取用、失败轮询（见 TranslationProviderPool）。
+     * enabled 为 false 时该方案不做任何翻译。
      */
     public function __construct(
         public bool $enabled = false,
         public AutoMessageTranslationFailureMode $failure_mode = AutoMessageTranslationFailureMode::Skip,
-        public ?string $provider_id = null,
     ) {}
 
     /**
@@ -41,12 +39,9 @@ class ReceptionMessageTranslationConfigData extends Data
         $failureMode = AutoMessageTranslationFailureMode::tryFrom((string) ($raw['failure_mode'] ?? ''))
             ?? AutoMessageTranslationFailureMode::Skip;
 
-        $providerId = $raw['provider_id'] ?? null;
-
         return new self(
             enabled: filter_var($raw['enabled'] ?? self::DEFAULT_CONFIG['enabled'], FILTER_VALIDATE_BOOLEAN),
             failure_mode: $failureMode,
-            provider_id: is_string($providerId) && filled($providerId) ? $providerId : null,
         );
     }
 
@@ -75,14 +70,13 @@ class ReceptionMessageTranslationConfigData extends Data
     /**
      * 返回可写入草稿和版本快照的数组。
      *
-     * @return array{enabled: bool, failure_mode: string, provider_id: ?string}
+     * @return array{enabled: bool, failure_mode: string}
      */
     public function toConfigArray(): array
     {
         return [
             'enabled' => $this->enabled,
             'failure_mode' => $this->failure_mode->value,
-            'provider_id' => $this->provider_id,
         ];
     }
 }

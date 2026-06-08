@@ -43,8 +43,7 @@ class TranslateConversationSummaryAction
         }
 
         try {
-            $result = $this->translateAction->translateContentForConversation(
-                conversation: $conversation,
+            $result = $this->translateAction->translateContentForTargetLang(
                 content: (string) $conversation->summary,
                 targetLang: $targetLang,
             );

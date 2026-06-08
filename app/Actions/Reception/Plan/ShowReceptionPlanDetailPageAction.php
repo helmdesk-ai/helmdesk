@@ -8,7 +8,6 @@ use App\Data\Reception\Plan\ShowReceptionPlanDetailPagePropsData;
 use App\Data\Reception\ServiceScenario\PlanKnowledgeBaseOptionData;
 use App\Data\Reception\ServiceScenario\PlanMcpToolOptionData;
 use App\Data\Reception\ServiceScenario\ServiceScenarioTemplateData;
-use App\Data\Translation\TranslationProviderOptionData;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\ReceptionPersonaTone;
 use App\Enums\UserPermission;
@@ -16,7 +15,6 @@ use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
-use App\Models\TranslationProvider;
 use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\ServiceScenarioTemplates;
 use Illuminate\Http\Request;
@@ -50,7 +48,6 @@ class ShowReceptionPlanDetailPageAction
             llm_model_options: $this->resolver->getActiveLlmModelOptions(),
             persona_tone_options: EnumOptionData::fromCases(ReceptionPersonaTone::cases()),
             message_translation_failure_mode_options: EnumOptionData::fromCases(AutoMessageTranslationFailureMode::cases()),
-            translation_provider_options: $this->buildTranslationProviderOptions(),
             knowledge_base_options: $this->buildKnowledgeBaseOptions(),
             mcp_tool_options: $this->buildMcpToolOptions(),
             service_scenario_templates: array_map(
@@ -105,20 +102,6 @@ class ShowReceptionPlanDetailPageAction
             ->orderBy('name')
             ->get()
             ->map(fn (McpTool $tool): PlanMcpToolOptionData => PlanMcpToolOptionData::fromModel($tool))
-            ->all();
-    }
-
-    /**
-     * 加载系统翻译供应商，供接待方案「信息翻译」的供应商 Select 选用。
-     *
-     * @return list<TranslationProviderOptionData>
-     */
-    private function buildTranslationProviderOptions(): array
-    {
-        return TranslationProvider::query()
-            ->orderBy('sort_order')
-            ->get()
-            ->map(fn (TranslationProvider $provider): TranslationProviderOptionData => TranslationProviderOptionData::fromModel($provider))
             ->all();
     }
 }

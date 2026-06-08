@@ -30,10 +30,10 @@ test('接待方案自动回复默认开启并使用真实初始文案', function
     expect($createPanel)->toContain('请保持友好、简洁、准确；先理解访客问题，再给出可执行答复。不确定时说明限制并询问关键信息。');
 });
 
-test('接待方案访客侧文案自动翻译默认关闭且等待选择供应商', function (): void {
+test('接待方案访客侧文案自动翻译默认关闭', function (): void {
     $createPanel = File::get(resource_path('js/pages/reception/plans/CreatePlanDialog.vue'));
 
-    expect($createPanel)->toContain("translation_config: {\n      enabled: false,\n      failure_mode: 'skip',\n      provider_id: null,\n    }");
+    expect($createPanel)->toContain("translation_config: {\n      enabled: false,\n      failure_mode: 'skip',\n    }");
 });
 
 test('接待方案编辑页底部提供保存与返回操作且默认关闭 AI 引用访客消息', function (): void {
