@@ -2,6 +2,7 @@
   文件说明：后台应用布局片段，承接侧边栏、顶部状态和系统上下文。
 -->
 <script setup lang="ts">
+import AppLogoIcon from '@/components/common/AppLogoIcon.vue';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -49,6 +50,8 @@ const isOpen = Boolean(page.props.sidebarOpen);
 const generalSettings = computed(() => page.props.generalSettings);
 const systemName = computed(() => generalSettings.value.name);
 const systemLogo = computed(() => generalSettings.value.logo_url);
+// 未上传自定义 Logo 时回退到矢量品牌组件，其 currentColor 着色可随主题自适应
+const isDefaultLogo = computed(() => !generalSettings.value.logo_id);
 
 const isExternalLink = (href: NavItem['href']) => {
   const url = toUrl(href);
@@ -90,7 +93,12 @@ const isSidebarNavItemActive = (item: SidebarShellNavItem) => {
                     <div
                       class="flex aspect-square size-12 items-center justify-center rounded-md text-sidebar-primary-foreground"
                     >
+                      <AppLogoIcon
+                        v-if="isDefaultLogo"
+                        class="size-12 text-foreground"
+                      />
                       <img
+                        v-else
                         :src="systemLogo"
                         :alt="systemName + ' Logo'"
                         class="size-12 object-contain"
