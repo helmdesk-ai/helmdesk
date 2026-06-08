@@ -57,7 +57,7 @@ function isItemActive(href: string, mode: ActiveMode = 'prefix'): boolean {
   <div class="flex flex-1 flex-col lg:flex-row">
     <aside class="w-full lg:w-50 lg:self-stretch">
       <nav
-        class="flex h-full flex-col space-y-3 border-r border-border/40 bg-card/50 px-4 pt-6 pb-4 shadow-sm backdrop-blur-sm"
+        class="flex h-full flex-col space-y-3 border-r border-border/40 bg-card/50 px-6 pt-6 pb-4 shadow-sm backdrop-blur-sm"
       >
         <div class="space-y-0.5">
           <h2 class="text-base font-medium">
