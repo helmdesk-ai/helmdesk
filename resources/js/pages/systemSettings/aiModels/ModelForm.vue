@@ -71,8 +71,7 @@ const purposeOptions = computed(() => props.purposeOptions ?? []);
 const form = useForm<ModelForm>({
   ai_provider_id:
     props.model?.ai_provider_id ?? providerOptions.value[0]?.id ?? '',
-  purpose:
-    props.model?.purpose ?? purposeOptions.value[0]?.value?.toString() ?? '',
+  purpose: props.model?.purpose ?? '',
   model_id: props.model?.model_id ?? '',
   name: props.model?.name ?? '',
   is_active: props.model?.is_active ?? true,
@@ -167,7 +166,7 @@ function submit(): void {
         @update:model-value="(value) => (form.purpose = String(value))"
       >
         <SelectTrigger class="mt-1 w-full">
-          <SelectValue />
+          <SelectValue :placeholder="t('请选择用途')" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem

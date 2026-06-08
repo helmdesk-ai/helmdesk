@@ -145,6 +145,7 @@ export default {
     'Manage models by purpose; ordering within a purpose sets primary/backup.',
   用途: 'Purpose',
   选择供应商: 'Select provider',
+  请选择用途: 'Select a purpose',
   该用途暂无模型: 'No models for this purpose',
   '删除后该模型立即移出全局取用池，且无法恢复。':
     'Once deleted, the model leaves the global pool immediately and cannot be restored.',
