@@ -60,7 +60,7 @@ function isItemActive(href: string, mode: ActiveMode = 'prefix'): boolean {
         class="flex h-full flex-col space-y-3 border-r border-border/40 bg-card/50 p-4 shadow-sm backdrop-blur-sm"
       >
         <div class="space-y-0.5">
-          <h2 class="text-xl font-semibold tracking-tight">
+          <h2 class="text-base font-medium">
             {{ t('渠道管理') }}
           </h2>
           <p class="text-sm text-muted-foreground">

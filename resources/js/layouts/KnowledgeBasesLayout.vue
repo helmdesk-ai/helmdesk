@@ -30,7 +30,7 @@ const { t } = useI18n();
         class="flex h-full flex-col border-r border-border/40 bg-card/50 shadow-sm backdrop-blur-sm"
       >
         <div class="space-y-0.5 px-4 pt-4 pb-3">
-          <h2 class="text-xl font-semibold tracking-tight">
+          <h2 class="text-base font-medium">
             {{ t('知识库') }}
           </h2>
           <p class="text-sm text-muted-foreground">
