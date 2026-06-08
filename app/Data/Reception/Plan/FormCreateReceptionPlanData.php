@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 /**
  * 创建接待方案表单数据。
  * 来自 resources/js/pages/reception/plans/Create.vue 的表单提交，后端用它做校验并写入 reception_plans 草稿。
- * 草稿字段保持扁平：基础信息、人设指引、模型配置分别提交为顶层字段。
+ * 草稿字段保持扁平：基础信息、人设指引分别提交为顶层字段；模型不再由方案选择，运行时按用途从全局池取用。
  */
 class FormCreateReceptionPlanData extends Data
 {
@@ -21,18 +21,12 @@ class FormCreateReceptionPlanData extends Data
         public string $persona_display_name,
         public string $persona_tone,
         public ?string $global_instructions,
-        public string $reception_ai_model_id,
-        public string $task_ai_model_id,
         /** @var array<string, mixed> */
         public array $strategy_config,
         /** @var array<string, array<string, mixed>> */
         public array $auto_messages_config,
         /** @var array<string, mixed> */
         public array $translation_config = [],
-        /** @var list<array<string, mixed>> */
-        public array $reception_model_candidates = [],
-        /** @var list<array<string, mixed>> */
-        public array $task_model_candidates = [],
     ) {}
 
     /**
@@ -54,14 +48,6 @@ class FormCreateReceptionPlanData extends Data
             'persona_display_name' => ['required', 'string', 'max:100', 'regex:/\S/'],
             'persona_tone' => ['required', 'string', Rule::in($toneValues)],
             'global_instructions' => ['nullable', 'string', 'max:20000'],
-            'reception_ai_model_id' => ['required', 'string'],
-            'reception_model_candidates' => ['array'],
-            'reception_model_candidates.*.ai_model_id' => ['required', 'string'],
-            'reception_model_candidates.*.priority' => ['required', 'integer', 'min:1', 'max:50'],
-            'task_ai_model_id' => ['required', 'string'],
-            'task_model_candidates' => ['array'],
-            'task_model_candidates.*.ai_model_id' => ['required', 'string'],
-            'task_model_candidates.*.priority' => ['required', 'integer', 'min:1', 'max:50'],
             'auto_messages_config' => ['required', 'array'],
             'auto_messages_config.ai_welcome.enabled' => ['required', 'boolean'],
             'auto_messages_config.ai_welcome.message' => ['present', 'nullable', 'string', 'max:1000'],

@@ -2,13 +2,21 @@
 
 use App\Actions\AiChat\SendAiAssistantMessageAction;
 use App\Actions\AiChat\StopAiAssistantMessageAction;
+use App\Actions\AiModel\CreateAiModelAction;
+use App\Actions\AiModel\DeleteAiModelAction;
+use App\Actions\AiModel\ReorderAiModelsAction;
+use App\Actions\AiModel\ShowAiModelListAction;
+use App\Actions\AiModel\ShowCreateAiModelPageAction;
+use App\Actions\AiModel\ShowEditAiModelPageAction;
+use App\Actions\AiModel\ToggleAiModelAction;
+use App\Actions\AiModel\UpdateAiModelAction;
 use App\Actions\AiProvider\CheckAiProviderAction;
-use App\Actions\AiProvider\CreateAiModelAction;
+use App\Actions\AiProvider\ClearAiProviderCredentialsAction;
 use App\Actions\AiProvider\CreateAiProviderAction;
-use App\Actions\AiProvider\DeleteAiModelAction;
 use App\Actions\AiProvider\DeleteAiProviderAction;
-use App\Actions\AiProvider\ShowSystemAiProvidersAction;
-use App\Actions\AiProvider\ToggleAiModelAction;
+use App\Actions\AiProvider\ShowAiProviderListAction;
+use App\Actions\AiProvider\ShowCreateAiProviderPageAction;
+use App\Actions\AiProvider\ShowEditAiProviderPageAction;
 use App\Actions\AiProvider\UpdateAiProviderCredentialsAction;
 use App\Actions\CannedReply\CreateCannedReplyAction;
 use App\Actions\CannedReply\DeleteCannedReplyAction;
@@ -347,16 +355,28 @@ Route::prefix('admin')->middleware(['auth', EnsureEmailIsVerifiedWhenMailEnabled
             Route::delete('/{knowledgeBase}/qa-entries/{entry}', DeleteKnowledgeQaEntryAction::class)->middleware('can:knowledge_bases.delete')->whereUlid('knowledgeBase')->whereUlid('entry')->name('admin.manage.knowledge-bases.qa-entries.destroy');
         });
 
-        // AI 供应商（系统内独立管理凭据与模型）
+        // AI 供应商（系统级，纯凭据，对齐翻译供应商；模型在「AI 模型管理」页维护）
         Route::prefix('ai/providers')->group(function () {
-            Route::get('/', ShowSystemAiProvidersAction::class)->middleware('can:system_settings.view')->name('admin.manage.ai.providers.index');
+            Route::get('/', ShowAiProviderListAction::class)->middleware('can:system_settings.view')->name('admin.manage.ai.providers.index');
+            Route::get('/create', ShowCreateAiProviderPageAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.create');
             Route::post('/', CreateAiProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.store');
-            Route::put('/{provider}', UpdateAiProviderCredentialsAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.update');
-            Route::delete('/{provider}', DeleteAiProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.destroy');
             Route::post('/{provider}/check', CheckAiProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.check');
-            Route::post('/{provider}/models', CreateAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.store');
-            Route::put('/{provider}/models/{model}/toggle', ToggleAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.toggle');
-            Route::delete('/{provider}/models/{model}', DeleteAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.destroy');
+            Route::get('/{provider}/edit', ShowEditAiProviderPageAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.edit');
+            Route::put('/{provider}', UpdateAiProviderCredentialsAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.update');
+            Route::delete('/{provider}/credentials', ClearAiProviderCredentialsAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.clear-credentials');
+            Route::delete('/{provider}', DeleteAiProviderAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.providers.destroy');
+        });
+
+        // AI 模型管理（系统级）：跨供应商 CRUD 模型，按 purpose 分组排 sort_order；运行时 AiModelPool 按此取用
+        Route::prefix('ai/models')->group(function () {
+            Route::get('/', ShowAiModelListAction::class)->middleware('can:system_settings.view')->name('admin.manage.ai.models.index');
+            Route::get('/create', ShowCreateAiModelPageAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.create');
+            Route::post('/', CreateAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.store');
+            Route::put('/order', ReorderAiModelsAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.reorder');
+            Route::get('/{model}/edit', ShowEditAiModelPageAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.edit');
+            Route::put('/{model}', UpdateAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.update');
+            Route::put('/{model}/toggle', ToggleAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.toggle');
+            Route::delete('/{model}', DeleteAiModelAction::class)->middleware('can:system_settings.edit')->name('admin.manage.ai.models.destroy');
         });
 
         // 翻译供应商（系统独立管理，给接待页消息双向翻译提供凭据；同时刻最多一家被设为默认）

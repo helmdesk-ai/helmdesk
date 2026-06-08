@@ -4,7 +4,6 @@
 import { InertiaLinkProps } from '@inertiajs/vue3';
 import type { LucideIcon } from '@lucide/vue';
 import type {
-  AiModelOptionData,
   GeneralSettingsData,
   SystemUserContextData,
   UserNotificationPreferencesData,
@@ -37,7 +36,6 @@ export type AppPageProps<T extends object = Record<string, never>> = T & {
   canAccessReceptionPlans?: boolean;
   canAccessChannels?: boolean;
   canManageSystemSettings?: boolean;
-  aiAssistantLlmModelOptions?: AiModelOptionData[];
   systemUserContext?: SystemUserContextData;
 };
 

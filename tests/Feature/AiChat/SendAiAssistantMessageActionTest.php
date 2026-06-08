@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\AiChat\SendAiAssistantMessageAction;
+use App\Enums\AiModelPurpose;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\KnowledgeBase;
@@ -17,29 +18,19 @@ uses(RefreshDatabase::class);
 
 function createAiChatTestProvider(array $attributes = []): AiProvider
 {
-    return AiProvider::query()->create(array_merge([
-        'brand' => 'custom-openai',
-        'slug' => 'test-provider-ai-chat',
-        'name' => 'Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $attributes));
+    return makeUsableAiProvider($attributes);
 }
 
+/**
+ * Seed 一个全局 AI 助手用途模型（助手对话不再由用户选模型，运行时取 assistant 用途池首个）。
+ *
+ * @param  array<string, mixed>  $attributes
+ */
 function createAiChatTestModel(AiProvider $provider, array $attributes = []): AiModel
 {
-    return AiModel::query()->create(array_merge([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Test Model',
-        'model_id' => 'gpt-4o',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $attributes));
+    $isActive = (bool) ($attributes['is_active'] ?? true);
+
+    return makeAiModel(AiModelPurpose::Assistant, $provider, $isActive);
 }
 
 test('它携带最近二十条历史消息到Go运行时', function () {
@@ -67,7 +58,7 @@ test('它携带最近二十条历史消息到Go运行时', function () {
         ->all();
     $prompt = str_repeat('p', 9000);
 
-    app(SendAiAssistantMessageAction::class)->handle($systemContext, $prompt, $history, $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, $prompt, $history);
 
     Http::assertSent(function ($request) use ($history, $prompt): bool {
         $messages = $request['messages'];
@@ -92,7 +83,6 @@ test('它拒绝过大的聊天历史来自系统路由', function () {
     $this->actingAs($user)
         ->postJson(route('admin.ai-chat.messages.store'), [
             'prompt' => 'hello',
-            'model_id' => $model->id,
             'history' => collect(range(1, 21))
                 ->map(fn (): array => ['role' => 'user', 'content' => 'hello'])
                 ->all(),
@@ -108,7 +98,7 @@ test('它拒绝空提示词在触及桥接前', function () {
 
     Http::fake();
 
-    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, "   \n\t", [], $model->id))
+    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, "   \n\t", []))
         ->toThrow(ValidationException::class);
 
     Http::assertNothingSent();
@@ -133,7 +123,7 @@ test('它转发用户提示词到Go运行时', function () {
 
     $prompt = str_repeat('a', 9000);
 
-    app(SendAiAssistantMessageAction::class)->handle($systemContext, $prompt, [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, $prompt, []);
 
     Http::assertSent(fn ($request): bool => ($request['messages'][0]['content'] ?? null) === $prompt);
 });
@@ -157,7 +147,7 @@ test('它暴露已净化错误和返回422当桥接失败时', function () {
     ]);
 
     try {
-        app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
+        app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', []);
         expect(true)->toBeFalse('Expected UnprocessableEntityHttpException');
     } catch (UnprocessableEntityHttpException $exception) {
         expect($exception->getMessage())
@@ -189,22 +179,19 @@ test('系统路由是限流到合理数字的请求每分钟', function () {
         $this->actingAs($user)
             ->postJson(route('admin.ai-chat.messages.store'), [
                 'prompt' => 'hi',
-                'model_id' => $model->id,
             ]);
     }
 
     $this->actingAs($user)
         ->postJson(route('admin.ai-chat.messages.store'), [
             'prompt' => 'hi',
-            'model_id' => $model->id,
         ])
         ->assertStatus(429);
 });
 
-test('它拒绝聊天请求且没有已选择的模型', function () {
+test('它在 assistant 用途池为空时拒绝聊天请求', function () {
+    // 助手对话不再由用户选模型：全局 assistant 用途池没有可用模型即拒绝。
     $systemContext = SystemContext::factory()->create();
-    $provider = createAiChatTestProvider();
-    createAiChatTestModel($provider);
 
     Http::fake();
 
@@ -214,14 +201,14 @@ test('它拒绝聊天请求且没有已选择的模型', function () {
     Http::assertNothingSent();
 });
 
-test('它拒绝不可用已选择模型', function () {
+test('它在 assistant 模型全部停用时拒绝聊天请求', function () {
     $systemContext = SystemContext::factory()->create();
     $provider = createAiChatTestProvider();
-    $model = createAiChatTestModel($provider, ['is_active' => false]);
+    createAiChatTestModel($provider, ['is_active' => false]);
 
     Http::fake();
 
-    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id))
+    expect(fn () => app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', []))
         ->toThrow(ValidationException::class);
 
     Http::assertNothingSent();
@@ -287,7 +274,7 @@ test('它转发已配置的 MCP 服务和工具白名单到 Go 桥接', function
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', []);
 
     Http::assertSent(function ($request) use ($configuredServer): bool {
         $mcpServers = $request['mcp_servers'] ?? null;
@@ -328,7 +315,7 @@ test('它在系统没有可用 MCP 工具时下发空数组到 Go 桥接', funct
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', []);
 
     Http::assertSent(fn ($request): bool => ($request['mcp_servers'] ?? null) === []);
 });
@@ -355,7 +342,7 @@ test('它把知识库列表下发给 Go 桥接', function () {
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', []);
 
     Http::assertSent(function ($request) use ($kb): bool {
         $bases = $request['knowledge_bases'] ?? null;
@@ -393,7 +380,7 @@ test('它把 MCP 空凭据和空请求头序列化为 JSON 对象', function () 
         ], 202),
     ]);
 
-    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', [], $model->id);
+    app(SendAiAssistantMessageAction::class)->handle($systemContext, 'hello', []);
 
     Http::assertSent(function ($request): bool {
         $payload = json_decode($request->body());

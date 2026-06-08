@@ -17,10 +17,6 @@ class SystemKnowledgeSettingsData extends Data
         public ?string $embedding_model_id,
         public ?string $embedding_model_label,
         public ?int $embedding_dimension,
-        public ?string $rerank_model_id,
-        public ?string $rerank_model_label,
-        public ?string $summary_model_id,
-        public ?string $summary_model_label,
         public bool $vector_index_enabled,
         public bool $raptor_index_enabled,
         public KnowledgeChunkingStrategy $chunking_strategy,
@@ -30,6 +26,7 @@ class SystemKnowledgeSettingsData extends Data
 
     /**
      * 从系统设置构造检索配置。
+     * 嵌入模型仍由本页 pin；重排 / 摘要模型改由全局用途池路由，此处不下发。
      */
     public static function fromSettings(KnowledgeSettings $settings): self
     {
@@ -39,10 +36,6 @@ class SystemKnowledgeSettingsData extends Data
             embedding_dimension: $settings->embedding_dimension !== null
                 ? (int) $settings->embedding_dimension
                 : null,
-            rerank_model_id: filled($settings->rerank_model_id) ? (string) $settings->rerank_model_id : null,
-            rerank_model_label: self::modelLabel($settings->rerankModel()),
-            summary_model_id: filled($settings->summary_model_id) ? (string) $settings->summary_model_id : null,
-            summary_model_label: self::modelLabel($settings->summaryModel()),
             vector_index_enabled: (bool) $settings->vector_index_enabled,
             raptor_index_enabled: (bool) $settings->raptor_index_enabled,
             chunking_strategy: $settings->chunkingStrategy(),

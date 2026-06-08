@@ -5,16 +5,6 @@
 import SendAiAssistantMessageAction from '@/actions/App/Actions/AiChat/SendAiAssistantMessageAction';
 import StopAiAssistantMessageAction from '@/actions/App/Actions/AiChat/StopAiAssistantMessageAction';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAiAssistantModels } from '@/composables/useAiAssistantModels';
 import { useI18n } from '@/composables/useI18n';
 import { useRequiredSystem } from '@/composables/useSystemContext';
 import { renderMarkdownToSafeHtml } from '@/lib/markdown';
@@ -69,13 +59,6 @@ interface StreamPayload {
   args?: string;
 }
 
-interface StoredModelSelection {
-  id: string;
-  label: string;
-  providerName: string;
-  modelId: string;
-}
-
 interface StoredPosition {
   mode: 'docked' | 'floating';
   x: number;
@@ -93,8 +76,6 @@ const messages = ref<ChatMessage[]>([]);
 const isStreaming = ref(false);
 const isStopping = ref(false);
 const currentTopic = ref<string | null>(null);
-const selectedModelId = ref('');
-const invalidStoredModelLabel = ref<string | null>(null);
 
 // --- Positioning & drag state ---
 const widgetRef = ref<HTMLDivElement | null>(null);
@@ -127,13 +108,6 @@ let currentAssistantId: string | null = null;
 let currentEventSource: EventSource | null = null;
 
 const hasMessages = computed(() => messages.value.length > 0);
-const {
-  modelOptions,
-  groupedModelOptions,
-  selectedModelStorageKey: modelStorageKey,
-} = useAiAssistantModels();
-const hasAvailableModels = computed(() => modelOptions.value.length > 0);
-const hasSelectedModel = computed(() => selectedModelId.value.trim() !== '');
 
 // --- Container positioning ---
 // Anchor the container by its bottom edge so the button stays in place
@@ -436,127 +410,6 @@ const onButtonClick = () => {
   toggleOpen();
 };
 
-const parseStoredModelSelection = (
-  raw: string | null,
-): StoredModelSelection | null => {
-  if (!raw) {
-    return null;
-  }
-
-  const parsed = JSON.parse(raw) as Partial<StoredModelSelection>;
-  if (
-    typeof parsed.id === 'string' &&
-    typeof parsed.label === 'string' &&
-    typeof parsed.providerName === 'string' &&
-    typeof parsed.modelId === 'string'
-  ) {
-    return {
-      id: parsed.id,
-      label: parsed.label,
-      providerName: parsed.providerName,
-      modelId: parsed.modelId,
-    };
-  }
-
-  throw new Error('Stored AI model selection is invalid.');
-};
-
-const clearStoredModelSelection = () => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.removeItem(modelStorageKey.value);
-};
-
-const loadStoredModelSelection = (): StoredModelSelection | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return parseStoredModelSelection(
-      window.localStorage.getItem(modelStorageKey.value),
-    );
-  } catch {
-    clearStoredModelSelection();
-    return null;
-  }
-};
-
-const selectFirstAvailableModel = (): void => {
-  const firstOption = modelOptions.value[0];
-  if (!firstOption) {
-    return;
-  }
-
-  selectedModelId.value = firstOption.value;
-  invalidStoredModelLabel.value = null;
-};
-
-const storeSelectedModel = (modelId: string) => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const option = modelOptions.value.find((item) => item.value === modelId);
-  if (!option) {
-    clearStoredModelSelection();
-    return;
-  }
-
-  const payload: StoredModelSelection = {
-    id: option.value,
-    label: option.label,
-    providerName: option.provider_name,
-    modelId: option.model_id,
-  };
-
-  window.localStorage.setItem(modelStorageKey.value, JSON.stringify(payload));
-};
-
-const syncSelectedModelFromStorage = () => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const currentSelection = selectedModelId.value.trim();
-  if (currentSelection !== '') {
-    const stillExists = modelOptions.value.some(
-      (option) => option.value === currentSelection,
-    );
-    if (stillExists) {
-      return;
-    }
-
-    const remembered = loadStoredModelSelection();
-    invalidStoredModelLabel.value =
-      remembered?.label ?? invalidStoredModelLabel.value ?? currentSelection;
-    selectedModelId.value = '';
-    clearStoredModelSelection();
-    return;
-  }
-
-  const remembered = loadStoredModelSelection();
-  if (!remembered) {
-    selectFirstAvailableModel();
-    return;
-  }
-
-  const matched = modelOptions.value.find(
-    (option) => option.value === remembered.id,
-  );
-
-  if (!matched) {
-    invalidStoredModelLabel.value = remembered.label;
-    clearStoredModelSelection();
-    return;
-  }
-
-  selectedModelId.value = matched.value;
-  invalidStoredModelLabel.value = null;
-};
-
 const closeStream = () => {
   if (currentEventSource) {
     currentEventSource.close();
@@ -853,13 +706,9 @@ const subscribeToTopic = (topic: string) => {
 
 const handleSend = async () => {
   const value = inputValue.value.trim();
-  if (!value || isStreaming.value || !hasSelectedModel.value) {
+  if (!value || isStreaming.value) {
     return;
   }
-
-  const modelLabelBeforeSend =
-    modelOptions.value.find((option) => option.value === selectedModelId.value)
-      ?.label ?? selectedModelId.value;
 
   // 先固定历史，避免把本次 user 消息重复带进 history。
   const historyPayload = buildHistoryPayload();
@@ -888,7 +737,6 @@ const handleSend = async () => {
       SendAiAssistantMessageAction.url(),
       {
         prompt: value,
-        model_id: selectedModelId.value,
         history: historyPayload,
       },
       {
@@ -912,10 +760,6 @@ const handleSend = async () => {
         | undefined;
       if (data?.errors?.prompt?.[0]) {
         errorMessage = data.errors.prompt[0];
-      } else if (data?.errors?.model_id?.[0]) {
-        errorMessage = data.errors.model_id[0];
-        invalidStoredModelLabel.value = modelLabelBeforeSend;
-        selectedModelId.value = '';
       } else if (typeof data?.message === 'string' && data.message) {
         errorMessage = data.message;
       }
@@ -971,24 +815,6 @@ watch(isOpen, (open) => {
       scrollToBottom();
     });
   }
-});
-
-watch(
-  [modelOptions, modelStorageKey],
-  () => {
-    syncSelectedModelFromStorage();
-  },
-  { immediate: true },
-);
-
-watch(selectedModelId, (value) => {
-  if (value.trim() === '') {
-    clearStoredModelSelection();
-    return;
-  }
-
-  invalidStoredModelLabel.value = null;
-  storeSelectedModel(value);
 });
 
 // --- Init position & global listeners ---
@@ -1257,33 +1083,7 @@ onBeforeUnmount(() => {
                 class="max-h-36 min-h-12 w-full resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-muted-foreground"
                 @keydown="handleKeydown"
               />
-              <div class="mt-2 flex items-end gap-2">
-                <div class="flex-1 space-y-2">
-                  <Select
-                    v-model="selectedModelId"
-                    :disabled="isStreaming || !hasAvailableModels"
-                  >
-                    <SelectTrigger class="h-9 w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup
-                        v-for="group in groupedModelOptions"
-                        :key="group.providerName"
-                      >
-                        <SelectLabel>{{ group.providerName }}</SelectLabel>
-                        <SelectItem
-                          v-for="option in group.options"
-                          :key="option.value"
-                          :value="option.value"
-                        >
-                          {{ option.label }}
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
+              <div class="mt-2 flex items-end justify-end gap-2">
                 <Button
                   size="icon"
                   :variant="isStreaming ? 'outline' : 'default'"
@@ -1296,7 +1096,7 @@ onBeforeUnmount(() => {
                   :disabled="
                     isStreaming
                       ? isStopping || !currentTopic
-                      : !inputValue.trim() || !hasSelectedModel
+                      : !inputValue.trim()
                   "
                   :aria-label="isStreaming ? t('停止生成') : t('发送')"
                   @click="isStreaming ? handleStop() : handleSend()"
@@ -1312,17 +1112,6 @@ onBeforeUnmount(() => {
                   <Send v-else class="h-3.5 w-3.5" />
                 </Button>
               </div>
-            </div>
-            <div class="mt-2 space-y-1">
-              <p
-                v-if="invalidStoredModelLabel"
-                class="text-[11px] text-amber-600"
-              >
-                {{
-                  t('你上次选择的模型已不可用，请重新选择。') +
-                  ` (${invalidStoredModelLabel})`
-                }}
-              </p>
             </div>
           </div>
         </div>

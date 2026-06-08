@@ -3,10 +3,10 @@
 namespace App\Actions\Contact;
 
 use App\Data\Contact\GeneratedContactAiSummaryData;
-use App\Enums\AiModelType;
-use App\Models\AiModel;
+use App\Enums\AiModelPurpose;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\Contact\ContactAiContext;
 use App\Services\Conversation\GoConversationSummaryBridge;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
@@ -25,10 +25,11 @@ class GenerateContactAiSummaryAction
     private const MAX_CONVERSATIONS = 12;
 
     /**
-     * 注入 Go 摘要桥接和实时通知服务。
+     * 注入 Go 摘要桥接、模型池和实时通知服务。
      */
     public function __construct(
         private readonly GoConversationSummaryBridge $bridge,
+        private readonly AiModelPool $aiModelPool,
         private readonly ReceptionRealtimeNotifier $realtimeNotifier,
     ) {}
 
@@ -117,7 +118,7 @@ class GenerateContactAiSummaryAction
     }
 
     /**
-     * 按最近会话接待模型或系统首个可用模型生成联系人摘要。
+     * 从 background_task 用途池逐个尝试模型生成联系人摘要，首个成功即返回。
      *
      * @param  list<array<string, mixed>>  $digests
      */
@@ -129,7 +130,7 @@ class GenerateContactAiSummaryAction
             ? $this->stripExistingSummaryForPrompt($context['summary'])
             : null;
 
-        foreach ($this->resolveCandidateModels($contact) as $model) {
+        foreach ($this->aiModelPool->modelsForPurpose(AiModelPurpose::BackgroundTask) as $model) {
             try {
                 return $this->bridge->generateContact(
                     provider: $model->provider,
@@ -149,78 +150,6 @@ class GenerateContactAiSummaryAction
         }
 
         throw $lastError ?? new \RuntimeException('No available contact summary model.');
-    }
-
-    /**
-     * 从最近会话版本或系统模型中解析候选模型。
-     *
-     * @return list<AiModel>
-     */
-    private function resolveCandidateModels(Contact $contact): array
-    {
-        $latest = Conversation::query()
-            ->with('receptionPlanVersion')
-            ->where('contact_id', $contact->id)
-            ->whereNotNull('reception_plan_version_id')
-            ->orderByDesc('created_at')
-            ->first();
-
-        $modelIds = [];
-        $compiled = $latest?->receptionPlanVersion?->compiled_config;
-        $receptionConfig = is_array($compiled) && is_array($compiled['reception_config'] ?? null)
-            ? $compiled['reception_config']
-            : [];
-
-        foreach (($receptionConfig['model_candidates'] ?? []) as $candidate) {
-            $modelId = is_array($candidate) && is_string($candidate['ai_model_id'] ?? null)
-                ? $candidate['ai_model_id']
-                : null;
-            if ($modelId !== null) {
-                $modelIds[$modelId] = true;
-            }
-        }
-
-        $defaultModelId = $receptionConfig['default_model']['ai_model_id'] ?? null;
-        if (is_string($defaultModelId)) {
-            $modelIds[$defaultModelId] = true;
-        }
-
-        $models = AiModel::query()
-            ->with('provider')
-            ->whereIn('id', array_keys($modelIds))
-            ->where('type', AiModelType::Llm->value)
-            ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query): void {
-                $query
-                    ->where('is_active', true);
-            })
-            ->get()
-            ->keyBy('id');
-
-        $ordered = [];
-        foreach (array_keys($modelIds) as $modelId) {
-            $model = $models->get($modelId);
-            if ($model instanceof AiModel) {
-                $ordered[] = $model;
-            }
-        }
-
-        if ($ordered !== []) {
-            return $ordered;
-        }
-
-        $fallback = AiModel::query()
-            ->with('provider')
-            ->where('type', AiModelType::Llm->value)
-            ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query): void {
-                $query
-                    ->where('is_active', true);
-            })
-            ->orderBy('sort_order')
-            ->first();
-
-        return $fallback instanceof AiModel ? [$fallback] : [];
     }
 
     /**

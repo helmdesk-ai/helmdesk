@@ -8,8 +8,6 @@ return new class extends SettingsMigration
     public function up(): void
     {
         $this->migrator->add('knowledge.embedding_model_id', null);
-        $this->migrator->add('knowledge.rerank_model_id', null);
-        $this->migrator->add('knowledge.summary_model_id', null);
         $this->migrator->add('knowledge.embedding_dimension', null);
         $this->migrator->add('knowledge.vector_index_enabled', false);
         $this->migrator->add('knowledge.raptor_index_enabled', false);
@@ -21,8 +19,6 @@ return new class extends SettingsMigration
     public function down(): void
     {
         $this->migrator->delete('knowledge.embedding_model_id');
-        $this->migrator->delete('knowledge.rerank_model_id');
-        $this->migrator->delete('knowledge.summary_model_id');
         $this->migrator->delete('knowledge.embedding_dimension');
         $this->migrator->delete('knowledge.vector_index_enabled');
         $this->migrator->delete('knowledge.raptor_index_enabled');

@@ -4,10 +4,12 @@ namespace App\Actions\KnowledgeBase;
 
 use App\Data\KnowledgeBase\FormKnowledgeSearchData;
 use App\Data\KnowledgeBase\KnowledgeSearchResultData;
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeIndexingStrategy;
 use App\Exceptions\BusinessException;
 use App\Models\KnowledgeBase;
 use App\Models\SystemContext;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\KnowledgeBase\Search\ContextExpander;
 use App\Services\KnowledgeBase\Search\FullTextRetriever;
 use App\Services\KnowledgeBase\Search\GrepRetriever;
@@ -59,6 +61,7 @@ class SearchKnowledgeBaseAction
         private readonly HybridFuser $hybridFuser,
         private readonly KnowledgeReranker $reranker,
         private readonly ContextExpander $contextExpander,
+        private readonly AiModelPool $aiModelPool,
     ) {}
 
     /**
@@ -180,8 +183,7 @@ class SearchKnowledgeBaseAction
             self::RETRIEVER_TOP_K,
         );
 
-        $rerankModel = $systemContext->knowledgeRerankModel;
-        if ($rerankModel !== null && $rerankModel->provider !== null) {
+        if ($this->aiModelPool->hasUsable(AiModelPurpose::Rerank)) {
             $debug['rerank_enabled'] = true;
             $rerankResult = $this->reranker->rerank($systemContext, $queries[0], $fused, self::SEMANTIC_TOP_K);
             $debug['rerank_applied'] = $rerankResult->applied;

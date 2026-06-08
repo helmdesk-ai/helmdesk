@@ -20,11 +20,9 @@ use JsonException;
  * @property string $brand
  * @property string $slug
  * @property string $name
- * @property AiProviderProtocol $protocol
- * @property string|null $icon
- * @property array $credential_fields
- * @property bool $is_builtin
- * @property int $sort_order
+ * @property AiProviderProtocol $protocol 底层调用协议：openai / anthropic / gemini，各品牌最终映射到这三种原生通道之一
+ * @property string|null $icon 图标标识或 URL，缺省时按 brand 取默认图标
+ * @property array $credential_fields 凭据表单字段定义：field/label/secret 等，用于动态渲染设置页
  * @property ?array $credentials
  * @property int|null $models_count
  * @property-read Collection|AiModel[] $models
@@ -32,7 +30,9 @@ use JsonException;
 class AiProvider extends Model
 {
     /**
-     * AI 供应商模型，保存协议、凭据字段、图标和连接配置。
+     * 全局 AI 供应商模型，保存协议、凭据字段、图标和连接配置。
+     *
+     * 系统级、跨工作区共享；工作区不再配置供应商，运行时由模型用途池按需取用其下模型。
      */
     use HasUlids;
 
@@ -45,8 +45,34 @@ class AiProvider extends Model
         return [
             'protocol' => AiProviderProtocol::class,
             'credential_fields' => 'array',
-            'is_builtin' => 'boolean',
         ];
+    }
+
+    /**
+     * 判断该供应商的所有必填凭据是否都已填写。
+     *
+     * 运行时模型用途池筛选可用模型时，会要求其所属供应商凭据完整。
+     */
+    public function hasCompleteCredentials(): bool
+    {
+        $credentials = $this->credentials;
+
+        foreach ($this->credential_fields as $field) {
+            if (! ($field['required'] ?? false)) {
+                continue;
+            }
+
+            $fieldName = $field['field'] ?? null;
+            if (! is_string($fieldName)) {
+                continue;
+            }
+
+            if (! is_array($credentials) || blank($credentials[$fieldName] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

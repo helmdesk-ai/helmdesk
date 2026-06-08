@@ -74,14 +74,4 @@ class ReceptionPlan extends Model
     {
         return $this->hasMany(ReceptionPlanVersion::class);
     }
-
-    /**
-     * 把表单字段拼成设置块中的 default_model 结构。
-     *
-     * @return array<string, mixed>
-     */
-    public static function buildModelInvocation(string $aiModelId): array
-    {
-        return ['ai_model_id' => $aiModelId];
-    }
 }

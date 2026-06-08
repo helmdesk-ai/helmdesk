@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Reception\Plan\CompileReceptionPlanAction;
+use App\Enums\AiModelPurpose;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
 use App\Models\AiProvider;
@@ -21,44 +22,25 @@ beforeEach(function () {
 
 function createCapabilityTestProvider(array $attributes = []): AiProvider
 {
-    return AiProvider::query()->create(array_merge([
-        'brand' => 'custom-openai',
-        'slug' => 'capability-test-provider',
-        'name' => 'Capability Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $attributes));
+    return makeUsableAiProvider($attributes);
 }
 
+/**
+ * Seed 一个全局接待对话 LLM 模型（模型已全局化，运行时按用途取用）。
+ *
+ * @param  array<string, mixed>  $attributes
+ */
 function createCapabilityTestModel(AiProvider $provider, array $attributes = []): AiModel
 {
-    return AiModel::query()->create(array_merge([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Capability Test Model',
-        'model_id' => 'gpt-4o',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $attributes));
+    return makeAiModel(AiModelPurpose::ReceptionChat, $provider);
 }
 
 function createCapabilityTestPlan(array $attributes = []): ReceptionPlan
 {
-    $provider = createCapabilityTestProvider();
-    $model = createCapabilityTestModel($provider);
+    // 模型已全局化：seed 一个全局可用模型，方案本身不再存模型。
+    createCapabilityTestModel(createCapabilityTestProvider());
 
-    return ReceptionPlan::factory()->create(array_merge([
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-    ], $attributes));
+    return ReceptionPlan::factory()->create($attributes);
 }
 
 /**
@@ -74,31 +56,14 @@ function receptionPlanUpdatePayload(
     array $mcpToolIds = [],
 ): array {
     $persona = is_array($plan->persona_config) ? $plan->persona_config : [];
-    $receptionConfig = is_array($plan->reception_config) ? $plan->reception_config : [];
-    $receptionModel = isset($receptionConfig['default_model']) && is_array($receptionConfig['default_model'])
-        ? $receptionConfig['default_model']
-        : [];
-    $taskConfig = is_array($plan->task_config) ? $plan->task_config : [];
-    $taskModel = isset($taskConfig['default_model']) && is_array($taskConfig['default_model'])
-        ? $taskConfig['default_model']
-        : null;
 
+    // 模型已全局化：更新方案不再提交模型字段，只提交人设 / 服务场景 / KB / MCP / 策略等配置。
     return [
         'name' => $plan->name,
         'description' => $plan->description,
         'persona_display_name' => $persona['display_name'],
         'persona_tone' => $persona['tone'],
         'global_instructions' => $plan->global_instructions,
-        'reception_ai_model_id' => $receptionModel['ai_model_id'] ?? '',
-        'reception_model_candidates' => array_values(array_filter(
-            $receptionConfig['model_candidates'] ?? [],
-            fn (array $candidate): bool => ($candidate['priority'] ?? 0) > 0,
-        )),
-        'task_ai_model_id' => $taskModel['ai_model_id'] ?? '',
-        'task_model_candidates' => array_values(array_filter(
-            $taskConfig['model_candidates'] ?? [],
-            fn (array $candidate): bool => ($candidate['priority'] ?? 0) > 0,
-        )),
         'service_scenarios' => $serviceScenarios,
         'knowledge_base_ids' => $knowledgeBaseIds,
         'mcp_tool_ids' => $mcpToolIds,
@@ -263,10 +228,6 @@ test('单租户下超级管理员可以更新任意方案', function () {
     $foreignProvider = createCapabilityTestProvider(['slug' => 'foreign-provider']);
     $foreignModel = createCapabilityTestModel($foreignProvider);
     $foreignPlan = ReceptionPlan::factory()->create([
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $foreignModel->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $foreignModel->id]],
     ]);
 
     $this->actingAs($this->user)
@@ -285,10 +246,6 @@ test('编译方案时服务场景写入 compiled_config，方案级 KB 作为快
 
     $plan = ReceptionPlan::factory()->create([
         'name' => '含服务场景方案',
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
         'knowledge_base_ids' => [$kb->id],
         'capabilities' => [
             ['name' => '订单查询', 'description' => '订单类问题', 'instructions' => '你是订单查询专员'],
@@ -383,10 +340,6 @@ test('编译方案时方案级 MCP 工具写入 compiled_config 快照', functio
 
     $plan = ReceptionPlan::factory()->create([
         'name' => '含工具方案',
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
         'always_on_tools' => [$tool->id],
         'capabilities' => [
             ['name' => '订单查询', 'description' => '订单类问题', 'instructions' => '使用 lookup_order 工具'],
@@ -409,10 +362,6 @@ test('编译时方案级引用悬空 MCP 工具会抛 BusinessException', functi
     $model = createCapabilityTestModel($provider);
 
     $plan = ReceptionPlan::factory()->create([
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
         'always_on_tools' => ['01H00000000000000000000000'],
         'capabilities' => [
             ['name' => '订单查询', 'description' => '', 'instructions' => ''],
@@ -430,10 +379,6 @@ test('编译时方案级引用不可用 MCP 工具会抛 BusinessException', fun
     $tool = McpTool::factory()->removed()->for($server, 'server')->create();
 
     $plan = ReceptionPlan::factory()->create([
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
         'always_on_tools' => [$tool->id],
         'capabilities' => [
             ['name' => '订单查询', 'description' => '', 'instructions' => ''],
@@ -451,10 +396,6 @@ test('编译时方案级引用任意可用 MCP 工具会写入快照', function 
     $tool = McpTool::factory()->for($server, 'server')->create();
 
     $plan = ReceptionPlan::factory()->create([
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
         'always_on_tools' => [$tool->id],
         'capabilities' => [
             ['name' => '订单查询', 'description' => '', 'instructions' => ''],
@@ -471,10 +412,6 @@ test('编译时方案级引用悬空知识库会抛 BusinessException', function
     $model = createCapabilityTestModel($provider);
 
     $plan = ReceptionPlan::factory()->create([
-        'reception_config' => [
-            'default_model' => ['ai_model_id' => $model->id],
-        ],
-        'task_config' => ['default_model' => ['ai_model_id' => $model->id]],
         'knowledge_base_ids' => ['01H00000000000000000000000'],
         'capabilities' => [
             ['name' => '常见问题', 'description' => '', 'instructions' => ''],

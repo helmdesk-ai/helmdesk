@@ -35,8 +35,12 @@ test('列表空状态使用暂无对象名短文案', function (): void {
         ],
         'pages/systemSettings/aiProviders/Index.vue' => [
             'expected' => [
-                "t('暂无模型')",
                 "t('暂无供应商')",
+            ],
+        ],
+        'pages/systemSettings/aiModels/List.vue' => [
+            'expected' => [
+                "t('该用途暂无模型')",
             ],
         ],
         'pages/systemSettings/mcpServers/Index.vue' => [

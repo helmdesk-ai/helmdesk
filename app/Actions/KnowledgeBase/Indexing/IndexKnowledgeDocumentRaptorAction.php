@@ -2,6 +2,7 @@
 
 namespace App\Actions\KnowledgeBase\Indexing;
 
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeDocumentIndexingStatus;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeIndexingStrategy;
@@ -12,6 +13,7 @@ use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
 use App\Models\SystemContext;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use App\Services\KnowledgeBase\KnowledgeEmbeddingService;
 use App\Services\KnowledgeBase\KnowledgeNodeRepository;
@@ -54,6 +56,7 @@ class IndexKnowledgeDocumentRaptorAction
         private readonly GoKnowledgeBridge $bridge,
         private readonly KnowledgeEmbeddingService $embedder,
         private readonly KnowledgeNodeRepository $nodes,
+        private readonly AiModelPool $aiModelPool,
     ) {}
 
     /**
@@ -73,7 +76,7 @@ class IndexKnowledgeDocumentRaptorAction
             return;
         }
 
-        $summaryModel = $systemContext->knowledgeSummaryModel;
+        $summaryModel = $this->aiModelPool->firstForPurpose(AiModelPurpose::Summary);
         if ($summaryModel === null || $summaryModel->provider === null) {
             throw new BusinessException(__('knowledge_base.messages.invalid_summary_model'));
         }

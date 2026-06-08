@@ -28,7 +28,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -39,7 +38,6 @@ import {
   useAttachmentUploader,
 } from '@/composables/useAttachmentUploader';
 import { useDateTime } from '@/composables/useDateTime';
-import { useAiAssistantModels } from '@/composables/useAiAssistantModels';
 import { useI18n } from '@/composables/useI18n';
 import { useInboxAutoTranslate } from '@/composables/useInboxAutoTranslate';
 import { useInboxSummaryAutoTranslate } from '@/composables/useInboxSummaryAutoTranslate';
@@ -88,7 +86,6 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
-  SlidersHorizontal,
   Smile,
   Sparkles,
   Star,
@@ -115,24 +112,12 @@ const systemUserContext = computed(() => page.props.systemUserContext);
 const isCurrentUserOffline = computed(
   () => Number(systemUserContext.value?.user_online_status?.value) === 0,
 );
-interface StoredAiModelSelection {
-  id: string;
-  label: string;
-  providerName: string;
-  modelId: string;
-}
-
 type StringEnumOptionData = {
   value: string;
   label: string;
   description: string | null;
 };
 
-const {
-  modelOptions: aiModelOptions,
-  groupedModelOptions: groupedAiModelOptions,
-  selectedModelStorageKey: aiAssistantModelStorageKey,
-} = useAiAssistantModels();
 const replyPolishToneStorageKey = computed(
   () => `helmdesk.inbox.reply-polish-tone:${currentSystem.value.id}`,
 );
@@ -596,9 +581,7 @@ const cannedReplyPickerRef = ref<InstanceType<typeof CannedReplyPicker> | null>(
   null,
 );
 const replyPolishOpen = ref(false);
-const replyPolishSettingsOpen = ref(false);
 const replyPolishSelectedMode = ref('');
-const replyPolishSelectedModelId = ref('');
 const replyPolishSelectedTone = ref('');
 const replyPolishCandidates = ref<InboxReplyPolishCandidateData[]>([]);
 const replyPolishCandidateCache = ref<
@@ -1009,12 +992,6 @@ watch(replyTranslationDraft, () => {
 });
 
 watch(
-  [aiModelOptions, aiAssistantModelStorageKey],
-  () => syncReplyPolishModelSelection(),
-  { immediate: true },
-);
-
-watch(
   [replyPolishToneOptions, replyPolishToneStorageKey],
   () => syncReplyPolishToneSelection(),
   { immediate: true },
@@ -1025,17 +1002,6 @@ watch(replyAssistantModeOptions, () => syncReplyAssistantModeSelection(), {
 });
 
 watch(replyPolishSelectedMode, () => {
-  scheduleReplyPolish();
-});
-
-watch(replyPolishSelectedModelId, (value) => {
-  if (value.trim() === '') {
-    clearStoredAiModelSelection();
-    scheduleReplyPolish();
-    return;
-  }
-
-  storeReplyPolishModelSelection(value);
   scheduleReplyPolish();
 });
 
@@ -1058,7 +1024,6 @@ watch(replyPolishOpen, (open) => {
     return;
   }
 
-  replyPolishSettingsOpen.value = false;
   cancelReplyPolishRequest();
 });
 
@@ -1121,12 +1086,6 @@ const visiblePendingReplyUploads = computed(() => {
 });
 
 const replyAttachmentError = computed(() => replyForm.errors.attachment_ids);
-const hasAvailableReplyPolishModels = computed(
-  () => aiModelOptions.value.length > 0,
-);
-const hasSelectedReplyPolishModel = computed(
-  () => replyPolishSelectedModelId.value.trim() !== '',
-);
 const hasSelectedReplyPolishTone = computed(() =>
   replyPolishToneOptions.value.some(
     (option) => option.value === replyPolishSelectedTone.value,
@@ -1140,19 +1099,12 @@ const hasSelectedReplyAssistantMode = computed(() =>
 const canUseReplyPolish = computed(
   () =>
     !isReplyActionDisabled.value &&
-    hasSelectedReplyPolishModel.value &&
     hasSelectedReplyAssistantMode.value &&
     hasSelectedReplyPolishTone.value,
 );
 const replyPolishButtonTitle = computed(() => {
   if (!props.selection?.can_reply) {
     return t('当前会话不可回复');
-  }
-  if (!hasAvailableReplyPolishModels.value) {
-    return t('请先配置可用 AI 模型');
-  }
-  if (!hasSelectedReplyPolishModel.value) {
-    return t('请选择模型后再润色');
   }
   if (!hasSelectedReplyAssistantMode.value) {
     return t('请选择助手模式');
@@ -1202,109 +1154,6 @@ function submitReply(): void {
         },
       },
     );
-}
-
-function parseStoredAiModelSelection(
-  raw: string | null,
-): StoredAiModelSelection | null {
-  if (!raw) {
-    return null;
-  }
-
-  const parsed = JSON.parse(raw) as Partial<StoredAiModelSelection>;
-  if (
-    typeof parsed.id === 'string' &&
-    typeof parsed.label === 'string' &&
-    typeof parsed.providerName === 'string' &&
-    typeof parsed.modelId === 'string'
-  ) {
-    return {
-      id: parsed.id,
-      label: parsed.label,
-      providerName: parsed.providerName,
-      modelId: parsed.modelId,
-    };
-  }
-
-  throw new Error('Stored AI model selection is invalid.');
-}
-
-function clearStoredAiModelSelection(): void {
-  if (typeof window === 'undefined') return;
-
-  window.localStorage.removeItem(aiAssistantModelStorageKey.value);
-}
-
-function loadStoredAiModelSelection(): StoredAiModelSelection | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return parseStoredAiModelSelection(
-      window.localStorage.getItem(aiAssistantModelStorageKey.value),
-    );
-  } catch {
-    clearStoredAiModelSelection();
-
-    return null;
-  }
-}
-
-function storeReplyPolishModelSelection(modelId: string): void {
-  if (typeof window === 'undefined') return;
-
-  const option = aiModelOptions.value.find((item) => item.value === modelId);
-  if (!option) {
-    clearStoredAiModelSelection();
-    return;
-  }
-
-  const payload: StoredAiModelSelection = {
-    id: option.value,
-    label: option.label,
-    providerName: option.provider_name,
-    modelId: option.model_id,
-  };
-
-  window.localStorage.setItem(
-    aiAssistantModelStorageKey.value,
-    JSON.stringify(payload),
-  );
-}
-
-function selectFirstReplyPolishModel(): void {
-  const firstOption = aiModelOptions.value[0];
-  if (!firstOption) {
-    replyPolishSelectedModelId.value = '';
-    return;
-  }
-
-  replyPolishSelectedModelId.value = firstOption.value;
-}
-
-function syncReplyPolishModelSelection(): void {
-  const current = replyPolishSelectedModelId.value.trim();
-  if (
-    current !== '' &&
-    aiModelOptions.value.some((option) => option.value === current)
-  ) {
-    return;
-  }
-
-  const remembered = loadStoredAiModelSelection();
-  if (remembered) {
-    const matched = aiModelOptions.value.find(
-      (option) => option.value === remembered.id,
-    );
-    if (matched) {
-      replyPolishSelectedModelId.value = matched.value;
-      return;
-    }
-    clearStoredAiModelSelection();
-  }
-
-  selectFirstReplyPolishModel();
 }
 
 function clearStoredReplyPolishTone(): void {
@@ -1409,9 +1258,6 @@ function resolveReplyPolishError(error: unknown): string {
     if (data?.errors?.content?.[0]) {
       return data.errors.content[0];
     }
-    if (data?.errors?.model_id?.[0]) {
-      return data.errors.model_id[0];
-    }
     if (data?.errors?.tone?.[0]) {
       return data.errors.tone[0];
     }
@@ -1427,18 +1273,10 @@ function buildReplyPolishSignature(
   conversationId: string,
   mode: string,
   source: string,
-  modelId: string,
   tone: string,
   quotedMessageId: string | null,
 ): string {
-  return JSON.stringify([
-    conversationId,
-    mode,
-    source,
-    modelId,
-    tone,
-    quotedMessageId,
-  ]);
+  return JSON.stringify([conversationId, mode, source, tone, quotedMessageId]);
 }
 
 function cloneReplyPolishCandidates(
@@ -1480,7 +1318,6 @@ function scheduleReplyPolish(force = false): void {
   const conversation = props.selection?.conversation;
   const mode = replyPolishSelectedMode.value.trim();
   const source = replyForm.content.trim();
-  const modelId = replyPolishSelectedModelId.value.trim();
   const tone = replyPolishSelectedTone.value.trim();
   const quotedMessageId = replyQuote.value?.id ?? null;
 
@@ -1488,7 +1325,6 @@ function scheduleReplyPolish(force = false): void {
     !replyPolishOpen.value ||
     !conversation ||
     !mode ||
-    !modelId ||
     !hasSelectedReplyAssistantMode.value ||
     !hasSelectedReplyPolishTone.value
   ) {
@@ -1511,7 +1347,6 @@ function scheduleReplyPolish(force = false): void {
     conversation.id,
     mode,
     source,
-    modelId,
     tone,
     quotedMessageId,
   );
@@ -1551,7 +1386,6 @@ function scheduleReplyPolish(force = false): void {
       conversation.id,
       mode,
       source,
-      modelId,
       tone,
       quotedMessageId,
       signature,
@@ -1563,7 +1397,6 @@ async function requestReplyPolish(
   conversationId: string,
   mode: string,
   source: string,
-  modelId: string,
   tone: string,
   quotedMessageId: string | null,
   signature: string,
@@ -1585,7 +1418,6 @@ async function requestReplyPolish(
       {
         mode,
         content: source,
-        model_id: modelId,
         tone,
         quoted_message_id: quotedMessageId,
       },
@@ -3263,60 +3095,6 @@ const currentInboxView = computed<InboxView>(
                             >
                               <RefreshCw class="size-4" />
                             </Button>
-                            <Popover v-model:open="replyPolishSettingsOpen">
-                              <PopoverTrigger as-child>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  class="size-7 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                                  :aria-label="t('设置')"
-                                  :title="t('设置')"
-                                >
-                                  <SlidersHorizontal class="size-4" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                class="w-72 p-3"
-                                align="end"
-                                side="bottom"
-                              >
-                                <div class="space-y-2">
-                                  <div
-                                    class="text-xs font-medium text-muted-foreground"
-                                  >
-                                    {{ t('模型') }}
-                                  </div>
-                                  <Select
-                                    v-model="replyPolishSelectedModelId"
-                                    :disabled="!hasAvailableReplyPolishModels"
-                                  >
-                                    <SelectTrigger class="h-9 w-full">
-                                      <SelectValue
-                                        :placeholder="t('请选择模型后再润色')"
-                                      />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectGroup
-                                        v-for="group in groupedAiModelOptions"
-                                        :key="group.providerName"
-                                      >
-                                        <SelectLabel>{{
-                                          group.providerName
-                                        }}</SelectLabel>
-                                        <SelectItem
-                                          v-for="option in group.options"
-                                          :key="option.value"
-                                          :value="option.value"
-                                        >
-                                          {{ option.label }}
-                                        </SelectItem>
-                                      </SelectGroup>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
                           </div>
                         </div>
 

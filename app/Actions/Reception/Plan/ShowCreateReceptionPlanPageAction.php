@@ -6,7 +6,6 @@ use App\Data\EnumOptionData;
 use App\Data\Reception\Plan\CreateReceptionPlanPagePropsData;
 use App\Enums\ReceptionPersonaTone;
 use App\Enums\UserPermission;
-use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -15,15 +14,11 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * 渲染创建接待方案页（Create.vue）。
- * 仅提供基础信息表单所需的模型与语气风格选项；其余配置在创建后于详情页完善。
+ * 仅提供基础信息表单所需的语气风格选项；模型不再由方案选择，其余配置在创建后于详情页完善。
  */
 class ShowCreateReceptionPlanPageAction
 {
     use AsAction;
-
-    public function __construct(
-        private readonly AiModelResolver $resolver,
-    ) {}
 
     /**
      * 组装创建页表单选项。
@@ -31,7 +26,6 @@ class ShowCreateReceptionPlanPageAction
     public function handle(): CreateReceptionPlanPagePropsData
     {
         return new CreateReceptionPlanPagePropsData(
-            llm_model_options: $this->resolver->getActiveLlmModelOptions(),
             persona_tone_options: EnumOptionData::fromCases(ReceptionPersonaTone::cases()),
         );
     }

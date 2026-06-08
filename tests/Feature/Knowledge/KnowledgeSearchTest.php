@@ -6,45 +6,28 @@ use App\Actions\KnowledgeBase\SearchKnowledgeBaseAction;
 use App\Actions\Native\Knowledge\KnowledgeSearchBridgeAction;
 use App\Data\KnowledgeBase\FormCreateKnowledgeQaEntryData;
 use App\Data\KnowledgeBase\FormKnowledgeSearchData;
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeBaseCategory;
 use App\Enums\KnowledgeDocumentIndexingStatus;
 use App\Enums\KnowledgeDocumentParseStatus;
 use App\Enums\KnowledgeSearchMode;
 use App\Exceptions\BusinessException;
-use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeQaEntry;
 use App\Services\KnowledgeBase\GoKnowledgeBridge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\WithSystemContext;
 
 uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function (): void {
     $this->user = $this->createUserWithSystem();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'kb-search-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Search Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $this->embeddingModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'kb-search-embedding-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Search Embedding',
-        'type' => 'embedding',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // pin 一个全局可用 embedding 模型；默认关向量/RAPTOR，个别用例自行开启。
+    $this->embeddingModel = makeAiModel(AiModelPurpose::Embedding);
     $this->systemContext->update([
         'knowledge_embedding_model_id' => $this->embeddingModel->id,
+        'knowledge_embedding_dimension' => 3,
         'knowledge_vector_index_enabled' => false,
         'knowledge_raptor_index_enabled' => false,
     ]);
@@ -381,27 +364,8 @@ test('SearchKnowledgeBaseAction 在 rerank 桥失败时 debug.rerank_applied=fal
         "# 产品手册\n\n工单流程包含创建、流转、关闭三个阶段。",
     );
 
-    // 配置 rerank 模型，让 SearchKnowledgeBaseAction 进入 rerank 分支。
-    $rerankProvider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'rerank-'.Str::lower((string) Str::ulid()),
-        'name' => 'Rerank Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'credentials' => ['key' => 'sk-test'],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $rerankModel = AiModel::query()->create([
-        'ai_provider_id' => $rerankProvider->id,
-        'model_id' => 'rerank-'.Str::lower((string) Str::ulid()),
-        'name' => 'Rerank Model',
-        'type' => 'rerank',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $this->systemContext->update(['knowledge_rerank_model_id' => $rerankModel->id]);
+    // seed 一个全局可用 rerank 模型，让 SearchKnowledgeBaseAction 进入 rerank 分支。
+    makeAiModel(AiModelPurpose::Rerank);
 
     $this->mock(GoKnowledgeBridge::class, function ($mock): void {
         $mock->shouldReceive('rerank')->andThrow(new RuntimeException('rerank upstream down'));
@@ -426,26 +390,7 @@ test('SearchKnowledgeBaseAction 在 rerank 桥成功时 debug.rerank_applied=tru
         "# 第一段\n\n工单流程包含创建、流转、关闭三个阶段。\n\n# 第二段\n\n知识库问答覆盖常见问题。\n\n# 第三段\n\n联系客服。",
     );
 
-    $rerankProvider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'rerank-ok-'.Str::lower((string) Str::ulid()),
-        'name' => 'Rerank Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'credentials' => ['key' => 'sk-test'],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $rerankModel = AiModel::query()->create([
-        'ai_provider_id' => $rerankProvider->id,
-        'model_id' => 'rerank-ok-'.Str::lower((string) Str::ulid()),
-        'name' => 'Rerank Model',
-        'type' => 'rerank',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $this->systemContext->update(['knowledge_rerank_model_id' => $rerankModel->id]);
+    makeAiModel(AiModelPurpose::Rerank);
 
     // Mock：把最后一条命中分数压高；命中顺序按 rerank 分数重排时，它应该升到第一位。
     $this->mock(GoKnowledgeBridge::class, function ($mock): void {

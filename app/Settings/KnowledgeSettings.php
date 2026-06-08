@@ -13,19 +13,9 @@ use Spatie\LaravelSettings\Settings;
 class KnowledgeSettings extends Settings
 {
     /**
-     * 向量索引使用的 Embedding 模型 ID。
+     * 向量索引使用的 Embedding 模型 ID（pin 配置；rerank / summary 改由全局用途池路由）。
      */
     public ?string $embedding_model_id;
-
-    /**
-     * 重排阶段使用的模型 ID。
-     */
-    public ?string $rerank_model_id;
-
-    /**
-     * RAPTOR 摘要阶段使用的 LLM 模型 ID。
-     */
-    public ?string $summary_model_id;
 
     /**
      * 当前向量维度。
@@ -102,32 +92,12 @@ class KnowledgeSettings extends Settings
     }
 
     /**
-     * 返回配置中的 Embedding 模型。
+     * 返回配置中 pin 的 Embedding 模型。
      */
     public function embeddingModel(): ?AiModel
     {
         return filled($this->embedding_model_id)
             ? AiModel::query()->with('provider')->find($this->embedding_model_id)
-            : null;
-    }
-
-    /**
-     * 返回配置中的重排模型。
-     */
-    public function rerankModel(): ?AiModel
-    {
-        return filled($this->rerank_model_id)
-            ? AiModel::query()->with('provider')->find($this->rerank_model_id)
-            : null;
-    }
-
-    /**
-     * 返回配置中的摘要模型。
-     */
-    public function summaryModel(): ?AiModel
-    {
-        return filled($this->summary_model_id)
-            ? AiModel::query()->with('provider')->find($this->summary_model_id)
             : null;
     }
 }

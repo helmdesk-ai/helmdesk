@@ -8,7 +8,6 @@ use App\Data\SimplePaginationData;
 use App\Enums\UserPermission;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
-use App\Services\AiRuntime\AiModelResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -29,10 +28,6 @@ class ShowReceptionPlanIndexPageAction
      */
     private const PER_PAGE = 15;
 
-    public function __construct(
-        private readonly AiModelResolver $resolver,
-    ) {}
-
     /**
      * 组装列表页 props：分页的活跃方案。
      */
@@ -49,7 +44,7 @@ class ShowReceptionPlanIndexPageAction
 
         return new ShowReceptionPlanListPagePropsData(
             plan_list: $plans
-                ->map(fn (ReceptionPlan $plan): ReceptionPlanData => ReceptionPlanData::fromModel($plan, $this->resolver))
+                ->map(fn (ReceptionPlan $plan): ReceptionPlanData => ReceptionPlanData::fromModel($plan))
                 ->values()
                 ->all(),
             plan_list_pagination: SimplePaginationData::fromPaginator($paginator),
