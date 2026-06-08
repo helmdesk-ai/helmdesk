@@ -10,7 +10,6 @@ use App\Enums\UserPermission;
 use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
-use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\AutoMessageTemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,29 +22,26 @@ use Lorisleiva\Actions\Concerns\AsAction;
  * 更新接待方案配置（保存即发布）。
  * 编辑只动 reception_plans 草稿行；保存后自动编译并在配置实际变化时产出新的不可变 PlanVersion 快照，
  * 渠道自动跟随方案最新版，运营无需感知版本。
- * 表单一次提交基础信息 + 接待 / 任务模型 + 方案级知识库与 MCP 工具 + 全部服务场景，
+ * 表单一次提交基础信息 + 方案级知识库与 MCP 工具 + 全部服务场景，
  * service_scenarios 写入 capabilities 列；knowledge_base_ids / always_on_tools 同步整批更新。
+ * 模型不再由方案选择，运行时按用途从全局池取用。
  */
 class UpdateReceptionPlanAction
 {
     use AsAction;
 
     public function __construct(
-        private readonly AiModelResolver $resolver,
         private readonly AutoMessageTemplateRenderer $autoMessageTemplateRenderer,
         private readonly EnsureReceptionPlanVersionAction $ensureReceptionPlanVersion,
     ) {}
 
     /**
-     * 更新方案配置；所选模型必须仍在当前系统可用，名称在系统内保持唯一。
+     * 更新方案配置；名称在系统内保持唯一。
      */
     public function handle(ReceptionPlan $plan, FormUpdateReceptionPlanData $data): void
     {
         $name = trim($data->name);
         $this->ensureNameIsAvailable($plan, $name);
-
-        $this->resolver->assertActiveLlmModelOrFail($data->reception_ai_model_id, 'reception.messages.invalid_reception_model');
-        $this->resolver->assertActiveLlmModelOrFail($data->task_ai_model_id, 'reception.messages.invalid_task_model');
 
         $knowledgeBaseIds = self::uniqueStringIds($data->knowledge_base_ids);
         $this->assertKnowledgeBaseIdsBelongToSystem($knowledgeBaseIds);
@@ -54,16 +50,6 @@ class UpdateReceptionPlanAction
         $this->assertMcpToolIdsBelongToSystem($mcpToolIds);
 
         $serviceScenarios = $this->buildServiceScenarios($data->service_scenarios);
-        $receptionModelCandidates = $this->buildModelCandidates(
-            $data->reception_ai_model_id,
-            $data->reception_model_candidates,
-            'reception_model_candidates',
-        );
-        $taskModelCandidates = $this->buildModelCandidates(
-            $data->task_ai_model_id,
-            $data->task_model_candidates,
-            'task_model_candidates',
-        );
         $autoMessagesConfig = $this->buildAutoMessagesConfig($data->auto_messages_config);
         $translationConfig = ReceptionMessageTranslationConfigData::fromArray($data->translation_config)->toConfigArray();
         $strategyConfig = ReceptionStrategyConfigData::fromArray($data->strategy_config)->toConfigArray();
@@ -76,14 +62,8 @@ class UpdateReceptionPlanAction
                 'tone' => $data->persona_tone,
             ],
             'global_instructions' => filled($data->global_instructions) ? $data->global_instructions : null,
-            'reception_config' => [
-                'default_model' => ReceptionPlan::buildModelInvocation($data->reception_ai_model_id),
-                'model_candidates' => $receptionModelCandidates,
-            ],
-            'task_config' => [
-                'default_model' => ReceptionPlan::buildModelInvocation($data->task_ai_model_id),
-                'model_candidates' => $taskModelCandidates,
-            ],
+            'reception_config' => [],
+            'task_config' => [],
             'knowledge_base_ids' => $knowledgeBaseIds,
             'always_on_tools' => $mcpToolIds,
             'capabilities' => $serviceScenarios,
@@ -152,57 +132,6 @@ class UpdateReceptionPlanAction
                 'name' => __('reception.messages.plan_name_exists'),
             ]);
         }
-    }
-
-    /**
-     * 根据提交顺序与 priority 生成运行时可消费的候选模型列表，默认模型固定为 0。
-     *
-     * @param  list<array<string, mixed>>  $rawCandidates
-     * @return list<array{ai_model_id: string, priority: int}>
-     */
-    private function buildModelCandidates(string $primaryModelId, array $rawCandidates, string $field): array
-    {
-        $seen = [$primaryModelId => true];
-        $backups = [];
-
-        foreach ($rawCandidates as $index => $candidate) {
-            $modelId = isset($candidate['ai_model_id']) && is_string($candidate['ai_model_id'])
-                ? trim($candidate['ai_model_id'])
-                : '';
-
-            if ($modelId === '' || isset($seen[$modelId])) {
-                throw ValidationException::withMessages([
-                    "{$field}.{$index}.ai_model_id" => __('reception.messages.invalid_reception_model'),
-                ]);
-            }
-
-            if (! $this->resolver->isValidActiveLlmModel($modelId)) {
-                throw ValidationException::withMessages([
-                    "{$field}.{$index}.ai_model_id" => __('reception.messages.invalid_reception_model'),
-                ]);
-            }
-
-            $seen[$modelId] = true;
-            $backups[] = [
-                'ai_model_id' => $modelId,
-                'priority' => isset($candidate['priority']) && is_numeric($candidate['priority'])
-                    ? max(1, (int) $candidate['priority'])
-                    : $index + 1,
-                'index' => $index,
-            ];
-        }
-
-        usort($backups, static fn (array $a, array $b): int => [$a['priority'], $a['index']] <=> [$b['priority'], $b['index']]);
-
-        $candidates = [['ai_model_id' => $primaryModelId, 'priority' => 0]];
-        foreach ($backups as $offset => $backup) {
-            $candidates[] = [
-                'ai_model_id' => $backup['ai_model_id'],
-                'priority' => $offset + 1,
-            ];
-        }
-
-        return $candidates;
     }
 
     /**

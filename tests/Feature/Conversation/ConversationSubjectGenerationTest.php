@@ -4,11 +4,9 @@ use App\Actions\Attachment\AttachUploadedAttachmentsAction;
 use App\Actions\Conversation\GenerateConversationSubjectAction;
 use App\Actions\Reception\AppendVisitorMessageAction;
 use App\Actions\Reception\ResolveReceptionContextAction;
-use App\Enums\AiModelType;
+use App\Enums\AiModelPurpose;
 use App\Enums\ConversationInboxStatus;
 use App\Jobs\Conversation\GenerateConversationSubjectJob;
-use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -21,38 +19,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
 function createConversationSubjectTestContext(?string $subject = null, ?ConversationInboxStatus $inboxStatus = null): array
 {
     $systemContext = SystemContext::factory()->create();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'subject-test-'.Str::lower((string) Str::ulid()),
-        'name' => 'Subject Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [
-            ['field' => 'key', 'type' => 'secret', 'required' => true],
-        ],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $model = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'gpt-subject-test',
-        'name' => 'Subject Test Model',
-        'type' => AiModelType::Llm->value,
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // 会话主题生成走全局 background_task 用途池；seed 一个全局可用 LLM 模型即可。
+    $model = makeAiModel(AiModelPurpose::BackgroundTask);
     $plan = ReceptionPlan::factory()->create();
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel((string) $model->id)
         ->create();
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,

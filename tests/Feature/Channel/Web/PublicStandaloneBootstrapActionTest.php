@@ -5,13 +5,13 @@ use App\Actions\Channel\Web\Public\ResolvePublicWebChannelWidgetBootstrapAction;
 use App\Actions\Native\Channel\Web\ResolvePublicWebChannelBootstrapBridgeAction;
 use App\Actions\Native\Channel\Web\ResolvePublicWebChannelWidgetBootstrapBridgeAction;
 use App\Data\Channel\Web\ChannelWebSettingsData;
+use App\Enums\AiModelPurpose;
 use App\Enums\Channel\Web\WebChannelVisitorIdentityMode;
 use App\Enums\Channel\Web\WebChannelWidgetEntryMode;
 use App\Enums\Channel\Web\WebChannelWidgetEntryPosition;
 use App\Enums\Channel\Web\WebChannelWidgetEntryStyle;
 use App\Enums\Channel\Web\WebChannelWidgetIconSize;
 use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\ReceptionPlan;
@@ -31,30 +31,20 @@ beforeEach(function () {
 });
 
 /**
- * 创建一个绑定 AiModel 的接待方案版本，模拟公开 bootstrap 接口期望的"渠道可用"前提。
+ * 创建一个可部署的接待方案版本，并 seed 全局可用接待模型，模拟公开 bootstrap 接口期望的"渠道可用"前提。
+ *
+ * 接待方案不再引用具体模型：渠道按 reception_chat 用途从全局池判断 AI 可用。
+ * $modelAttributes 兼容旧签名，可传 ['is_active' => false] 让接待模型停用（全局池为空，模拟 AI 不可用降级）。
+ *
+ * @param  array<string, mixed>  $providerAttributes
+ * @param  array<string, mixed>  $modelAttributes
  */
 function createPublicBootstrapReceptionPlanVersion(array $providerAttributes = [], array $modelAttributes = []): ReceptionPlanVersion
 {
-    $provider = AiProvider::query()->create(array_merge([
-        'brand' => 'custom-openai',
-        'slug' => 'public-bootstrap-provider-'.Str::lower(Str::random(6)),
-        'name' => 'Public Bootstrap Provider',
-        'protocol' => 'openai',
-        'credentials' => ['api_key' => 'test-key'],
-        'credential_fields' => [['field' => 'api_key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $providerAttributes));
-
-    $model = AiModel::query()->create(array_merge([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Public Bootstrap Model',
-        'model_id' => 'gpt-public-bootstrap',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $modelAttributes));
+    $isActive = (bool) ($modelAttributes['is_active'] ?? true);
+    $provider = makeUsableAiProvider($providerAttributes);
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider, $isActive);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider, $isActive);
 
     $plan = ReceptionPlan::factory()->create([
         'name' => '公开 Bootstrap 方案-'.Str::lower(Str::random(6)),
@@ -62,7 +52,6 @@ function createPublicBootstrapReceptionPlanVersion(array $providerAttributes = [
 
     return ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($model->id)
         ->create();
 }
 
@@ -168,6 +157,8 @@ test('软删除的渠道 widget bootstrap 跳过 embed host 校验和落库', fu
 });
 
 test('公开启动在接待方案模型失效时仍返回基础启动数据以便降级人工待接', function () {
+    // 清空 beforeEach 注入的可用接待模型，让全局池为空，模拟 AI 不可用降级。
+    AiModel::query()->delete();
     $invalidVersion = createPublicBootstrapReceptionPlanVersion(
         modelAttributes: ['is_active' => false],
     );

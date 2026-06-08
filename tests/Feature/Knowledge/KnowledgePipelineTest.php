@@ -5,6 +5,7 @@ use App\Actions\KnowledgeBase\Indexing\IndexKnowledgeDocumentRaptorAction;
 use App\Actions\KnowledgeBase\Indexing\IndexKnowledgeDocumentVectorAction;
 use App\Actions\KnowledgeBase\Indexing\ParseKnowledgeDocumentAction;
 use App\Actions\KnowledgeBase\Indexing\WriteCanonicalChunksAction;
+use App\Enums\AiModelPurpose;
 use App\Enums\KnowledgeChunkingStrategy;
 use App\Enums\KnowledgeDocumentIndexingStatus;
 use App\Enums\KnowledgeDocumentParseStatus;
@@ -14,8 +15,6 @@ use App\Enums\KnowledgeNodeKind;
 use App\Jobs\KnowledgeDocument\IndexRaptorKnowledgeDocumentJob;
 use App\Jobs\KnowledgeDocument\IndexVectorKnowledgeDocumentJob;
 use App\Jobs\KnowledgeDocument\ParseKnowledgeDocumentJob;
-use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\KnowledgeBase;
 use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeNode;
@@ -25,7 +24,6 @@ use App\Services\KnowledgeBase\Parsing\ParsedDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Tests\WithSystemContext;
 
 use function Pest\Laravel\mock;
@@ -34,36 +32,13 @@ uses(RefreshDatabase::class, WithSystemContext::class);
 
 beforeEach(function () {
     $this->user = $this->createUserWithSystem();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'kb-pipeline-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Pipeline Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $this->embeddingModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'kb-pipeline-embedding-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Pipeline Embedding Model',
-        'type' => 'embedding',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $this->summaryModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'kb-pipeline-summary-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Pipeline Summary Model',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 1,
-    ]);
+    // 向量检索：pin 一个全局可用 embedding 模型；RAPTOR 摘要走全局 summary 用途池。
+    $provider = makeUsableAiProvider();
+    $this->embeddingModel = makeAiModel(AiModelPurpose::Embedding, $provider);
+    $this->summaryModel = makeAiModel(AiModelPurpose::Summary, $provider);
     $this->systemContext->update([
         'knowledge_embedding_model_id' => $this->embeddingModel->id,
-        'knowledge_summary_model_id' => $this->summaryModel->id,
+        'knowledge_embedding_dimension' => 3,
         'knowledge_vector_index_enabled' => true,
         'knowledge_raptor_index_enabled' => false,
         'knowledge_chunking_strategy' => KnowledgeChunkingStrategy::Fixed->value,
@@ -277,26 +252,8 @@ test('VectorAction 使用句子 embedding 聚合语义分段', function () {
 });
 
 test('RaptorAction 使用摘要模型生成摘要树并把 raptor_status 置 Succeeded', function () {
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'kb-raptor-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Raptor Provider',
-        'protocol' => 'openai',
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $summaryModel = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'kb-raptor-summary-'.Str::lower((string) Str::ulid()),
-        'name' => 'KB Raptor Summary Model',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // RAPTOR 摘要走全局 summary 用途池，beforeEach 已 seed；这里只切换索引策略。
     $this->systemContext->update([
-        'knowledge_summary_model_id' => $summaryModel->id,
         'knowledge_vector_index_enabled' => false,
         'knowledge_raptor_index_enabled' => true,
         // 用 Fixed 策略 + 较小的 chunk 上限，保证四段内容各自落到独立的叶子段，

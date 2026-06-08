@@ -2,6 +2,7 @@
 
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Channel\Web\WebChannelData;
+use App\Enums\AiModelPurpose;
 use App\Enums\Channel\Web\WebChannelVisitorIdentityMode;
 use App\Enums\Channel\Web\WebChannelWidgetEntryMode;
 use App\Enums\Channel\Web\WebChannelWidgetEntryPosition;
@@ -40,32 +41,19 @@ beforeEach(function () {
 
 function createChannelTestProvider(array $attributes = []): AiProvider
 {
-    /** @var SystemContext $systemContext */
-    $systemContext = test()->systemContext;
-
-    return AiProvider::query()->create(array_merge([
-        'brand' => 'custom-openai',
-        'slug' => 'test-provider-channel-'.Str::lower(Str::random(6)),
-        'name' => 'Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['api_key' => 'test-key'],
-        'credential_fields' => [['field' => 'api_key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $attributes));
+    return makeUsableAiProvider($attributes);
 }
 
+/**
+ * Seed 一个全局接待对话 LLM 模型（模型已全局化，渠道按用途从全局池判断 AI 可用）。
+ *
+ * @param  array<string, mixed>  $attributes
+ */
 function createChannelTestModel(AiProvider $provider, array $attributes = []): AiModel
 {
-    return AiModel::query()->create(array_merge([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Channel Model',
-        'model_id' => 'gpt-4.1-mini',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $attributes));
+    $isActive = (bool) ($attributes['is_active'] ?? true);
+
+    return makeAiModel(AiModelPurpose::ReceptionChat, $provider, $isActive);
 }
 
 function createChannelTestAttachment(array $attributes = []): Attachment
@@ -87,14 +75,13 @@ function createChannelTestAttachment(array $attributes = []): Attachment
 }
 
 /**
- * 创建一个可被渠道直接部署的接待方案版本：插入到当前 systemContext、状态 published、
- * 接待 / 任务默认模型指向给定 AiModel，AiModelResolver 能据此判定为可用。
+ * 创建一个可被渠道直接部署的接待方案版本：状态 published；
+ * 模型已全局化：未显式传入模型时 seed 一个全局可用接待模型，渠道按 reception_chat 用途判定 AI 可用。
  */
 function createDeployableReceptionPlanVersion(?AiModel $model = null, array $versionAttributes = []): ReceptionPlanVersion
 {
     if ($model === null) {
-        $provider = createChannelTestProvider();
-        $model = createChannelTestModel($provider);
+        createChannelTestModel(createChannelTestProvider());
     }
 
     $plan = ReceptionPlan::factory()->create([
@@ -103,7 +90,6 @@ function createDeployableReceptionPlanVersion(?AiModel $model = null, array $ver
 
     return ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($model->id)
         ->create($versionAttributes);
 }
 
@@ -704,25 +690,24 @@ test('保留当前部署不可用版本时仍能保存其它字段', function ()
         ->and($channel->fresh()->reception_plan_id)->toBe($version->reception_plan_id);
 });
 
-test('切换到不可用接待方案版本会被拒绝', function () {
+test('全局接待模型不可用时切换接待方案版本会被拒绝', function () {
+    // 模型已全局化：渠道按 reception_chat 用途池判断 AI 可用，全局池为空即视为方案不可用。
     $provider = createChannelTestProvider();
     $currentModel = createChannelTestModel($provider);
     $currentVersion = createDeployableReceptionPlanVersion($currentModel);
-
-    $brokenModel = createChannelTestModel($provider, [
-        'is_active' => false,
-        'model_id' => 'gpt-4.1-broken',
-    ]);
-    $brokenVersion = createDeployableReceptionPlanVersion($brokenModel);
+    $targetVersion = createDeployableReceptionPlanVersion($currentModel);
 
     $channel = Channel::factory()->create([
         'reception_plan_id' => $currentVersion->reception_plan_id,
     ]);
 
+    // 清空全局接待模型池，模拟接待智能体模型整体失效。
+    AiModel::query()->where('purpose', AiModelPurpose::ReceptionChat->value)->update(['is_active' => false]);
+
     $this->actingAs($this->user)
         ->put(route('admin.manage.channels.web.basic.update', ['channel' => $channel->id]), [
             'name' => '试图切换',
-            'reception_plan_id' => $brokenVersion->reception_plan_id,
+            'reception_plan_id' => $targetVersion->reception_plan_id,
         ])
         ->assertUnprocessable()
         ->assertJson([

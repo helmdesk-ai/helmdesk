@@ -21,4 +21,14 @@ enum AiModelType: string implements LabeledEnum
             self::Rerank => __('ai.model_types.rerank'),
         };
     }
+
+    /**
+     * 该能力类型下允许标注的模型用途。
+     *
+     * @return list<AiModelPurpose>
+     */
+    public function purposes(): array
+    {
+        return AiModelPurpose::forType($this);
+    }
 }

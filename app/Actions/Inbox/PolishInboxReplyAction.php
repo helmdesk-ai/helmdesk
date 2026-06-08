@@ -5,17 +5,16 @@ namespace App\Actions\Inbox;
 use App\Data\Inbox\FormPolishInboxReplyData;
 use App\Data\Inbox\InboxReplyPolishCandidateData;
 use App\Data\Inbox\InboxReplyPolishResultData;
+use App\Enums\AiModelPurpose;
 use App\Exceptions\BusinessException;
-use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Services\AiRuntime\AiModelResolver;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\Conversation\ConversationReplyPermission;
 use App\Services\Conversation\GoInboxReplyPolishBridge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,17 +27,17 @@ class PolishInboxReplyAction
     use AsAction;
 
     /**
-     * 注入权限、模型解析、上下文构建和 Go 回复助手桥接。
+     * 注入权限、模型池、上下文构建和 Go 回复助手桥接。
      */
     public function __construct(
         private readonly ConversationReplyPermission $replyPermission,
-        private readonly AiModelResolver $modelResolver,
+        private readonly AiModelPool $aiModelPool,
         private readonly BuildInboxReplyPolishContextAction $buildContext,
         private readonly GoInboxReplyPolishBridge $bridge,
     ) {}
 
     /**
-     * 校验会话和模型后，调用 AI 运行时返回候选回复。
+     * 校验会话后，按 background_task 用途池逐个尝试模型，首个成功即返回候选回复。
      */
     public function handle(User $user, string $conversationId, FormPolishInboxReplyData $data): InboxReplyPolishResultData
     {
@@ -54,34 +53,39 @@ class PolishInboxReplyAction
             throw new BusinessException(__($denialMessageKey));
         }
 
-        $model = $this->resolveActiveModel(trim($data->model_id));
         $context = $this->buildContext->handle($conversation, $data->quoted_message_id, $user->locale);
 
-        try {
-            $candidateContents = $this->bridge->generate(
-                provider: $model->provider,
-                model: $model,
-                mode: $data->mode,
-                content: trim((string) $data->content),
-                tone: $data->tone,
-                context: $context,
-            );
-        } catch (RuntimeException $exception) {
-            Log::warning('收件箱 AI 回复助手失败', [
-                'conversation_id' => $conversation->id,
-                'model_id' => $model->id,
-                'error' => $this->sanitizeUpstreamError($exception->getMessage()),
-            ]);
+        $candidates = $this->aiModelPool->modelsForPurpose(AiModelPurpose::BackgroundTask);
 
-            throw new BusinessException(__('conversation.errors.reply_polish_failed'));
+        foreach ($candidates as $model) {
+            try {
+                $candidateContents = $this->bridge->generate(
+                    provider: $model->provider,
+                    model: $model,
+                    mode: $data->mode,
+                    content: trim((string) $data->content),
+                    tone: $data->tone,
+                    context: $context,
+                );
+            } catch (RuntimeException $exception) {
+                Log::warning('收件箱 AI 回复助手候选模型失败', [
+                    'conversation_id' => $conversation->id,
+                    'model_id' => $model->id,
+                    'error' => $this->sanitizeUpstreamError($exception->getMessage()),
+                ]);
+
+                continue;
+            }
+
+            $results = [];
+            foreach (array_values($candidateContents) as $index => $content) {
+                $results[] = InboxReplyPolishCandidateData::fromContent($index, $content);
+            }
+
+            return new InboxReplyPolishResultData($results);
         }
 
-        $candidates = [];
-        foreach (array_values($candidateContents) as $index => $content) {
-            $candidates[] = InboxReplyPolishCandidateData::fromContent($index, $content);
-        }
-
-        return new InboxReplyPolishResultData($candidates);
+        throw new BusinessException(__('conversation.errors.reply_polish_failed'));
     }
 
     /**
@@ -97,31 +101,6 @@ class PolishInboxReplyAction
             conversationId: $conversationId,
             data: $data,
         )->toArray());
-    }
-
-    /**
-     * 选出当前系统中启用的 LLM 模型。
-     */
-    private function resolveActiveModel(string $modelId): AiModel
-    {
-        if (! $this->modelResolver->isValidActiveLlmModel($modelId)) {
-            throw ValidationException::withMessages([
-                'model_id' => __('ai.chat.selected_model_unavailable'),
-            ]);
-        }
-
-        $model = AiModel::query()
-            ->with('provider')
-            ->whereHas('provider')
-            ->find($modelId);
-
-        if ($model === null || $model->provider === null) {
-            throw ValidationException::withMessages([
-                'model_id' => __('ai.chat.selected_model_unavailable'),
-            ]);
-        }
-
-        return $model;
     }
 
     /**

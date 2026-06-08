@@ -20,7 +20,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 /**
  * 更新知识库统一检索配置，并按需派发索引重建任务。
  *
- * - 保存嵌入模型、向量维度、重排序模型、摘要模型、分段策略等检索参数；
+ * - 保存 pin 的嵌入模型、向量维度、分段策略等检索参数；重排 / 摘要模型改由全局用途池路由，本页不再保存；
  * - 维度由用户在表单里手填（不少模型支持可变维度，统一不做后端探测），与嵌入模型一起作为
  *   "查询侧 / 索引侧必须对齐"的可信源；
  * - 当配置变更（含维度变化）会让索引失效时，把"清理索引 + 派发逐条 Job"的耗时工作交给
@@ -47,8 +47,6 @@ class UpdateSystemKnowledgeSettingsAction
         // 走嵌入用于向量召回，所以同样依赖嵌入模型。
         $embeddingRequired = $data->vector_index_enabled || $data->raptor_index_enabled;
         $embeddingModel = $this->resolveActiveModel($data->embedding_model_id, AiModelType::Embedding, 'embedding_model_id', $embeddingRequired);
-        $rerankModel = $this->resolveActiveModel($data->rerank_model_id, AiModelType::Rerank, 'rerank_model_id');
-        $summaryModel = $this->resolveActiveModel($data->summary_model_id, AiModelType::Llm, 'summary_model_id', $data->raptor_index_enabled);
 
         $previousDimension = $this->settings->embedding_dimension !== null
             ? (int) $this->settings->embedding_dimension
@@ -60,11 +58,9 @@ class UpdateSystemKnowledgeSettingsAction
 
         $rebuildVectorIndex = $this->shouldRebuildVectorIndex($systemContext, $data, $embeddingModel, $dimensionChanged);
         $rebuildQaVectorIndex = $this->shouldRebuildQaVectorIndex($data, $embeddingModel, $dimensionChanged);
-        $rebuildRaptorIndex = $this->shouldRebuildRaptorIndex($systemContext, $data, $embeddingModel, $summaryModel, $dimensionChanged);
+        $rebuildRaptorIndex = $this->shouldRebuildRaptorIndex($systemContext, $data, $embeddingModel, $dimensionChanged);
 
         $this->settings->embedding_model_id = filled($embeddingModel?->id) ? (string) $embeddingModel->id : null;
-        $this->settings->rerank_model_id = filled($rerankModel?->id) ? (string) $rerankModel->id : null;
-        $this->settings->summary_model_id = filled($summaryModel?->id) ? (string) $summaryModel->id : null;
         $this->settings->embedding_dimension = $newDimension;
         $this->settings->vector_index_enabled = $data->vector_index_enabled;
         $this->settings->raptor_index_enabled = $data->raptor_index_enabled;
@@ -93,7 +89,7 @@ class UpdateSystemKnowledgeSettingsAction
     public function asController(Request $request): RedirectResponse
     {
         $systemContext = SystemContext::current();
-        Gate::authorize('user.permission', UserPermission::KnowledgeBasesEdit);
+        Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($systemContext, FormUpdateSystemKnowledgeSettingsData::from($request));
 
@@ -138,11 +134,11 @@ class UpdateSystemKnowledgeSettingsAction
     /**
      * 判断 RAPTOR 索引配置是否发生了需要重建的变更。
      * RAPTOR 现在依赖嵌入模型给摘要节点生成向量，所以嵌入模型或维度变化也会触发 raptor 重建。
+     * 摘要模型改由全局 summary 用途池路由，不再参与此处的重建判定。
      */
-    private function shouldRebuildRaptorIndex(SystemContext $systemContext, FormUpdateSystemKnowledgeSettingsData $data, ?AiModel $embeddingModel, ?AiModel $summaryModel, bool $dimensionChanged): bool
+    private function shouldRebuildRaptorIndex(SystemContext $systemContext, FormUpdateSystemKnowledgeSettingsData $data, ?AiModel $embeddingModel, bool $dimensionChanged): bool
     {
         return (bool) $this->settings->raptor_index_enabled !== $data->raptor_index_enabled
-            || $this->modelIdChanged($this->settings->summary_model_id, $summaryModel)
             || $this->modelIdChanged($this->settings->embedding_model_id, $embeddingModel)
             || $dimensionChanged
             || $systemContext->knowledge_chunking_strategy !== $data->chunking_strategy
@@ -160,7 +156,7 @@ class UpdateSystemKnowledgeSettingsAction
 
     /**
      * 校验启用索引策略时必须填写的字段，缺失时抛出字段级验证异常。
-     * 注意：RAPTOR 现在同样需要嵌入模型给摘要节点过向量。
+     * 注意：RAPTOR 现在同样需要嵌入模型给摘要节点过向量；摘要模型改由全局用途池路由，本页不再校验。
      */
     private function ensureRequiredFieldsArePresent(FormUpdateSystemKnowledgeSettingsData $data): void
     {
@@ -173,10 +169,6 @@ class UpdateSystemKnowledgeSettingsAction
 
         if ($embeddingRequired && $data->embedding_dimension === null) {
             $messages['embedding_dimension'] = __('knowledge_base.messages.invalid_embedding_dimension');
-        }
-
-        if ($data->raptor_index_enabled && ! filled($data->summary_model_id)) {
-            $messages['summary_model_id'] = __('knowledge_base.messages.invalid_summary_model');
         }
 
         if ($messages !== []) {

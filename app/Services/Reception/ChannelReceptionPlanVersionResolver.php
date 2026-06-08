@@ -3,10 +3,11 @@
 namespace App\Services\Reception;
 
 use App\Data\AiRuntime\ModelSelectionStatusData;
+use App\Enums\AiModelPurpose;
 use App\Enums\ReceptionPlanVersionStatus;
 use App\Models\Channel;
 use App\Models\ReceptionPlanVersion;
-use App\Services\AiRuntime\AiModelResolver;
+use App\Services\AiRuntime\AiModelPool;
 
 /**
  * 解析渠道绑定方案当前生效版本（最新已发布版）的可用状态。
@@ -20,10 +21,10 @@ use App\Services\AiRuntime\AiModelResolver;
 class ChannelReceptionPlanVersionResolver
 {
     /**
-     * 注入 AI 模型解析器与版本解析器，校验方案最新版默认接待模型仍可用。
+     * 注入模型用途池与版本解析器，校验 reception_chat 用途池存在可用接待模型。
      */
     public function __construct(
-        private readonly AiModelResolver $resolver,
+        private readonly AiModelPool $aiModelPool,
         private readonly ChannelActivePlanVersionResolver $activePlanVersionResolver,
     ) {}
 
@@ -70,12 +71,7 @@ class ChannelReceptionPlanVersionResolver
             );
         }
 
-        $compiled = $version->compiled_config;
-        $modelId = $compiled['reception_config']['default_model']['ai_model_id'] ?? null;
-        $modelId = is_string($modelId) ? $modelId : null;
-        $modelStatus = $this->resolver->resolveModelStatus($modelId);
-
-        if (! $modelStatus->isValid) {
+        if (! $this->aiModelPool->hasUsable(AiModelPurpose::ReceptionChat)) {
             return new ModelSelectionStatusData(
                 id: (string) $version->id,
                 label: $label,

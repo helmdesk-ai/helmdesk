@@ -10,8 +10,9 @@ use Spatie\LaravelData\Data;
 
 /**
  * 更新接待方案表单数据。
- * 由 Index.vue 单一保存按钮提交：基础信息、接待 / 任务模型、方案级知识库与 MCP 工具、
+ * 由 Index.vue 单一保存按钮提交：基础信息、方案级知识库与 MCP 工具、
  * 全部服务场景同处一份载荷，service_scenarios 数组写入 reception_plans.capabilities JSON 列整批更新。
+ * 模型不再由方案选择，运行时按用途从全局池取用。
  */
 class FormUpdateReceptionPlanData extends Data
 {
@@ -21,18 +22,12 @@ class FormUpdateReceptionPlanData extends Data
         public string $persona_display_name,
         public string $persona_tone,
         public ?string $global_instructions,
-        public string $reception_ai_model_id,
-        public string $task_ai_model_id,
         /** @var array<string, mixed> */
         public array $strategy_config,
         /** @var array<string, array<string, mixed>> */
         public array $auto_messages_config,
         /** @var array<string, mixed> */
         public array $translation_config = [],
-        /** @var list<array<string, mixed>> */
-        public array $reception_model_candidates = [],
-        /** @var list<array<string, mixed>> */
-        public array $task_model_candidates = [],
         /** @var list<string> */
         public array $knowledge_base_ids = [],
         /** @var list<string> */
@@ -60,14 +55,6 @@ class FormUpdateReceptionPlanData extends Data
             'persona_display_name' => ['required', 'string', 'max:100', 'regex:/\S/'],
             'persona_tone' => ['required', 'string', Rule::in($toneValues)],
             'global_instructions' => ['nullable', 'string', 'max:20000'],
-            'reception_ai_model_id' => ['required', 'string'],
-            'reception_model_candidates' => ['array'],
-            'reception_model_candidates.*.ai_model_id' => ['required', 'string'],
-            'reception_model_candidates.*.priority' => ['required', 'integer', 'min:1', 'max:50'],
-            'task_ai_model_id' => ['required', 'string'],
-            'task_model_candidates' => ['array'],
-            'task_model_candidates.*.ai_model_id' => ['required', 'string'],
-            'task_model_candidates.*.priority' => ['required', 'integer', 'min:1', 'max:50'],
             'knowledge_base_ids' => ['array'],
             'knowledge_base_ids.*' => ['string', 'ulid'],
             'mcp_tool_ids' => ['array'],

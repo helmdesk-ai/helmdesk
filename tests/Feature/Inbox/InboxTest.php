@@ -4,6 +4,7 @@ use App\Actions\Inbox\ReplyInboxConversationAction;
 use App\Actions\Reception\AppendTeammateMessageAction;
 use App\Data\Conversation\ConversationSummaryData;
 use App\Data\Inbox\FormReplyInboxConversationData;
+use App\Enums\AiModelPurpose;
 use App\Enums\ConversationEventType;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\ConversationStatus;
@@ -12,7 +13,6 @@ use App\Enums\MessageRole;
 use App\Exceptions\BusinessException;
 use App\Jobs\Inbox\TranslateInboxConversationMessageJob;
 use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Attachment;
 use App\Models\AttributeDefinition;
 use App\Models\Channel;
@@ -53,28 +53,12 @@ beforeEach(function () {
     ]);
 });
 
-function createInboxLlmModel(array $providerAttributes = [], array $modelAttributes = []): AiModel
+/**
+ * Seed 一个全局可用的接待对话（reception_chat）用途 LLM 模型。
+ */
+function createInboxLlmModel(bool $isActive = true): AiModel
 {
-    $provider = AiProvider::query()->create(array_merge([
-        'brand' => 'custom-openai',
-        'slug' => 'inbox-provider-'.Str::lower(Str::random(6)),
-        'name' => 'Inbox Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $providerAttributes));
-
-    return AiModel::query()->create(array_merge([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Inbox Model',
-        'model_id' => 'gpt-inbox',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $modelAttributes));
+    return makeAiModel(AiModelPurpose::ReceptionChat, isActive: $isActive);
 }
 
 /**
@@ -1434,7 +1418,7 @@ test('访客消息后释放给AI会让AI准备回答', function () {
 });
 
 test('频道模型不可用时释放给AI会回退到待处理队列', function () {
-    $model = createInboxLlmModel([], ['is_active' => false]);
+    $model = createInboxLlmModel(isActive: false);
     $version = createInboxReceptionPlanVersion($model);
     $channel = Channel::factory()->create([
         'reception_plan_id' => $version->reception_plan_id,

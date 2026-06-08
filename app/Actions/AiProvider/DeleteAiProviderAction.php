@@ -3,44 +3,43 @@
 namespace App\Actions\AiProvider;
 
 use App\Enums\UserPermission;
-use App\Exceptions\BusinessException;
 use App\Models\AiProvider;
-use App\Services\AiRuntime\AiModelResolver;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 删除系统内自定义 AI 供应商配置。
+ * 删除全局 AI 供应商及其下所有模型（总后台）。
+ *
+ * 运行时按用途从全局池取用模型，删除即从池中移除；无引用检查。
  */
 class DeleteAiProviderAction
 {
     use AsAction;
 
+    /**
+     * 连同模型一起删除一条 ai_providers 记录。
+     */
     public function handle(string $providerSlug): void
     {
-        $provider = AiProvider::query()->where('slug', $providerSlug)->firstOrFail();
-
-        $resolver = app(AiModelResolver::class);
-
-        if ($resolver->isProviderReferencedByReceptionPlans($provider)) {
-            throw new BusinessException(__('ai_runtime.provider_in_use_reception_plan'));
-        }
-
-        if ($resolver->isProviderReferencedByKnowledgeBases($provider)) {
-            throw new BusinessException(__('knowledge_base.messages.provider_in_use'));
-        }
-
-        $provider->models()->delete();
-        $provider->delete();
+        DB::transaction(function () use ($providerSlug): void {
+            $provider = AiProvider::query()->where('slug', $providerSlug)->firstOrFail();
+            $provider->models()->delete();
+            $provider->delete();
+        });
     }
 
-    public function asController(Request $request, string $provider)
+    /**
+     * 鉴权后删除并回到列表页。
+     */
+    public function asController(Request $request, string $provider): RedirectResponse
     {
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
         $this->handle($provider);
 
-        return back();
+        return redirect()->route('admin.manage.ai.providers.index');
     }
 }

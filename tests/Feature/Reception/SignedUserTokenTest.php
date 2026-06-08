@@ -2,11 +2,10 @@
 
 use App\Actions\Reception\StartOrResumeReceptionSessionAction;
 use App\Data\Channel\Web\ChannelWebSettingsData;
+use App\Enums\AiModelPurpose;
 use App\Enums\ContactType;
 use App\Enums\ConversationEntryMode;
 use App\Enums\IdentityType;
-use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\ContactIdentity;
@@ -33,31 +32,15 @@ beforeEach(function () {
 function signedChannelFor(string $secret = 'test-secret-supersecret-xxxxxxxxxx'): Channel
 {
     $systemContext = SystemContext::factory()->create();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'signed-token-provider-'.Str::lower(Str::random(6)),
-        'name' => 'Signed Token Provider',
-        'protocol' => 'openai',
-        'credentials' => ['api_key' => 'test'],
-        'credential_fields' => [['field' => 'api_key', 'label' => 'API', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $model = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Signed Token Model',
-        'model_id' => 'gpt-signed-token',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // 接待方案不再引用具体模型：渠道按 reception_chat 用途从全局池判断 AI 可用。
+    $provider = makeUsableAiProvider();
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider);
     $plan = ReceptionPlan::factory()->create([
         'name' => '签名接待方案-'.Str::lower(Str::random(6)),
     ]);
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($model->id)
         ->create();
 
     return Channel::factory()->create([

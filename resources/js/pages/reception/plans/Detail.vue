@@ -34,7 +34,6 @@ import PlanBasicsForm, {
   type MessageTranslationConfigDraft,
   type PlanBasicsFormSection,
   type PlanBasicsFormShape,
-  type ReceptionModelCandidateDraft,
 } from '@/pages/reception/plans/PlanBasicsForm.vue';
 import PlanBusinessHoursForm from '@/pages/reception/plans/PlanBusinessHoursForm.vue';
 import PlanStrategyForm, {
@@ -229,24 +228,6 @@ function planFormDefaults(): PlanFormState {
     persona_display_name: plan.persona_config.display_name,
     persona_tone: plan.persona_config.tone,
     global_instructions: plan.global_instructions ?? '',
-    reception_ai_model_id: plan.reception_model?.ai_model_id ?? '',
-    reception_model_candidates: plan.reception_model_candidates
-      .filter((candidate) => candidate.priority > 0)
-      .map(
-        (candidate, index): ReceptionModelCandidateDraft => ({
-          ai_model_id: candidate.ai_model_id,
-          priority: index + 1,
-        }),
-      ),
-    task_ai_model_id: plan.task_model?.ai_model_id ?? '',
-    task_model_candidates: plan.task_model_candidates
-      .filter((candidate) => candidate.priority > 0)
-      .map(
-        (candidate, index): ReceptionModelCandidateDraft => ({
-          ai_model_id: candidate.ai_model_id,
-          priority: index + 1,
-        }),
-      ),
     translation_config: planMessageTranslationConfig(),
     service_scenarios: plan.service_scenarios.map((s) => ({
       name: s.name,
@@ -493,12 +474,10 @@ function confirmRemoveMcp(): void {
             "
             :form="planForm"
             :section="activePlanBasicsSection"
-            :llm-model-options="props.llm_model_options"
             :persona-tone-options="props.persona_tone_options"
             :message-translation-failure-mode-options="
               props.message_translation_failure_mode_options
             "
-            :plan="props.plan"
           />
 
           <PlanStrategyForm
@@ -927,7 +906,7 @@ function confirmRemoveMcp(): void {
           </div>
 
           <FormActions
-            class="border-t pt-6"
+            class="pt-6"
             :submit-label="t('保存')"
             :processing="planForm.processing"
             :cancel-href="listUrl"

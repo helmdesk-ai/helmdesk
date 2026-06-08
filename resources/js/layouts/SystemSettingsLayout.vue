@@ -43,8 +43,16 @@ const sidebarNavItems = computed<SubMenuItem[]>(() => [
     href: admin.mail.show.url(),
   },
   {
-    title: t('大模型供应商'),
+    title: t('AI 供应商'),
     href: admin.manage.ai.providers.index.url(),
+  },
+  {
+    title: t('AI 模型管理'),
+    href: admin.manage.ai.models.index.url(),
+  },
+  {
+    title: t('知识库设置'),
+    href: admin.knowledge.show.url(),
   },
   {
     title: t('MCP 服务'),
@@ -67,10 +75,10 @@ function isItemActive(href: string, mode: ActiveMode = 'prefix'): boolean {
   <div class="flex flex-1 flex-col lg:flex-row">
     <aside class="w-full lg:w-50 lg:self-stretch">
       <nav
-        class="flex h-full flex-col space-y-3 border-r border-border/40 bg-card/50 p-4 shadow-sm backdrop-blur-sm"
+        class="flex h-full flex-col space-y-3 border-r border-border/40 bg-card/50 px-6 pt-6 pb-4 shadow-sm backdrop-blur-sm"
       >
         <div class="space-y-0.5">
-          <h2 class="text-xl font-semibold tracking-tight">
+          <h2 class="text-base font-medium">
             {{ t('系统设置') }}
           </h2>
           <p class="text-sm text-muted-foreground">

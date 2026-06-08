@@ -4,13 +4,12 @@ use App\Actions\Contact\GenerateContactAiSummaryAction;
 use App\Actions\Conversation\GenerateConversationSummaryAction;
 use App\Actions\Inbox\QueueInboxContactAiSummaryTranslationAction;
 use App\Actions\Inbox\QueueInboxConversationSummaryTranslationsAction;
-use App\Enums\AiModelType;
+use App\Enums\AiModelPurpose;
 use App\Enums\ConversationInboxStatus;
 use App\Jobs\Contact\GenerateContactAiSummaryJob;
 use App\Jobs\Inbox\TranslateInboxContactAiSummaryJob;
 use App\Jobs\Inbox\TranslateInboxConversationSummaryJob;
 use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -20,13 +19,14 @@ use App\Models\ReceptionPlanVersion;
 use App\Models\SystemContext;
 use App\Models\TranslationProvider;
 use App\Models\User;
+use App\Services\AiRuntime\AiModelPool;
+use App\Services\Conversation\ConversationLlmCandidateResolver;
 use App\Services\Conversation\GoConversationSummaryBridge;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -38,31 +38,11 @@ uses(RefreshDatabase::class);
 function createConversationAiSummaryContext(): array
 {
     $systemContext = SystemContext::factory()->create();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'summary-test-'.Str::lower((string) Str::ulid()),
-        'name' => 'Summary Test Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [
-            ['field' => 'key', 'type' => 'secret', 'required' => true],
-        ],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $model = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'gpt-summary-test',
-        'name' => 'Summary Test Model',
-        'type' => AiModelType::Llm->value,
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // 会话摘要走全局 background_task 用途池；seed 一个全局可用 LLM 模型即可。
+    $model = makeAiModel(AiModelPurpose::BackgroundTask);
     $plan = ReceptionPlan::factory()->create();
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel((string) $model->id)
         ->create();
     $channel = Channel::factory()->create([
         'reception_plan_version_id' => $version->id,
@@ -134,6 +114,7 @@ test('会话摘要生成会调用 Go 运行时并写入摘要水位和摘要事�
 
     $action = new GenerateConversationSummaryAction(
         app(GoConversationSummaryBridge::class),
+        app(ConversationLlmCandidateResolver::class),
         $notifier,
     );
 
@@ -192,6 +173,7 @@ test('联系人级 AI 摘要会从历史会话摘要生成固定字段', functio
 
     $action = new GenerateContactAiSummaryAction(
         app(GoConversationSummaryBridge::class),
+        app(AiModelPool::class),
         $notifier,
     );
 

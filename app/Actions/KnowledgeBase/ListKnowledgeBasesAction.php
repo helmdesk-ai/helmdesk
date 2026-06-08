@@ -8,11 +8,8 @@ use App\Data\KnowledgeBase\KnowledgeIndexingStrategyOptionData;
 use App\Data\KnowledgeBase\ListKnowledgeDocumentItemData;
 use App\Data\KnowledgeBase\ListKnowledgeQaEntryItemData;
 use App\Data\KnowledgeBase\ShowKnowledgeBaseListPagePropsData;
-use App\Data\KnowledgeBase\SystemKnowledgeSettingsData;
 use App\Data\SimplePaginationData;
-use App\Enums\AiModelType;
 use App\Enums\KnowledgeBaseCategory;
-use App\Enums\KnowledgeChunkingStrategy;
 use App\Enums\KnowledgeDocumentSourceType;
 use App\Enums\KnowledgeDocumentStatus;
 use App\Enums\KnowledgeQaEntryStatus;
@@ -23,8 +20,6 @@ use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeGroup;
 use App\Models\KnowledgeQaEntry;
 use App\Models\SystemContext;
-use App\Services\AiRuntime\AiModelResolver;
-use App\Settings\KnowledgeSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -38,14 +33,6 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class ListKnowledgeBasesAction
 {
     use AsAction;
-
-    /**
-     * 注入用于解析可用知识库模型选项的服务。
-     */
-    public function __construct(
-        private readonly AiModelResolver $resolver,
-        private readonly KnowledgeSettings $settings,
-    ) {}
 
     /**
      * 单页文档数量，与前端表格分页器对齐。
@@ -75,7 +62,6 @@ class ListKnowledgeBasesAction
             ->oldest('id')
             ->get();
         $allKnowledgeBases->each->setRelation('systemContext', $systemContext);
-        $this->settings->refresh();
 
         $knowledgeBaseListData = $allKnowledgeBases
             ->map(fn (KnowledgeBase $kb) => KnowledgeBaseData::fromModel($kb))
@@ -112,15 +98,10 @@ class ListKnowledgeBasesAction
             document_list_pagination: $documentPagination,
             qa_entry_list: $qaEntryList,
             qa_entry_list_pagination: $qaEntryPagination,
-            system_knowledge_settings: SystemKnowledgeSettingsData::fromSettings($this->settings),
-            embedding_model_options: $this->resolver->getKnowledgeBaseModelOptions(AiModelType::Embedding),
-            rerank_model_options: $this->resolver->getKnowledgeBaseModelOptions(AiModelType::Rerank),
-            summary_model_options: $this->resolver->getKnowledgeBaseModelOptions(AiModelType::Llm),
             indexing_strategy_options: KnowledgeIndexingStrategyOptionData::options(),
             document_status_options: EnumOptionData::fromCases(KnowledgeDocumentStatus::cases()),
             qa_status_options: EnumOptionData::fromCases(KnowledgeQaEntryStatus::cases()),
             category_options: EnumOptionData::fromCases(KnowledgeBaseCategory::creatableCases()),
-            chunking_strategy_options: EnumOptionData::fromCases(KnowledgeChunkingStrategy::cases()),
             search_mode_options: EnumOptionData::fromCases(KnowledgeSearchMode::cases()),
         );
     }

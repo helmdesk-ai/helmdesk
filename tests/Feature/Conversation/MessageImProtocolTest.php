@@ -7,6 +7,7 @@ use App\Actions\Reception\AppendVisitorMessageAction;
 use App\Actions\Reception\RecallTeammateMessageAction;
 use App\Actions\Reception\RecallVisitorMessageAction;
 use App\Actions\Reception\StartOrResumeReceptionSessionAction;
+use App\Enums\AiModelPurpose;
 use App\Enums\ConversationEntryMode;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\ConversationStatus;
@@ -14,8 +15,6 @@ use App\Enums\MessageDeliveryStatus;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Exceptions\BusinessException;
-use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
@@ -48,32 +47,16 @@ beforeEach(function () {
 function imProtocolCreateChannel(): Channel
 {
     $systemContext = SystemContext::factory()->create();
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'im-provider-'.Str::lower(Str::random(6)),
-        'name' => 'IM Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    $model = AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'name' => 'IM Model',
-        'model_id' => 'gpt-im',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
+    // 接待方案不再引用具体模型：渠道按 reception_chat 用途从全局池判断 AI 可用。
+    $provider = makeUsableAiProvider();
+    makeAiModel(AiModelPurpose::ReceptionChat, $provider);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider);
     $plan = ReceptionPlan::factory()->create([
         'name' => 'IM Plan-'.Str::lower(Str::random(6)),
     ]);
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
         ->withoutAutoMessages()
-        ->withReceptionModel($model->id)
         ->create();
 
     return Channel::factory()->create([

@@ -2,86 +2,66 @@
 
 namespace App\Actions\AiProvider;
 
+use App\Data\AiProvider\FormUpdateAiProviderCredentialsData;
 use App\Enums\UserPermission;
 use App\Models\AiProvider;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * 保存系统内 AI 供应商凭据。
+ * 更新全局 AI 供应商的名称与凭据（总后台）。
+ *
+ * 凭据合并语义：secret 字段提交空值表示「不变」，明文字段提交空值表示清空（见 AiProvider::mergeCredentials）。
  */
 class UpdateAiProviderCredentialsAction
 {
     use AsAction;
 
     /**
-     * @param  array<string, mixed>  $configuration
+     * 校验后保存名称，并用 mergeCredentials 合并凭据。
      */
-    public function handle(string $providerSlug, array $configuration, bool $allowEndpointUpdate = false): AiProvider
+    public function handle(string $providerSlug, FormUpdateAiProviderCredentialsData $data): AiProvider
     {
         $provider = $this->findProvider($providerSlug);
-        $configuration = $this->withoutLockedEndpointConfiguration($provider, $configuration, $allowEndpointUpdate);
-        $this->validateConfiguration($provider, $configuration);
+        $this->validateConfiguration($provider, $data->configuration);
 
-        $credentials = $provider->mergeCredentials($configuration);
+        $credentials = $provider->mergeCredentials($data->configuration);
 
+        $provider->name = $data->name;
         $provider->credentials = filled($credentials) ? $credentials : null;
         $provider->save();
 
         return $provider;
     }
 
-    public function asController(Request $request, string $provider)
+    /**
+     * 鉴权后从请求取表单数据并保存，回到列表页。
+     */
+    public function asController(Request $request, string $provider): RedirectResponse
     {
         Gate::authorize('user.permission', UserPermission::SystemSettingsEdit);
 
-        $configuration = $request->input('configuration');
-        $this->handle($provider, is_array($configuration) ? $configuration : []);
+        $data = FormUpdateAiProviderCredentialsData::from($request);
+        $this->handle($provider, $data);
 
-        return back();
+        return redirect()->route('admin.manage.ai.providers.index');
     }
 
+    /**
+     * 按 slug 定位供应商。
+     */
     private function findProvider(string $slug): AiProvider
     {
         return AiProvider::query()->where('slug', $slug)->firstOrFail();
     }
 
     /**
-     * 创建后端点不允许再改；需要更换 endpoint 时应重新添加供应商。
+     * 校验提交的 configuration：对必填字段做 secret-aware 校验
+     * （secret 字段为空但库里已有值时，保存后仍满足必填约束）。
      *
-     * @param  array<string, mixed>  $configuration
-     * @return array<string, mixed>
-     */
-    private function withoutLockedEndpointConfiguration(AiProvider $provider, array $configuration, bool $allowEndpointUpdate): array
-    {
-        if ($allowEndpointUpdate || ! array_key_exists('base_uri', $configuration)) {
-            return $configuration;
-        }
-
-        $credentials = $provider->credentials;
-        $stored = is_array($credentials) && is_scalar($credentials['base_uri'] ?? null)
-            ? trim((string) $credentials['base_uri'])
-            : '';
-        $incoming = is_scalar($configuration['base_uri'])
-            ? trim((string) $configuration['base_uri'])
-            : '';
-
-        if ($incoming !== '' && $incoming !== $stored) {
-            throw ValidationException::withMessages([
-                'configuration.base_uri' => __('validation.prohibited', ['attribute' => 'Base URI']),
-            ]);
-        }
-
-        unset($configuration['base_uri']);
-
-        return $configuration;
-    }
-
-    /**
      * @param  array<string, mixed>  $configuration
      */
     private function validateConfiguration(AiProvider $provider, array $configuration): void
@@ -131,30 +111,22 @@ class UpdateAiProviderCredentialsAction
     }
 
     /**
+     * 按字段类型生成校验规则。
+     *
      * @param  array<string, mixed>  $field
      * @return array<int, mixed>
      */
     private function fieldRules(array $field): array
     {
-        $rules = ['nullable', 'string', 'max:2048'];
-
         return match ($field['type'] ?? 'text') {
             'url' => ['nullable', 'string', 'url:http,https', 'max:2048'],
-            'select' => [
-                'nullable',
-                'string',
-                Rule::in(
-                    collect($field['options'] ?? [])
-                        ->pluck('value')
-                        ->filter(fn (mixed $value): bool => is_string($value))
-                        ->all()
-                ),
-            ],
-            default => $rules,
+            default => ['nullable', 'string', 'max:2048'],
         };
     }
 
     /**
+     * 判断保存后该字段是否会留有可用值。
+     *
      * @param  array<string, mixed>  $field
      * @param  array<string, mixed>  $configuration
      */
@@ -181,6 +153,9 @@ class UpdateAiProviderCredentialsAction
         return false;
     }
 
+    /**
+     * 判断库里某字段是否已经有值（用于支持 secret 字段提交空表示不变）。
+     */
     private function hasStoredCredentialValue(AiProvider $provider, string $fieldName): bool
     {
         $credentials = $provider->credentials;

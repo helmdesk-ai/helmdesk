@@ -2,8 +2,7 @@
 
 use App\Actions\Conversation\GenerateConversationTagsAction;
 use App\Data\Conversation\GeneratedConversationTagData;
-use App\Enums\AiModelType;
-use App\Enums\AiProviderProtocol;
+use App\Enums\AiModelPurpose;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\Contact;
@@ -61,24 +60,8 @@ beforeEach(function () {
         'summary_last_message_seq_no' => 12,
     ]);
 
-    // 提供一个可用的接待 LLM 模型，让候选解析的兜底分支命中。
-    $provider = AiProvider::query()->create([
-        'brand' => 'custom-openai',
-        'slug' => 'fake-openai',
-        'name' => 'Fake',
-        'protocol' => AiProviderProtocol::OpenAI,
-        'credentials' => ['api_key' => 'x'],
-        'credential_fields' => [],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ]);
-    AiModel::query()->create([
-        'ai_provider_id' => $provider->id,
-        'model_id' => 'gpt-x',
-        'name' => 'gpt-x',
-        'type' => AiModelType::Llm->value,
-        'is_active' => true,
-    ]);
+    // 标签生成走全局 background_task 用途池；seed 一个全局可用 LLM 模型让候选解析命中。
+    makeAiModel(AiModelPurpose::BackgroundTask);
 
     $this->conversationGroup = TagGroup::factory()->conversation()->create([]);
     $this->contactGroup = TagGroup::factory()->contact()->create([]);

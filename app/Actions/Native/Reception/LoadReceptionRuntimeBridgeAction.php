@@ -4,12 +4,14 @@ namespace App\Actions\Native\Reception;
 
 use App\Actions\Reception\Plan\CollectPlanMcpServersAction;
 use App\Data\Reception\Plan\ReceptionStrategyConfigData;
+use App\Enums\AiModelPurpose;
 use App\Enums\AiProviderProtocol;
 use App\Enums\ConversationInboxStatus;
 use App\Enums\ReceptionLanguage;
 use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\ReceptionPlanVersion;
+use App\Services\AiRuntime\AiModelPool;
 use App\Services\Localization\LocalePreference;
 use App\Services\Reception\ChannelTeammateAvailability;
 use LogicException;
@@ -32,6 +34,7 @@ class LoadReceptionRuntimeBridgeAction
     public function __construct(
         private readonly ChannelTeammateAvailability $teammateAvailability,
         private readonly CollectPlanMcpServersAction $collectPlanMcpServers,
+        private readonly AiModelPool $aiModelPool,
     ) {}
 
     /**
@@ -78,7 +81,7 @@ class LoadReceptionRuntimeBridgeAction
 
         $compiled = $version->compiled_config;
 
-        $modelCandidates = $this->resolveModelCandidates($compiled, 'reception_config');
+        $modelCandidates = $this->resolveModelCandidates(AiModelPurpose::ReceptionChat);
         if ($modelCandidates === []) {
             return $base + [
                 'available' => false,
@@ -86,7 +89,7 @@ class LoadReceptionRuntimeBridgeAction
             ];
         }
 
-        $taskModelCandidates = $this->resolveModelCandidates($compiled, 'task_config');
+        $taskModelCandidates = $this->resolveModelCandidates(AiModelPurpose::BackgroundTask);
         if ($taskModelCandidates === []) {
             return $base + [
                 'available' => false,
@@ -207,53 +210,15 @@ class LoadReceptionRuntimeBridgeAction
     }
 
     /**
-     * 从 compiled_config 指定模型配置中按优先级解析出所有可用的模型候选列表。
+     * 从全局用途池解析该用途下按主备顺序的模型候选列表（运行时逐个尝试、失败轮询）。
      *
-     * @param  array<string, mixed>  $compiled
      * @return list<array<string, mixed>>
      */
-    private function resolveModelCandidates(array $compiled, string $configKey): array
+    private function resolveModelCandidates(AiModelPurpose $purpose): array
     {
-        $config = isset($compiled[$configKey]) && is_array($compiled[$configKey])
-            ? $compiled[$configKey]
-            : [];
-
-        $rawCandidates = $config['model_candidates'] ?? [];
-        if (! is_array($rawCandidates) || $rawCandidates === []) {
-            $primaryModelId = $config['default_model']['ai_model_id'] ?? null;
-            if (! is_string($primaryModelId) || $primaryModelId === '') {
-                return [];
-            }
-            $rawCandidates = [['ai_model_id' => $primaryModelId, 'priority' => 0]];
-        }
-
-        usort($rawCandidates, static fn (array $a, array $b): int => ($a['priority'] ?? 0) <=> ($b['priority'] ?? 0));
-
-        $modelIds = array_filter(
-            array_map(static fn ($c) => is_array($c) ? ($c['ai_model_id'] ?? null) : null, $rawCandidates),
-            static fn ($id) => is_string($id) && $id !== '',
-        );
-
-        if ($modelIds === []) {
-            return [];
-        }
-
-        $models = AiModel::query()
-            ->with('provider')
-            ->where('is_active', true)
-            ->whereIn('id', $modelIds)
-            ->get()
-            ->keyBy('id');
-
-        $result = [];
-        foreach ($modelIds as $modelId) {
-            $model = $models->get($modelId);
-            if ($model !== null && $model->provider !== null) {
-                $result[] = $this->encodeModel($model);
-            }
-        }
-
-        return $result;
+        return $this->aiModelPool->modelsForPurpose($purpose)
+            ->map(fn (AiModel $model): array => $this->encodeModel($model))
+            ->all();
     }
 
     /**

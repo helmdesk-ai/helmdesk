@@ -15,7 +15,6 @@ use App\Models\KnowledgeBase;
 use App\Models\McpTool;
 use App\Models\ReceptionPlan;
 use App\Models\SystemContext;
-use App\Services\AiRuntime\AiModelResolver;
 use App\Services\Reception\ServiceScenarioTemplates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -32,10 +31,6 @@ class ShowReceptionPlanDetailPageAction
 {
     use AsAction;
 
-    public function __construct(
-        private readonly AiModelResolver $resolver,
-    ) {}
-
     /**
      * 组装详情页 props：选中方案 + 表单选项集合。
      */
@@ -44,8 +39,7 @@ class ShowReceptionPlanDetailPageAction
         $plan->setRelation('systemContext', $systemContext);
 
         return new ShowReceptionPlanDetailPagePropsData(
-            plan: ReceptionPlanData::fromModelDetailed($plan, $this->resolver),
-            llm_model_options: $this->resolver->getActiveLlmModelOptions(),
+            plan: ReceptionPlanData::fromModelDetailed($plan),
             persona_tone_options: EnumOptionData::fromCases(ReceptionPersonaTone::cases()),
             message_translation_failure_mode_options: EnumOptionData::fromCases(AutoMessageTranslationFailureMode::cases()),
             knowledge_base_options: $this->buildKnowledgeBaseOptions(),

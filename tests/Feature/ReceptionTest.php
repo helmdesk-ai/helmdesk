@@ -14,6 +14,7 @@ use App\Actions\Reception\TransferConversationToTeammateAction;
 use App\Data\Channel\Web\ChannelWebSettingsData;
 use App\Data\Reception\Plan\AutoMessagesConfigData;
 use App\Data\Reception\Plan\ReceptionMessageTranslationConfigData;
+use App\Enums\AiModelPurpose;
 use App\Enums\AutoMessageTranslationFailureMode;
 use App\Enums\Channel\Web\WebChannelVisitorIdentityMode;
 use App\Enums\ConversationAutoMessageTrigger;
@@ -28,7 +29,6 @@ use App\Enums\ReceptionLanguage;
 use App\Enums\UserOnlineStatus;
 use App\Exceptions\BusinessException;
 use App\Models\AiModel;
-use App\Models\AiProvider;
 use App\Models\Attachment;
 use App\Models\AttachmentUpload;
 use App\Models\Channel;
@@ -65,28 +65,24 @@ beforeEach(function () {
     ]);
 });
 
+/**
+ * Seed 一套全局可用的接待 AI 模型（reception_chat + background_task）并返回接待主模型。
+ *
+ * 接待方案不再引用具体模型：运行时按 reception_chat 用途从全局池判断 AI 可用性。
+ * $modelAttributes 兼容旧签名，可传 ['is_active' => false] 造一个停用模型，模拟 AI 不可用。
+ *
+ * @param  array<string, mixed>  $providerAttributes
+ * @param  array<string, mixed>  $modelAttributes
+ */
 function createReceptionModel(array $providerAttributes = [], array $modelAttributes = []): AiModel
 {
-    $provider = AiProvider::query()->create(array_merge([
-        'brand' => 'custom-openai',
-        'slug' => 'reception-provider-'.Str::lower(Str::random(6)),
-        'name' => 'Reception Provider',
-        'protocol' => 'openai',
-        'credentials' => ['key' => 'test-key'],
-        'credential_fields' => [['field' => 'key', 'label' => 'API Key', 'required' => true, 'secret' => true]],
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $providerAttributes));
+    $isActive = (bool) ($modelAttributes['is_active'] ?? true);
+    $provider = makeUsableAiProvider($providerAttributes);
 
-    return AiModel::query()->create(array_merge([
-        'ai_provider_id' => $provider->id,
-        'name' => 'Reception Model',
-        'model_id' => 'gpt-reception',
-        'type' => 'llm',
-        'is_active' => true,
-        'is_builtin' => false,
-        'sort_order' => 0,
-    ], $modelAttributes));
+    $model = makeAiModel(AiModelPurpose::ReceptionChat, $provider, $isActive);
+    makeAiModel(AiModelPurpose::BackgroundTask, $provider, $isActive);
+
+    return $model;
 }
 
 /**
@@ -113,14 +109,6 @@ function createReceptionChannel(
     $baseSnapshot = ReceptionPlanVersion::factory()->definition()['snapshot_config'] ?? [];
     $baseSnapshot['auto_messages_config'] = receptionTestDisabledAutoMessagesConfig();
     $baseSnapshot['translation_config'] = receptionMessageTranslationConfig(['enabled' => false]);
-    $baseSnapshot['reception_config'] = array_merge(
-        $baseSnapshot['reception_config'] ?? [],
-        ['default_model' => ['ai_model_id' => $model->id]],
-    );
-    $baseSnapshot['task_config'] = array_merge(
-        $baseSnapshot['task_config'] ?? [],
-        ['default_model' => ['ai_model_id' => $model->id]],
-    );
 
     if (filled($personaDisplayName)) {
         $baseSnapshot['persona_config'] = array_merge(
@@ -137,7 +125,6 @@ function createReceptionChannel(
 
     $version = ReceptionPlanVersion::factory()
         ->for($plan, 'plan')
-        ->withReceptionModel($model->id)
         ->create($versionAttributes);
 
     $channel = Channel::factory()->create(array_merge([
@@ -225,7 +212,6 @@ test('新会话会锁定渠道当前部署的接待方案版本', function () {
 
     $newerVersion = ReceptionPlanVersion::factory()
         ->for($initialVersion->plan, 'plan')
-        ->withReceptionModel($initialVersion->compiled_config['reception_config']['default_model']['ai_model_id'])
         ->create(['version_number' => 2]);
     $channel->forceFill(['reception_plan_version_id' => $newerVersion->id])->save();
 

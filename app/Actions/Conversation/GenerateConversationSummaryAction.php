@@ -3,17 +3,15 @@
 namespace App\Actions\Conversation;
 
 use App\Data\Conversation\GeneratedConversationSummaryData;
-use App\Enums\AiModelType;
 use App\Enums\MessageKind;
 use App\Enums\MessageRole;
 use App\Jobs\Contact\GenerateContactAiSummaryJob;
 use App\Jobs\Conversation\GenerateConversationTagsJob;
-use App\Models\AiModel;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Services\Conversation\ConversationLlmCandidateResolver;
 use App\Services\Conversation\GoConversationSummaryBridge;
 use App\Services\Realtime\ReceptionRealtimeNotifier;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -29,10 +27,11 @@ class GenerateConversationSummaryAction
     private const MAX_CONTEXT_CHARACTERS = 150_000;
 
     /**
-     * 注入 Go 摘要桥接和实时通知服务。
+     * 注入 Go 摘要桥接、后台任务候选模型解析器和实时通知服务。
      */
     public function __construct(
         private readonly GoConversationSummaryBridge $bridge,
+        private readonly ConversationLlmCandidateResolver $candidates,
         private readonly ReceptionRealtimeNotifier $realtimeNotifier,
     ) {}
 
@@ -151,7 +150,7 @@ class GenerateConversationSummaryAction
     }
 
     /**
-     * 按接待方案候选模型顺序生成摘要。
+     * 按 background_task 用途池候选模型顺序生成摘要。
      *
      * @param  list<array{role: string, content: string}>  $messages
      */
@@ -159,7 +158,7 @@ class GenerateConversationSummaryAction
     {
         $lastError = null;
 
-        foreach ($this->resolveCandidateModels($conversation) as $model) {
+        foreach ($this->candidates->resolve() as $model) {
             try {
                 return $this->bridge->generateConversation(
                     provider: $model->provider,
@@ -179,71 +178,6 @@ class GenerateConversationSummaryAction
         }
 
         throw $lastError ?? new \RuntimeException('No available conversation summary model.');
-    }
-
-    /**
-     * 解析摘要使用的模型候选项：轻量任务优先用任务智能体（task_config）配置的模型，任务槽未配置时回退到接待模型。
-     *
-     * @return list<AiModel>
-     */
-    private function resolveCandidateModels(Conversation $conversation): array
-    {
-        $modelIds = [];
-        $config = $conversation->receptionPlanVersion?->resolveTaskAgentConfig() ?? [];
-        $candidates = is_array($config['model_candidates'] ?? null)
-            ? $config['model_candidates']
-            : [];
-
-        foreach ($candidates as $candidate) {
-            $modelId = is_array($candidate) && is_string($candidate['ai_model_id'] ?? null)
-                ? $candidate['ai_model_id']
-                : null;
-            if ($modelId !== null) {
-                $modelIds[$modelId] = true;
-            }
-        }
-
-        $defaultModelId = $config['default_model']['ai_model_id'] ?? null;
-        if (is_string($defaultModelId)) {
-            $modelIds[$defaultModelId] = true;
-        }
-
-        $models = AiModel::query()
-            ->with('provider')
-            ->whereIn('id', array_keys($modelIds))
-            ->where('type', AiModelType::Llm->value)
-            ->where('is_active', true)
-            ->whereHas('provider', function (Builder $query): void {
-                $query
-                    ->where('is_active', true);
-            })
-            ->get()
-            ->keyBy('id');
-
-        $ordered = [];
-        foreach (array_keys($modelIds) as $modelId) {
-            $model = $models->get($modelId);
-            if ($model instanceof AiModel) {
-                $ordered[] = $model;
-            }
-        }
-
-        if ($ordered === []) {
-            $fallback = AiModel::query()
-                ->with('provider')
-                ->where('type', AiModelType::Llm->value)
-                ->where('is_active', true)
-                ->whereHas('provider', function (Builder $query): void {
-                    $query
-                        ->where('is_active', true);
-                })
-                ->orderBy('sort_order')
-                ->first();
-
-            return $fallback instanceof AiModel ? [$fallback] : [];
-        }
-
-        return $ordered;
     }
 
     /**
